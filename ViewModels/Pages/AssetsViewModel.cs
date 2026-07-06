@@ -380,6 +380,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			RefreshCompileCommands();
 		}
 
+		public void OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
+		{
+			var thing = source.GetThingType(thingId);
+			if (thing == null)
+				return;
+
+			if (!newWindow)
+			{
+				var existing = ActivePanels.OfType<FloatingThingEditorViewModel>()
+					.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, source));
+				if (existing != null)
+				{
+					existing.LoadThing(thing);
+					existing.IsVisible = true;
+					existing.IsMinimized = false;
+					return;
+				}
+			}
+
+			var panel = new FloatingThingEditorViewModel(source, thing)
+			{
+				PositionX = source.PositionX + 40,
+				PositionY = source.PositionY + 40,
+				IsVisible = true,
+			};
+			AddPanel(panel);
+		}
+
 		private string? _dragOverZone;
 
 		public string? DragOverZone

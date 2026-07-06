@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
@@ -34,6 +34,32 @@ public class SpriteRenderer
                     IntPtr destRowAddress = fb.Address + (y * fb.RowBytes);
                     Marshal.Copy(spritePixels, y * sourceStride, destRowAddress, sourceStride);
                 }
+            }
+        }
+
+        return bitmap;
+    }
+
+    public WriteableBitmap ConvertRgba(int width, int height, byte[] rgba)
+    {
+        var bitmap = new WriteableBitmap(
+            new PixelSize(width, height),
+            new Vector(96, 96),
+            PixelFormat.Rgba8888,
+            AlphaFormat.Unpremul);
+
+        using var fb = bitmap.Lock();
+        var sourceStride = width * 4;
+        if (fb.RowBytes == sourceStride)
+        {
+            Marshal.Copy(rgba, 0, fb.Address, rgba.Length);
+        }
+        else
+        {
+            for (var y = 0; y < height; y++)
+            {
+                var destRowAddress = fb.Address + (y * fb.RowBytes);
+                Marshal.Copy(rgba, y * sourceStride, destRowAddress, sourceStride);
             }
         }
 

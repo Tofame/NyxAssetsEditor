@@ -68,3 +68,14 @@ Previews use `ThingPreviewRenderer` + `ThingFrameResolver` (south-facing outfits
 | `app_state.toml` | Panel positions, dock state, linked archive paths |
 
 Both live next to the executable (`AppContext.BaseDirectory`).
+
+## Thing editor
+
+Double-click a thing in the Things Archive Viewer to open a floating **Thing Editor** panel.
+
+| Tab | Contents |
+|-----|----------|
+| **Texture** | Appearance preview, outfit/missile direction controls, layer/frame/pattern sliders, grid & crop overlays, pattern dimensions, animation block, improved-animation durations |
+| **Properties** | Common flags (stackable, rotatable, animate always, etc.) |
+
+Edits apply live to the catalog. A linked sprite archive is required for texture previews.

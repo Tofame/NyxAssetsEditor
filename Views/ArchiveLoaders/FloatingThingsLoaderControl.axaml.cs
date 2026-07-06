@@ -67,6 +67,19 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			if (DataContext is FloatingThingsLoaderViewModel vm)
 			{
+				if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)
+				{
+					e.Handled = true;
+					return;
+				}
+
+				if (e.ClickCount >= 2)
+				{
+					vm.OpenThingEditor(thing);
+					e.Handled = true;
+					return;
+				}
+
 				var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 				var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 				vm.SelectThing(thing, shift, ctrl);

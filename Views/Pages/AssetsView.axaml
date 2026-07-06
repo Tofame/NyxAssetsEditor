@@ -16,6 +16,9 @@
 		<DataTemplate DataType="{x:Type panels:FloatingThingsLoaderViewModel}">
 			<loaders:FloatingThingsLoaderControl />
 		</DataTemplate>
+		<DataTemplate DataType="{x:Type panels:FloatingThingEditorViewModel}">
+			<loaders:FloatingThingEditorControl />
+		</DataTemplate>
 	</UserControl.DataTemplates>
 
 	<UserControl.Styles>

@@ -78,6 +78,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private void Edit() => WithSelection(_panel.RequestEditThings, _panel.RequestEditThing);
 
 		[RelayCommand]
+		private void OpenInNewWindow() => WithSelection(
+			things =>
+			{
+				foreach (var item in things)
+					_panel.OpenThingEditor(item, newWindow: true);
+			},
+			item => _panel.OpenThingEditor(item, newWindow: true));
+
+		[RelayCommand]
 		private void ExportPng() => ExportWithSelection("png");
 
 		[RelayCommand]
@@ -383,7 +392,21 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			return spritePanel is { IsArchiveLoaded: true } ? spritePanel.Loader : null;
 		}
 
-		public ThingType? GetThingType(uint id) => _allThings.Find(t => t.Id == id);
+		public ThingType? GetThingType(uint id)
+		{
+			var listed = _allThings.Find(t => t.Id == id);
+			if (_catalog == null || listed == null)
+				return listed;
+
+			return listed.Kind switch
+			{
+				ThingKind.Item => _catalog.TryGetItem(id) ?? listed,
+				ThingKind.Outfit => _catalog.TryGetOutfit(id) ?? listed,
+				ThingKind.Effect => _catalog.TryGetEffect(id) ?? listed,
+				ThingKind.Missile => _catalog.TryGetMissile(id) ?? listed,
+				_ => listed,
+			};
+		}
 
 		public void SyncThingInList(ThingType thing, bool replaceExisting)
 		{
@@ -457,6 +480,34 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			foreach (var item in PagedThings)
 				item.InvalidatePreview();
 		}
+
+		public void ApplyThingEdit(ThingType thing)
+		{
+			if (_catalog == null)
+				return;
+
+			switch (thing.Kind)
+			{
+				case ThingKind.Item:
+					_catalog.PutItem(thing);
+					break;
+				case ThingKind.Outfit:
+					_catalog.PutOutfit(thing);
+					break;
+				case ThingKind.Effect:
+					_catalog.PutEffect(thing);
+					break;
+				case ThingKind.Missile:
+					_catalog.PutMissile(thing);
+					break;
+			}
+
+			SyncThingInList(thing, replaceExisting: true);
+			PagedThings.FirstOrDefault(t => t.Id == thing.Id)?.InvalidatePreview();
+		}
+
+		public void OpenThingEditor(ThingItemViewModel item, bool newWindow = false) =>
+			_parentViewModel?.OpenThingEditor(this, item.Id, newWindow);
 
 		private IEnumerable<ThingType> EnumerateSelectedSection()
 		{

@@ -127,6 +127,7 @@
 											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
 										</MenuItem>
 										<Separator/>
+										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
 										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
 										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
@@ -170,6 +171,7 @@
 											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
 										</MenuItem>
 										<Separator/>
+										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
 										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
 										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
