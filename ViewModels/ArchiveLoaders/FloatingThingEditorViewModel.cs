@@ -11,6 +11,7 @@ using NyxAssetsEditor.Services.Exchange;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
+using Avalonia.Media;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
@@ -820,7 +821,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(PatternZCount));
 		OnPropertyChanged(nameof(FrameCount));
 	}
-
 	private void NotifyThingProperties()
 	{
 		OnPropertyChanged(nameof(Thing));
@@ -836,6 +836,34 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(ShowOutfitDirections));
 		OnPropertyChanged(nameof(ShowMissileDirections));
 		OnPropertyChanged(nameof(HasPatterns));
+		OnPropertyChanged(nameof(IsGround));
+		OnPropertyChanged(nameof(GroundSpeed));
+		OnPropertyChanged(nameof(HasLight));
+		OnPropertyChanged(nameof(LightColor));
+		OnPropertyChanged(nameof(LightLevel));
+		OnPropertyChanged(nameof(LightColorBrush));
+		OnPropertyChanged(nameof(MiniMap));
+		OnPropertyChanged(nameof(MiniMapColor));
+		OnPropertyChanged(nameof(MiniMapColorBrush));
+		OnPropertyChanged(nameof(HasOffset));
+		OnPropertyChanged(nameof(OffsetX));
+		OnPropertyChanged(nameof(OffsetY));
+		OnPropertyChanged(nameof(HasElevation));
+		OnPropertyChanged(nameof(Elevation));
+		OnPropertyChanged(nameof(IsMarketItem));
+		OnPropertyChanged(nameof(MarketName));
+		OnPropertyChanged(nameof(MarketCategoryIndex));
+		OnPropertyChanged(nameof(MarketTradeAs));
+		OnPropertyChanged(nameof(MarketShowAs));
+		OnPropertyChanged(nameof(MarketRestrictProfession));
+		OnPropertyChanged(nameof(MarketRestrictLevel));
+		OnPropertyChanged(nameof(Writable));
+		OnPropertyChanged(nameof(WritableOnce));
+		OnPropertyChanged(nameof(MaxTextLength));
+		OnPropertyChanged(nameof(HasDefaultAction));
+		OnPropertyChanged(nameof(DefaultActionIndex));
+		OnPropertyChanged(nameof(IsLensHelp));
+		OnPropertyChanged(nameof(LensHelpIndex));
 	}
 
 	private AnimationFrameTiming? GetCurrentTiming()
@@ -1065,5 +1093,275 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		get => Thing.BlockMissile;
 		set { if (Thing.BlockMissile == value) return; Thing.BlockMissile = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsGround
+	{
+		get => Thing.IsGround;
+		set { if (Thing.IsGround == value) return; Thing.IsGround = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint GroundSpeed
+	{
+		get => Thing.GroundSpeed;
+		set { if (Thing.GroundSpeed == value) return; Thing.GroundSpeed = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool HasLight
+	{
+		get => Thing.HasLight;
+		set { if (Thing.HasLight == value) return; Thing.HasLight = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint LightColor
+	{
+		get => Thing.LightColor;
+		set
+		{
+			if (Thing.LightColor == value) return;
+			Thing.LightColor = value;
+			OnPropertyChanged();
+			OnPropertyChanged(nameof(LightColorBrush));
+			ApplyToCatalog();
+		}
+	}
+
+	public uint LightLevel
+	{
+		get => Thing.LightLevel;
+		set { if (Thing.LightLevel == value) return; Thing.LightLevel = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool MiniMap
+	{
+		get => Thing.MiniMap;
+		set { if (Thing.MiniMap == value) return; Thing.MiniMap = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MiniMapColor
+	{
+		get => Thing.MiniMapColor;
+		set
+		{
+			if (Thing.MiniMapColor == value) return;
+			Thing.MiniMapColor = value;
+			OnPropertyChanged();
+			OnPropertyChanged(nameof(MiniMapColorBrush));
+			ApplyToCatalog();
+		}
+	}
+
+	public bool HasOffset
+	{
+		get => Thing.HasOffset;
+		set { if (Thing.HasOffset == value) return; Thing.HasOffset = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public int OffsetX
+	{
+		get => Thing.OffsetX;
+		set { if (Thing.OffsetX == value) return; Thing.OffsetX = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public int OffsetY
+	{
+		get => Thing.OffsetY;
+		set { if (Thing.OffsetY == value) return; Thing.OffsetY = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool HasElevation
+	{
+		get => Thing.HasElevation;
+		set { if (Thing.HasElevation == value) return; Thing.HasElevation = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint Elevation
+	{
+		get => Thing.Elevation;
+		set { if (Thing.Elevation == value) return; Thing.Elevation = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsMarketItem
+	{
+		get => Thing.IsMarketItem;
+		set { if (Thing.IsMarketItem == value) return; Thing.IsMarketItem = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public string MarketName
+	{
+		get => Thing.MarketName ?? string.Empty;
+		set { if (Thing.MarketName == value) return; Thing.MarketName = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MarketTradeAs
+	{
+		get => Thing.MarketTradeAs;
+		set { if (Thing.MarketTradeAs == value) return; Thing.MarketTradeAs = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MarketShowAs
+	{
+		get => Thing.MarketShowAs;
+		set { if (Thing.MarketShowAs == value) return; Thing.MarketShowAs = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MarketRestrictProfession
+	{
+		get => Thing.MarketRestrictProfession;
+		set { if (Thing.MarketRestrictProfession == value) return; Thing.MarketRestrictProfession = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MarketRestrictLevel
+	{
+		get => Thing.MarketRestrictLevel;
+		set { if (Thing.MarketRestrictLevel == value) return; Thing.MarketRestrictLevel = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Writable
+	{
+		get => Thing.Writable;
+		set { if (Thing.Writable == value) return; Thing.Writable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool WritableOnce
+	{
+		get => Thing.WritableOnce;
+		set { if (Thing.WritableOnce == value) return; Thing.WritableOnce = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint MaxTextLength
+	{
+		get => Thing.MaxTextLength;
+		set { if (Thing.MaxTextLength == value) return; Thing.MaxTextLength = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool HasDefaultAction
+	{
+		get => Thing.HasDefaultAction;
+		set { if (Thing.HasDefaultAction == value) return; Thing.HasDefaultAction = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsLensHelp
+	{
+		get => Thing.IsLensHelp;
+		set { if (Thing.IsLensHelp == value) return; Thing.IsLensHelp = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public int MarketCategoryIndex
+	{
+		get
+		{
+			int val = (int)Thing.MarketCategory;
+			if (val <= 0) return 8; // "Others"
+			return val - 1;
+		}
+		set
+		{
+			int val = value + 1;
+			if (Thing.MarketCategory == (uint)val) return;
+			Thing.MarketCategory = (uint)val;
+			OnPropertyChanged();
+			ApplyToCatalog();
+		}
+	}
+
+	public int LensHelpIndex
+	{
+		get
+		{
+			int val = (int)Thing.LensHelp;
+			return Math.Max(0, val - 1100);
+		}
+		set
+		{
+			int val = value + 1100;
+			if (Thing.LensHelp == (uint)val) return;
+			Thing.LensHelp = (uint)val;
+			OnPropertyChanged();
+			ApplyToCatalog();
+		}
+	}
+
+	public int DefaultActionIndex
+	{
+		get => (int)Thing.DefaultAction;
+		set
+		{
+			if (Thing.DefaultAction == (uint)value) return;
+			Thing.DefaultAction = (uint)value;
+			OnPropertyChanged();
+			ApplyToCatalog();
+		}
+	}
+
+	public static System.Collections.Generic.List<string> MarketCategories { get; } = new()
+	{
+		"Armors", "Amulets", "Boots", "Containers", "Decoration", "Foods",
+		"Helmets and Hats", "Legs", "Others", "Potions", "Rings", "Runes",
+		"Shields", "Tools", "Valuables", "Ammunition", "Axes", "Clubs",
+		"Distance", "Swords", "Wands and Rods", "Premium Scrolls", "Meta Weapons"
+	};
+
+	public static System.Collections.Generic.List<string> DefaultActions { get; } = new()
+	{
+		"None", "Look", "Use", "Open", "Autowalk Highlight"
+	};
+
+	public static System.Collections.Generic.List<string> LensHelpTypes { get; } = new()
+	{
+		"Ladders", "Sewer Grates", "Dungeon Floor", "Levers", "Doors",
+		"Special Doors", "Stairs", "Mailboxes", "Depot Boxes", "Dustbins",
+		"Stone Piles", "Signs", "Books and Scrolls"
+	};
+
+	public Avalonia.Media.IBrush LightColorBrush => new Avalonia.Media.SolidColorBrush(Get8BitColor((int)LightColor));
+	public Avalonia.Media.IBrush MiniMapColorBrush => new Avalonia.Media.SolidColorBrush(Get8BitColor((int)MiniMapColor));
+
+	public class PaletteColor
+	{
+		public int Index { get; }
+		public string Hex { get; }
+		public PaletteColor(int index, string hex)
+		{
+			Index = index;
+			Hex = hex;
+		}
+	}
+
+	private static readonly System.Collections.Generic.List<PaletteColor> _paletteColors = GeneratePaletteColors();
+	public System.Collections.Generic.List<PaletteColor> PaletteColors => _paletteColors;
+
+	private static System.Collections.Generic.List<PaletteColor> GeneratePaletteColors()
+	{
+		var list = new System.Collections.Generic.List<PaletteColor>();
+		for (int i = 0; i < 224; i++)
+		{
+			var c = Get8BitColor(i);
+			var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+			list.Add(new PaletteColor(i, hex));
+		}
+		return list;
+	}
+
+	public static Avalonia.Media.Color Get8BitColor(int index)
+	{
+		if (index < 0 || index >= 224) return Avalonia.Media.Colors.Black;
+		if (index >= 216) return Avalonia.Media.Colors.Black;
+		int r = (index / 36) % 6 * 51;
+		int g = (index / 6) % 6 * 51;
+		int b = index % 6 * 51;
+		return Avalonia.Media.Color.FromRgb((byte)r, (byte)g, (byte)b);
+	}
+
+	[RelayCommand]
+	public void SelectLightColor(int colorIndex)
+	{
+		LightColor = (uint)colorIndex;
+	}
+
+	[RelayCommand]
+	public void SelectMiniMapColor(int colorIndex)
+	{
+		MiniMapColor = (uint)colorIndex;
 	}
 }
