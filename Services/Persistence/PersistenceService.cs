@@ -201,7 +201,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			}
 		}
 
-		public static void LoadAppState(AssetsViewModel assetsVm, SpriteRenderer spriteRenderer)
+		public static async System.Threading.Tasks.Task LoadAppStateAsync(AssetsViewModel assetsVm, SpriteRenderer spriteRenderer)
 		{
 			_isRestoring = true;
 			try
@@ -269,7 +269,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					{
 						try
 						{
-							panel.LoadArchive(panelState.FilePath);
+							await panel.LoadArchiveAsync(panelState.FilePath).ConfigureAwait(true);
 							panel.CurrentPage = panelState.CurrentPage;
 						}
 						catch (Exception ex)
@@ -287,7 +287,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					{
 						try
 						{
-							panel.LoadArchive(panelState.FilePath, useLastLoadedSprite: false);
+							await panel.LoadArchiveAsync(panelState.FilePath, useLastLoadedSprite: false).ConfigureAwait(true);
 							panel.CurrentPage = panelState.CurrentPage;
 						}
 						catch (Exception ex)

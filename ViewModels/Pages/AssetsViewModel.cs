@@ -36,8 +36,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			// Subscribe to defaults if settings change
 			SettingsViewModel.DefaultPageSizeChanged += OnDefaultPageSizeChanged;
 
-			// Restore workspace panels state
-			PersistenceService.LoadAppState(this, _renderer);
+			_ = PersistenceService.LoadAppStateAsync(this, _renderer);
 			RefreshCompileCommands();
 		}
 
