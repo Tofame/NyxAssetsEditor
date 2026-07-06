@@ -92,8 +92,9 @@
 									<StackPanel Spacing="6" HorizontalAlignment="Right" Margin="0,4,0,0">
 
 										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowFrameGroupSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Frame group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<TextBlock Grid.Column="0" Text="Group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
 											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center"/>
+											<TextBlock Grid.Column="2" Text="{Binding FrameGroupDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="72"/>
 										</Grid>
 
 										<Grid ColumnDefinitions="Auto,168,Auto,Auto" IsVisible="{Binding ShowFrameSlider}" HorizontalAlignment="Right">

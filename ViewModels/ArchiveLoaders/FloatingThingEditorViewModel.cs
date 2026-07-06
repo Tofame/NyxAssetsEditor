@@ -62,8 +62,14 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void LoadThing(ThingType thing)
 	{
 		StopAnimationPreview(restoreFrame: false);
+		var preserveFrameGroupIndex = _selectedFrameGroupIndex;
 		_thing = SourcePanel.GetThingType(thing.Id) ?? thing;
-		_selectedFrameGroupIndex = 0;
+
+		var targetFrameGroupIndex = Kind == ThingKind.Outfit && OutfitFrameGroupsEnabled && Thing.FrameGroups.Count > 1
+			? Math.Clamp(preserveFrameGroupIndex, 0, Thing.FrameGroups.Count - 1)
+			: 0;
+
+		_selectedFrameGroupIndex = targetFrameGroupIndex;
 		_selectedFrame = 0;
 		_selectedLayer = 0;
 		_viewPatternX = 0;
@@ -77,6 +83,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		NotifyThingProperties();
 		NotifyAppearanceControls();
 		NotifySliderDisplays();
+		OnPropertyChanged(nameof(SelectedFrameGroupIndex));
+		OnPropertyChanged(nameof(FrameGroupDisplay));
 		RefreshAppearance();
 	}
 
@@ -102,7 +110,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowOutfitDirections => IsOutfit;
 	public bool ShowMissileDirections => IsMissile;
 	public bool ShowLayerSlider => CurrentFrameGroup.Layers > 1;
-	public bool ShowFrameSlider => CurrentFrameGroup.Frames > 1;
+	public bool UsesOutfitFrameGroups => IsOutfit && OutfitFrameGroupsEnabled && Thing.FrameGroups.Count > 1;
+	public bool ShowFrameSlider => CurrentFrameGroup.Frames > 1 && (!UsesOutfitFrameGroups || SelectedFrameGroupIndex > 0);
 	public bool IsAnimationPlaying
 	{
 		get => _isAnimationPlaying;
@@ -113,12 +122,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowPatternYSlider => false;
 	public bool ShowPatternZSlider => CurrentFrameGroup.PatternZ > 1;
 	public bool ShowAddonSlider => IsOutfit && CurrentFrameGroup.PatternY > 1;
-	public bool ShowFrameGroupSlider => IsOutfit && OutfitFrameGroupsEnabled && Thing.FrameGroups.Count > 1;
-	public bool ShowAnimationSection => CurrentFrameGroup.Frames > 1;
+	public bool ShowFrameGroupSlider => UsesOutfitFrameGroups;
+	public bool ShowAnimationSection => ShowFrameSlider;
 	public bool ShowDurationEditors => ImprovedAnimations && ShowAnimationSection && ShowDurationEditorsForCategory;
 
 	public string LayerDisplay => $"{SelectedLayer + 1}/{Math.Max(1, (int)CurrentFrameGroup.Layers)}";
 	public string FrameDisplay => $"{SelectedFrame + 1}/{Math.Max(1, (int)CurrentFrameGroup.Frames)}";
+	public string FrameGroupDisplay => SelectedFrameGroupIndex <= 0 ? "Idle/Stand" : "Walking";
 	public string PatternXDisplay => $"{ViewPatternXIndex + 1}/{Math.Max(1, (int)CurrentFrameGroup.PatternX)}";
 	public string PatternYDisplay => $"{ViewPatternYIndex + 1}/{Math.Max(1, (int)CurrentFrameGroup.PatternY)}";
 
@@ -149,8 +159,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (!SetProperty(ref _selectedFrameGroupIndex, Math.Clamp(value, 0, FrameGroupMaximum)))
 				return;
+
+			StopAnimationPreview(restoreFrame: false);
 			_selectedLayer = Math.Clamp(_selectedLayer, 0, LayerMaximum);
-			_selectedFrame = Math.Clamp(_selectedFrame, 0, FrameMaximum);
+			_selectedFrame = 0;
+			OnPropertyChanged(nameof(FrameGroupDisplay));
 			SyncViewPatternsFromDirection();
 			SyncPatternFieldsFromGroup();
 			NotifyAppearanceControls();
@@ -746,6 +759,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(ShowPatternZSlider));
 		OnPropertyChanged(nameof(ShowAddonSlider));
 		OnPropertyChanged(nameof(ShowFrameGroupSlider));
+		OnPropertyChanged(nameof(UsesOutfitFrameGroups));
+		OnPropertyChanged(nameof(FrameGroupDisplay));
 		OnPropertyChanged(nameof(ShowAnimationSection));
 		OnPropertyChanged(nameof(ShowDurationEditors));
 		OnPropertyChanged(nameof(ShowLoopCountEditor));
