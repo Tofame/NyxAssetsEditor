@@ -45,23 +45,7 @@ namespace NyxAssetsEditor.Views
 			{
 				if (vm.PositionX == 100)
 				{
-					var canvasVisual = GetParentCanvas();
-					if (canvasVisual != null)
-					{
-						double canvasWidth = canvasVisual.Bounds.Width;
-						if (canvasWidth > 0)
-						{
-							vm.PositionX = canvasWidth - vm.PanelWidth - 20;
-						}
-						else
-						{
-							vm.PositionX = 600;
-						}
-					}
-					else
-					{
-						vm.PositionX = 600;
-					}
+					vm.PositionX = 20;
 				}
 
 				if (vm.IsDraggingVM && _sharedActivePointer != null)

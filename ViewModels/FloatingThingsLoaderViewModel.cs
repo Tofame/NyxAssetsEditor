@@ -65,6 +65,21 @@ namespace NyxAssetsEditor.ViewModels
 
 		public string FileName => string.IsNullOrEmpty(FilePath) || FilePath == "No things loaded" ? "" : System.IO.Path.GetFileName(FilePath);
 
+		public ArchiveFormat ArchiveFormat => ArchiveFormatHelper.FromPath(FilePath);
+
+		public ThingCatalog? Catalog => _catalog;
+
+		public ClientDataReadOptions GetWriteOptions() => new ClientDataReadOptions
+		{
+			ClientVersion = new ClientDataVersion { Value = SettingsViewModel.ClientVersion },
+			ExtendedSpriteIds = UseExtendedThingIds,
+			ImprovedAnimations = UseFrameAnimations,
+			OutfitFrameGroups = UseFrameGroups,
+			TransparentSprites = SettingsViewModel.UseTransparentPixels
+		};
+
+		public FloatingSpriteLoaderViewModel? LinkedSpritePanel { get; set; }
+
 		public bool UseExtendedThingIds
 		{
 			get => _useExtendedThingIds;
@@ -198,30 +213,8 @@ namespace NyxAssetsEditor.ViewModels
 
 		public SpriteLoader? GetActiveSpriteLoader()
 		{
-			if (_parentViewModel != null)
-			{
-				Console.WriteLine($"[ThingsLoader] GetActiveSpriteLoader: ActivePanels Count = {_parentViewModel.ActivePanels.Count}");
-				foreach (var panel in _parentViewModel.ActivePanels)
-				{
-					if (panel is FloatingSpriteLoaderViewModel spritePanel)
-					{
-						Console.WriteLine($"[ThingsLoader] Found SpritePanel. IsArchiveLoaded = {spritePanel.IsArchiveLoaded}, SpriteCount = {spritePanel.Loader.SpriteCount}");
-						if (spritePanel.IsArchiveLoaded)
-						{
-							return spritePanel.Loader;
-						}
-					}
-					else
-					{
-						Console.WriteLine($"[ThingsLoader] Found other panel: {panel.GetType().Name}");
-					}
-				}
-			}
-			else
-			{
-				Console.WriteLine("[ThingsLoader] parentViewModel is null!");
-			}
-			return null;
+			var spritePanel = _parentViewModel?.ResolveSpritePanelFor(this);
+			return spritePanel is { IsArchiveLoaded: true } ? spritePanel.Loader : null;
 		}
 
 		public Avalonia.Media.Imaging.WriteableBitmap? GetPreviewForThing(ThingType thing)
@@ -279,9 +272,15 @@ namespace NyxAssetsEditor.ViewModels
 			}
 		}
 
-		public void LoadArchive(string path)
+		public void LoadArchive(string path, bool useLastLoadedSprite = true)
 		{
-			if (!IsSpriteLoaderLoaded) return;
+			var thingsFormat = ArchiveFormatHelper.FromPath(path);
+			if (useLastLoadedSprite)
+				_parentViewModel?.LinkThingsToSprite(this, thingsFormat);
+
+			if (_parentViewModel?.ResolveSpritePanelFor(this) is not { IsArchiveLoaded: true })
+				return;
+
 			FilePath = path;
 			try
 			{

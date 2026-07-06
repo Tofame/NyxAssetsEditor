@@ -8,6 +8,15 @@ public class SpriteLoader : IDisposable
 {
     private SpriteArchive? _archive_spr;
     private AssetArchive? _archive_assets;
+    private bool _extendedSpriteIds = true;
+    private bool _transparentPixels = true;
+
+    public SpriteArchiveKind ArchiveKind =>
+        _archive_spr != null ? SpriteArchiveKind.Spr :
+        _archive_assets != null ? SpriteArchiveKind.Assets :
+        SpriteArchiveKind.None;
+
+    public uint SprSignature => _archive_spr?.Signature ?? 0;
 
     public uint SpriteCount
     {
@@ -26,6 +35,9 @@ public class SpriteLoader : IDisposable
     {
         // Reset both slots to ensure we don't leak memory handles from previous selections
         ClearArchives();
+
+        _extendedSpriteIds = extendedSpriteIds;
+        _transparentPixels = transparentPixels;
 
         string extension = Path.GetExtension(filePath).ToLower();
 
@@ -65,6 +77,63 @@ public class SpriteLoader : IDisposable
         throw new InvalidOperationException("No sprite archive is currently open.");
     }
 
+    public bool IsEmptySprite(uint spriteId)
+    {
+        if (_archive_spr != null)
+            return _archive_spr.IsEmptySprite(spriteId);
+        if (_archive_assets != null)
+            return _archive_assets.IsEmptySprite(spriteId);
+        return true;
+    }
+
+    public void WriteSprTo(string path)
+    {
+        if (_archive_spr == null)
+            throw new InvalidOperationException("No .spr archive is open.");
+
+        var rgbaList = new byte[]?[SpriteCount + 1];
+        for (uint id = 1; id <= SpriteCount; id++)
+            rgbaList[id] = IsEmptySprite(id) ? null : LoadSpritePixels(id);
+
+        using var output = File.Create(path);
+        SpriteSheetCompiler.WriteToStream(
+            output,
+            SprSignature,
+            _extendedSpriteIds,
+            _transparentPixels,
+            rgbaList);
+    }
+
+    public void WriteAssetsTo(string path, int compressionLevel = 3, uint spritesPerPage = 2048)
+    {
+        if (ArchiveKind == SpriteArchiveKind.None)
+            throw new InvalidOperationException("No sprite archive is open.");
+
+        var writer = new AssetArchiveWriter();
+        var spritesArray = new byte[SpriteCount][];
+
+        for (uint id = 1; id <= SpriteCount; id++)
+        {
+            if (IsEmptySprite(id))
+            {
+                spritesArray[id - 1] = new byte[] { 0, 0, 0, 0 };
+                continue;
+            }
+
+            var rgba = LoadSpritePixels(id);
+            byte[] entry = new byte[4 + SpritePixelCodec.RgbaBufferLength];
+            entry[0] = SpritePixelCodec.SpriteEdgeLength;
+            entry[1] = 0;
+            entry[2] = SpritePixelCodec.SpriteEdgeLength;
+            entry[3] = 0;
+            rgba.CopyTo(entry.AsSpan(4));
+            spritesArray[id - 1] = entry;
+        }
+
+        writer.AddRange(spritesArray);
+        writer.Save(path, compressionLevel, spritesPerPage);
+    }
+
     private void ClearArchives()
     {
         _archive_spr?.Dispose();
@@ -78,4 +147,11 @@ public class SpriteLoader : IDisposable
     {
         ClearArchives();
     }
+}
+
+public enum SpriteArchiveKind
+{
+    None,
+    Spr,
+    Assets
 }

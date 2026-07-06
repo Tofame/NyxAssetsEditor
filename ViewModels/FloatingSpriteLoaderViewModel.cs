@@ -36,6 +36,8 @@ namespace NyxAssetsEditor.ViewModels
 
 		public string FileName => string.IsNullOrEmpty(FilePath) || FilePath == "No archive loaded" ? "" : System.IO.Path.GetFileName(FilePath);
 
+		public ArchiveFormat ArchiveFormat => ArchiveFormatHelper.FromPath(FilePath);
+
 		public bool UseTransparentPixels
 		{
 			get => _useTransparentPixels;
@@ -146,6 +148,8 @@ namespace NyxAssetsEditor.ViewModels
 		public bool HasNextPage => CurrentPage < TotalPages;
 
 
+		public AssetsViewModel? ParentViewModel { get; set; }
+
 		public FloatingSpriteLoaderViewModel(SpriteRenderer renderer)
 		{
 			_renderer = renderer;
@@ -158,6 +162,7 @@ namespace NyxAssetsEditor.ViewModels
 			TotalSprites = Loader.SpriteCount;
 			CurrentPage = 1;
 			UpdatePage();
+			ParentViewModel?.OnSpriteArchiveLoaded(this);
 		}
 
 		private void UpdatePage()

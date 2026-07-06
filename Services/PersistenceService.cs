@@ -58,6 +58,7 @@ namespace NyxAssetsEditor.Services
 			public bool UseExtendedThingIds { get; set; } = true;
 			public bool UseFrameAnimations { get; set; } = true;
 			public bool UseFrameGroups { get; set; } = true;
+			public string LinkedSpriteFilePath { get; set; } = "";
 		}
 
 		public static void LoadSettings()
@@ -143,13 +144,14 @@ namespace NyxAssetsEditor.Services
 					else if (panel is FloatingThingsLoaderViewModel thingsPanel)
 					{
 						state.Type = "Things";
-						state.FilePath = thingsPanel.FilePath == "No archive loaded" ? "" : thingsPanel.FilePath;
+						state.FilePath = thingsPanel.FilePath == "No things loaded" ? "" : thingsPanel.FilePath;
 						state.IsGridView = thingsPanel.IsGridView;
 						state.PageSize = thingsPanel.PageSize;
 						state.CurrentPage = thingsPanel.CurrentPage;
 						state.UseExtendedThingIds = thingsPanel.UseExtendedThingIds;
 						state.UseFrameAnimations = thingsPanel.UseFrameAnimations;
 						state.UseFrameGroups = thingsPanel.UseFrameGroups;
+						state.LinkedSpriteFilePath = thingsPanel.LinkedSpritePanel?.FilePath ?? "";
 					}
 
 					model.Assets.Panels.Add(state);
@@ -177,6 +179,9 @@ namespace NyxAssetsEditor.Services
 
 				assetsVm.ClearAllPanels();
 
+				var spritePanels = new List<(PanelStateModel state, FloatingSpriteLoaderViewModel panel)>();
+				var thingsPanels = new List<(PanelStateModel state, FloatingThingsLoaderViewModel panel)>();
+
 				foreach (var panelState in model.Assets.Panels)
 				{
 					// Only restore docked panels
@@ -199,19 +204,7 @@ namespace NyxAssetsEditor.Services
 						};
 
 						assetsVm.RestorePanel(panel);
-
-						if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
-						{
-							try
-							{
-								panel.LoadArchive(panelState.FilePath);
-								panel.CurrentPage = panelState.CurrentPage;
-							}
-							catch (Exception ex)
-							{
-								Debug.WriteLine($"Failed to load spr/assets from state: {ex.Message}");
-							}
-						}
+						spritePanels.Add((panelState, panel));
 					}
 					else if (panelState.Type == "Things")
 					{
@@ -231,18 +224,42 @@ namespace NyxAssetsEditor.Services
 						};
 
 						assetsVm.RestorePanel(panel);
+						thingsPanels.Add((panelState, panel));
+					}
+				}
 
-						if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
+				foreach (var (panelState, panel) in spritePanels)
+				{
+					if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
+					{
+						try
 						{
-							try
-							{
-								panel.LoadArchive(panelState.FilePath);
-								panel.CurrentPage = panelState.CurrentPage;
-							}
-							catch (Exception ex)
-							{
-								Debug.WriteLine($"Failed to load dat/things from state: {ex.Message}");
-							}
+							panel.LoadArchive(panelState.FilePath);
+							panel.CurrentPage = panelState.CurrentPage;
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine($"Failed to load spr/assets from state: {ex.Message}");
+						}
+					}
+				}
+
+				foreach (var (panelState, panel) in thingsPanels)
+				{
+					assetsVm.RestoreThingsLink(panel, panelState.LinkedSpriteFilePath);
+					if (panel.LinkedSpritePanel == null && !string.IsNullOrEmpty(panelState.FilePath))
+						assetsVm.LinkThingsToSprite(panel, ArchiveFormatHelper.FromPath(panelState.FilePath));
+
+					if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
+					{
+						try
+						{
+							panel.LoadArchive(panelState.FilePath, useLastLoadedSprite: false);
+							panel.CurrentPage = panelState.CurrentPage;
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine($"Failed to load dat/things from state: {ex.Message}");
 						}
 					}
 				}
