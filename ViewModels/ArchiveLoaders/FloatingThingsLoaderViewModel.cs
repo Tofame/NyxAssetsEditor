@@ -128,8 +128,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 	public partial class FloatingThingsLoaderViewModel : PanelViewModelBase, IDisposable
 	{
-		private const string PendingRemoveMessage =
-			"Remove is not supported by NyxAssets yet — things cannot be deleted from a catalog.";
+
 
 		private readonly SpriteRenderer _renderer = new SpriteRenderer();
 		private readonly AssetsViewModel? _parentViewModel;
@@ -879,8 +878,60 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void RemoveThings(IEnumerable<ThingItemViewModel> things)
 		{
-			var ids = string.Join(", ", things.Select(t => t.DisplayedId));
-			Debug.WriteLine($"[ThingsLoader] Remove thing(s) {ids}: {PendingRemoveMessage}");
+			if (_catalog == null) return;
+
+			var idsToRemove = new HashSet<uint>(things.Select(t => t.Id));
+			if (idsToRemove.Count == 0) return;
+
+			// Remove from local list
+			_allThings.RemoveAll(t => idsToRemove.Contains(t.Id));
+
+			// Rebuild the catalog — NyxAssets has no delete; we re-insert survivors with new sequential ids
+			var rebuilt = new ThingCatalog
+			{
+				DatSignature = _catalog.DatSignature,
+				DatFormat    = _catalog.DatFormat,
+			};
+
+			// Items (start at FirstItemId)
+			uint nextId = ThingCatalog.FirstItemId;
+			foreach (var t in _catalog.EnumerateItems().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
+			{
+				var clone = ThingCloner.Clone(t, nextId++);
+				rebuilt.PutItem(clone);
+			}
+
+			// Outfits
+			nextId = ThingCatalog.FirstOutfitId;
+			foreach (var t in _catalog.EnumerateOutfits().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
+			{
+				var clone = ThingCloner.Clone(t, nextId++);
+				rebuilt.PutOutfit(clone);
+			}
+
+			// Effects
+			nextId = ThingCatalog.FirstEffectId;
+			foreach (var t in _catalog.EnumerateEffects().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
+			{
+				var clone = ThingCloner.Clone(t, nextId++);
+				rebuilt.PutEffect(clone);
+			}
+
+			// Missiles
+			nextId = ThingCatalog.FirstMissileId;
+			foreach (var t in _catalog.EnumerateMissiles().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
+			{
+				var clone = ThingCloner.Clone(t, nextId++);
+				rebuilt.PutMissile(clone);
+			}
+
+			_catalog = rebuilt;
+
+			// Refresh _allThings IDs to match the rebuilt catalog
+			ReloadThingsForSection();
+			TotalThings = (uint)_allThings.Count;
+
+			RefreshAfterCatalogMutation(goToLastPage: false);
 		}
 
 		[RelayCommand(CanExecute = nameof(IsArchiveLoaded))]
