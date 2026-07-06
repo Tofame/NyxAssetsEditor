@@ -289,6 +289,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					OnPropertyChanged(nameof(ShowGridViewContent));
 					ImportThingCommand.NotifyCanExecuteChanged();
 					GoToIdCommand.NotifyCanExecuteChanged();
+					NewThingCommand.NotifyCanExecuteChanged();
 				}
 			}
 		}

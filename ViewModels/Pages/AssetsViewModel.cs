@@ -209,6 +209,50 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			CompileAsCommand.NotifyCanExecuteChanged();
 		}
 
+		/// <summary>
+		/// Returns a human-readable summary of pending changes across all dirty pairs.
+		/// </summary>
+		public string GetPendingChangesSummary()
+		{
+			var lines = new System.Collections.Generic.List<string>();
+
+			foreach (var pair in GetCompilePairs())
+			{
+				if (!pair.ThingsPanel.HasSavedChanges && !pair.SpritePanel.HasSavedChanges)
+					continue;
+
+				var catalog = pair.ThingsPanel.Catalog;
+				var fileName = pair.ThingsPanel.FileName;
+
+				if (!string.IsNullOrEmpty(fileName))
+					lines.Add($"Archive: {fileName}");
+
+				if (pair.ThingsPanel.HasSavedChanges && catalog != null)
+				{
+					var itemCount   = (int)catalog.ItemCount   - (int)NyxAssets.Things.ThingCatalog.FirstItemId   + 1;
+					var outfitCount = (int)catalog.OutfitCount - (int)NyxAssets.Things.ThingCatalog.FirstOutfitId + 1;
+					var effectCount = (int)catalog.EffectCount - (int)NyxAssets.Things.ThingCatalog.FirstEffectId + 1;
+					var missileCount= (int)catalog.MissileCount- (int)NyxAssets.Things.ThingCatalog.FirstMissileId+ 1;
+
+					if (itemCount    > 0) lines.Add($"  Items:    {itemCount}");
+					if (outfitCount  > 0) lines.Add($"  Outfits:  {outfitCount}");
+					if (effectCount  > 0) lines.Add($"  Effects:  {effectCount}");
+					if (missileCount > 0) lines.Add($"  Missiles: {missileCount}");
+				}
+
+				if (pair.SpritePanel.HasSavedChanges)
+				{
+					var sprFile = pair.SpritePanel.FileName;
+					lines.Add($"  Sprites:  {pair.SpritePanel.Loader.SpriteCount} total" +
+					          (string.IsNullOrEmpty(sprFile) ? "" : $" ({sprFile})"));
+				}
+			}
+
+			return lines.Count > 0
+				? string.Join("\n", lines)
+				: "Changes pending (details unavailable).";
+		}
+
 		[RelayCommand(CanExecute = nameof(CanCompile))]
 		private void Compile()
 		{
