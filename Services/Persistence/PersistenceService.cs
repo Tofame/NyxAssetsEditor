@@ -28,6 +28,11 @@ namespace NyxAssetsEditor.Services.Persistence
 			public uint OutfitAnimationDurationMs { get; set; } = 300;
 			public uint EffectAnimationDurationMs { get; set; } = 100;
 			public uint MissileAnimationDurationMs { get; set; } = 500;
+			public string ThingEditorGridColor { get; set; } = "#B4808080";
+			public int ThingEditorGridLineWidth { get; set; } = 1;
+			public string ThingEditorDragGridColor { get; set; } = "#B4FF69B4";
+			public int ThingEditorDragGridLineWidth { get; set; } = 1;
+			public string ThingEditorDragHighlightColor { get; set; } = "#803A7BD5";
 		}
 
 		public class AppStateTomlModel
@@ -87,7 +92,12 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ItemAnimationDurationMs,
 							model.OutfitAnimationDurationMs,
 							model.EffectAnimationDurationMs,
-							model.MissileAnimationDurationMs);
+							model.MissileAnimationDurationMs,
+							model.ThingEditorGridColor,
+							model.ThingEditorGridLineWidth,
+							model.ThingEditorDragGridColor,
+							model.ThingEditorDragGridLineWidth,
+							model.ThingEditorDragHighlightColor);
 					}
 				}
 			}
@@ -112,7 +122,12 @@ namespace NyxAssetsEditor.Services.Persistence
 					ItemAnimationDurationMs = SettingsViewModel.ItemAnimationDurationMs,
 					OutfitAnimationDurationMs = SettingsViewModel.OutfitAnimationDurationMs,
 					EffectAnimationDurationMs = SettingsViewModel.EffectAnimationDurationMs,
-					MissileAnimationDurationMs = SettingsViewModel.MissileAnimationDurationMs
+					MissileAnimationDurationMs = SettingsViewModel.MissileAnimationDurationMs,
+					ThingEditorGridColor = SettingsViewModel.ThingEditorGridColor,
+					ThingEditorGridLineWidth = SettingsViewModel.ThingEditorGridLineWidth,
+					ThingEditorDragGridColor = SettingsViewModel.ThingEditorDragGridColor,
+					ThingEditorDragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
+					ThingEditorDragHighlightColor = SettingsViewModel.ThingEditorDragHighlightColor
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);

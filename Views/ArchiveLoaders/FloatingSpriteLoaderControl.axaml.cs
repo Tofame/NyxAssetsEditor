@@ -7,6 +7,7 @@ using Avalonia.Platform.Storage;
 using System;
 using System.IO;
 using NyxAssets.Utils;
+using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
@@ -32,10 +33,17 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 		private IPointer? _activePointer;
 		private static IPointer? _sharedActivePointer;
 		private const double DragThreshold = 8.0;
+		private SpriteViewModel? _dragSprite;
+		private Point _spriteDragStart;
+		private bool _spriteDragStarted;
+		private PointerPressedEventArgs? _spriteDragPressEvent;
 
 		public FloatingSpriteLoaderControl()
 		{
 			InitializeComponent();
+
+			PointerMoved += OnSpriteDragPointerMoved;
+			PointerReleased += OnSpriteDragPointerReleased;
 			
 			var titleBar = this.FindControl<Border>("TitleBar");
 			if (titleBar != null)
@@ -84,8 +92,56 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				vm.SelectSprite(sprite, shift, ctrl);
 			}
 
+			if (e.GetCurrentPoint(control).Properties.IsLeftButtonPressed)
+			{
+				_dragSprite = sprite;
+				_spriteDragStart = e.GetPosition(this);
+				_spriteDragStarted = false;
+				_spriteDragPressEvent = e;
+			}
+
 			if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)
 				e.Handled = true;
+		}
+
+		private async void OnSpriteDragPointerMoved(object? sender, PointerEventArgs e)
+		{
+			if (_dragSprite == null || _viewModel == null || _spriteDragPressEvent == null)
+				return;
+
+			if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+			{
+				_dragSprite = null;
+				_spriteDragPressEvent = null;
+				return;
+			}
+
+			if (_spriteDragStarted)
+				return;
+
+			var pos = e.GetPosition(this);
+			var dx = pos.X - _spriteDragStart.X;
+			var dy = pos.Y - _spriteDragStart.Y;
+			if (Math.Sqrt(dx * dx + dy * dy) < DragThreshold)
+				return;
+
+			_spriteDragStarted = true;
+
+			var data = SpriteDragContext.CreateDrag(_viewModel, _dragSprite.Id);
+			await DragDrop.DoDragDropAsync(_spriteDragPressEvent, data, DragDropEffects.Copy);
+
+			_dragSprite = null;
+			_spriteDragPressEvent = null;
+			_spriteDragStarted = false;
+		}
+
+		private void OnSpriteDragPointerReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			if (_spriteDragStarted)
+				return;
+
+			_dragSprite = null;
+			_spriteDragPressEvent = null;
 		}
 
 		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

@@ -1,14 +1,21 @@
 using System;
 using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
+using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
 namespace NyxAssetsEditor.Views.ArchiveLoaders;
 
 public partial class FloatingThingEditorControl : UserControl
 {
+	private static readonly IBrush AppearanceDropBorderDefault = new SolidColorBrush(Color.Parse("#444444"));
+	private static readonly IBrush AppearanceDropBorderActive = new SolidColorBrush(Color.Parse("#3A7BD5"));
+
 	private FloatingThingEditorViewModel? _vm;
 	private bool _pushingPatternValues;
 	private bool _patternSpinnersHooked;
@@ -49,6 +56,68 @@ public partial class FloatingThingEditorControl : UserControl
 			vm.RefreshPatternBindings();
 			Dispatcher.UIThread.Post(() => PushPatternValuesToControls(vm));
 		}
+	}
+
+	private void OnAppearanceDragEnter(object? sender, DragEventArgs e)
+	{
+		if (!SpriteDragContext.CanAccept(e))
+			return;
+
+		if (sender is Border border)
+		{
+			border.BorderBrush = AppearanceDropBorderActive;
+			border.BorderThickness = new Thickness(2);
+		}
+
+		if (DataContext is FloatingThingEditorViewModel vm)
+		{
+			var pos = e.GetPosition(AppearanceImageControl);
+			vm.UpdateAppearanceDragHover(pos.X, pos.Y);
+		}
+	}
+
+	private void OnAppearanceDragLeave(object? sender, DragEventArgs e)
+	{
+		ResetAppearanceDropBorder();
+		if (DataContext is FloatingThingEditorViewModel vm)
+			vm.ClearAppearanceDragHover();
+	}
+
+	private void OnAppearanceDragOver(object? sender, DragEventArgs e)
+	{
+		var canAccept = SpriteDragContext.CanAccept(e);
+		e.DragEffects = canAccept ? DragDropEffects.Copy : DragDropEffects.None;
+
+		if (!canAccept || DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		var pos = e.GetPosition(AppearanceImageControl);
+		vm.UpdateAppearanceDragHover(pos.X, pos.Y);
+	}
+
+	private void OnAppearanceDrop(object? sender, DragEventArgs e)
+	{
+		ResetAppearanceDropBorder();
+
+		if (DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		if (!SpriteDragContext.TryRead(e, out var sourcePanel, out var spriteId) || sourcePanel == null)
+		{
+			vm.ClearAppearanceDragHover();
+			return;
+		}
+
+		var pos = e.GetPosition(AppearanceImageControl);
+		vm.HandleSpriteDrop(sourcePanel, spriteId, pos.X, pos.Y);
+		e.DragEffects = DragDropEffects.Copy;
+		e.Handled = true;
+	}
+
+	private void ResetAppearanceDropBorder()
+	{
+		AppearanceDropTarget.BorderBrush = AppearanceDropBorderDefault;
+		AppearanceDropTarget.BorderThickness = new Thickness(1);
 	}
 
 	private void AttachViewModel(FloatingThingEditorViewModel vm)

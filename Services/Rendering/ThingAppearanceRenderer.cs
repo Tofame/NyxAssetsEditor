@@ -20,7 +20,14 @@ public sealed class ThingAppearanceOptions
 	public uint PatternY { get; init; }
 	public uint PatternZ { get; init; }
 	public bool ShowGrid { get; init; }
+	public bool ShowDragGrid { get; init; }
 	public bool ShowCropSize { get; init; }
+	public (int X, int Y, int Width, int Height)? HighlightRect { get; init; }
+	public Rgba32 GridColor { get; init; } = new(80, 80, 80, 180);
+	public int GridLineWidth { get; init; } = 1;
+	public Rgba32 DragGridColor { get; init; } = new(255, 105, 180, 180);
+	public int DragGridLineWidth { get; init; } = 1;
+	public Rgba32 HighlightColor { get; init; } = new(58, 123, 213, 128);
 }
 
 public static class ThingAppearanceRenderer
@@ -43,8 +50,7 @@ public static class ThingAppearanceRenderer
 		if (!DrawFrameGroupCell(canvas, fg, loader, options, 0, 0))
 			return null;
 
-		if (options.ShowGrid)
-			DrawGrid(canvas, edge, (int)fg.Width, (int)fg.Height);
+		ApplyGridAndHighlight(canvas, options, edge, (int)fg.Width, (int)fg.Height);
 
 		if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
 			DrawCropRect(canvas, (int)fg.ExactSize, canvasW, canvasH);
@@ -102,11 +108,9 @@ public static class ThingAppearanceRenderer
 		if (!drewAny)
 			return null;
 
-		if (options.ShowGrid)
-		{
-			DrawGrid(canvas, edge, (int)(fg.PatternX * fg.Width), (int)(fg.PatternY * fg.Height));
-			DrawPatternCellBorders(canvas, cellW, cellH, (int)fg.PatternX, (int)fg.PatternY);
-		}
+		ApplyGridAndHighlight(canvas, options, edge, (int)(fg.PatternX * fg.Width), (int)(fg.PatternY * fg.Height));
+		if (UsesGrid(options))
+			DrawPatternCellBorders(canvas, cellW, cellH, (int)fg.PatternX, (int)fg.PatternY, GetActiveGridStyle(options));
 
 		return ExtractRgba(canvas);
 	}
@@ -165,16 +169,141 @@ public static class ThingAppearanceRenderer
 
 			if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
 				DrawCropRect(canvas, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
-
-			if (options.ShowGrid)
-				DrawGrid(canvas, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH);
 		}
 
 		if (!drewAny)
 			return null;
 
-		DrawMissileCompassCellBorders(canvas, cellW, cellH);
+		var (borderColor, borderWidth) = UsesGrid(options)
+			? GetActiveGridStyle(options)
+			: (new Rgba32(90, 90, 90, 220), 1);
+		DrawMissileCompassCellBorders(canvas, cellW, cellH, borderColor, borderWidth);
+
+		if (UsesGrid(options))
+		{
+			var (gridColor, gridLineWidth) = GetActiveGridStyle(options);
+			foreach (var (_, column, row) in slots)
+			{
+				var offsetX = column * cellW;
+				var offsetY = row * cellH;
+				DrawGrid(canvas, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH, gridColor, gridLineWidth);
+			}
+		}
+
+		DrawHighlight(canvas, options);
+
 		return ExtractRgba(canvas);
+	}
+
+	public static byte[]? RenderDragPreviewOverlay(
+		int canvasW,
+		int canvasH,
+		ThingFrameGroup fg,
+		ThingAppearanceOptions options,
+		bool isMissile,
+		bool showPatternGrid)
+	{
+		if (canvasW <= 0 || canvasH <= 0 || fg.Width == 0 || fg.Height == 0)
+			return null;
+
+		using var canvas = new Image<Rgba32>(canvasW, canvasH, default);
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+
+		if (isMissile)
+		{
+			var cellW = (int)(fg.Width * edge);
+			var cellH = (int)(fg.Height * edge);
+			var (borderColor, borderWidth) = GetActiveGridStyle(options);
+			DrawMissileCompassCellBorders(canvas, cellW, cellH, borderColor, borderWidth);
+
+			ReadOnlySpan<(Direction8 Direction, int Column, int Row)> slots =
+			[
+				(Direction8.NorthWest, 0, 0),
+				(Direction8.North, 1, 0),
+				(Direction8.NorthEast, 2, 0),
+				(Direction8.West, 0, 1),
+				(Direction8.East, 2, 1),
+				(Direction8.SouthWest, 0, 2),
+				(Direction8.South, 1, 2),
+				(Direction8.SouthEast, 2, 2),
+			];
+
+			foreach (var (_, column, row) in slots)
+			{
+				var offsetX = column * cellW;
+				var offsetY = row * cellH;
+				DrawGrid(canvas, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH, borderColor, borderWidth);
+			}
+		}
+		else if (showPatternGrid)
+		{
+			var cellW = (int)(fg.Width * edge);
+			var cellH = (int)(fg.Height * edge);
+			ApplyGridAndHighlight(canvas, options, edge, (int)(fg.PatternX * fg.Width), (int)(fg.PatternY * fg.Height));
+			DrawPatternCellBorders(canvas, cellW, cellH, (int)fg.PatternX, (int)fg.PatternY, GetActiveGridStyle(options));
+		}
+		else
+		{
+			ApplyGridAndHighlight(canvas, options, edge, (int)fg.Width, (int)fg.Height);
+		}
+
+		DrawHighlight(canvas, options);
+		return ExtractRgba(canvas);
+	}
+
+	private static bool UsesGrid(ThingAppearanceOptions options) => options.ShowGrid || options.ShowDragGrid;
+
+	private static (Rgba32 Color, int LineWidth) GetActiveGridStyle(ThingAppearanceOptions options) =>
+		options.ShowDragGrid
+			? (options.DragGridColor, Math.Max(1, options.DragGridLineWidth))
+			: (options.GridColor, Math.Max(1, options.GridLineWidth));
+
+	private static void ApplyGridAndHighlight(Image<Rgba32> canvas, ThingAppearanceOptions options, int edge, int cols, int rows)
+	{
+		if (UsesGrid(options))
+		{
+			var (gridColor, gridLineWidth) = GetActiveGridStyle(options);
+			DrawGrid(canvas, edge, cols, rows, 0, 0, canvas.Width, canvas.Height, gridColor, gridLineWidth);
+		}
+
+		DrawHighlight(canvas, options);
+	}
+
+	private static void DrawHighlight(Image<Rgba32> canvas, ThingAppearanceOptions options)
+	{
+		if (options.HighlightRect is not { } rect)
+			return;
+
+		DrawFilledRect(canvas, rect.X, rect.Y, rect.Width, rect.Height, options.HighlightColor);
+	}
+
+	private static void DrawFilledRect(Image<Rgba32> canvas, int x, int y, int width, int height, Rgba32 color)
+	{
+		var right = Math.Min(x + width, canvas.Width);
+		var bottom = Math.Min(y + height, canvas.Height);
+		x = Math.Max(0, x);
+		y = Math.Max(0, y);
+
+		for (var py = y; py < bottom; py++)
+		{
+			for (var px = x; px < right; px++)
+				canvas[px, py] = AlphaBlend(canvas[px, py], color);
+		}
+	}
+
+	private static Rgba32 AlphaBlend(Rgba32 dst, Rgba32 src)
+	{
+		var srcA = src.A / 255f;
+		if (srcA <= 0)
+			return dst;
+
+		var dstA = dst.A / 255f;
+		var outA = srcA + dstA * (1 - srcA);
+		if (outA <= 0)
+			return default;
+
+		byte Blend(byte s, byte d) => (byte)Math.Clamp((s * srcA + d * dstA * (1 - srcA)) / outA, 0, 255);
+		return new Rgba32(Blend(src.R, dst.R), Blend(src.G, dst.G), Blend(src.B, dst.B), (byte)(outA * 255));
 	}
 
 	private static bool DrawFrameGroupCell(
@@ -217,21 +346,20 @@ public static class ThingAppearanceRenderer
 		return drewAny;
 	}
 
-	private static void DrawPatternCellBorders(Image<Rgba32> canvas, int cellW, int cellH, int patternX, int patternY)
+	private static void DrawPatternCellBorders(Image<Rgba32> canvas, int cellW, int cellH, int patternX, int patternY, (Rgba32 Color, int LineWidth) style)
 	{
-		var borderColor = new Rgba32(120, 120, 120, 220);
+		var borderColor = style.Color;
+		var lineWidth = style.LineWidth;
 		for (var x = 1; x < patternX; x++)
 		{
 			var px = x * cellW;
-			for (var y = 0; y < canvas.Height; y++)
-				canvas[Math.Clamp(px, 0, canvas.Width - 1), y] = borderColor;
+			DrawVerticalLine(canvas, px, 0, canvas.Height, borderColor, lineWidth);
 		}
 
 		for (var y = 1; y < patternY; y++)
 		{
 			var py = y * cellH;
-			for (var x = 0; x < canvas.Width; x++)
-				canvas[x, Math.Clamp(py, 0, canvas.Height - 1)] = borderColor;
+			DrawHorizontalLine(canvas, py, 0, canvas.Width, borderColor, lineWidth);
 		}
 	}
 
@@ -249,19 +377,17 @@ public static class ThingAppearanceRenderer
 		};
 	}
 
-	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows, int offsetX = 0, int offsetY = 0, int? clipW = null, int? clipH = null)
+	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows, int offsetX, int offsetY, int clipW, int clipH, Rgba32 gridColor, int lineWidth)
 	{
-		var gridColor = new Rgba32(80, 80, 80, 180);
-		var maxX = offsetX + (clipW ?? canvas.Width);
-		var maxY = offsetY + (clipH ?? canvas.Height);
+		var maxX = offsetX + clipW;
+		var maxY = offsetY + clipH;
 
 		for (var x = 1; x < cols; x++)
 		{
 			var px = offsetX + x * edge;
 			if (px >= maxX)
 				continue;
-			for (var y = offsetY; y < maxY && y < canvas.Height; y++)
-				canvas[px, y] = gridColor;
+			DrawVerticalLine(canvas, px, offsetY, maxY, gridColor, lineWidth);
 		}
 
 		for (var y = 1; y < rows; y++)
@@ -269,14 +395,38 @@ public static class ThingAppearanceRenderer
 			var py = offsetY + y * edge;
 			if (py >= maxY)
 				continue;
-			for (var x = offsetX; x < maxX && x < canvas.Width; x++)
-				canvas[x, py] = gridColor;
+			DrawHorizontalLine(canvas, py, offsetX, maxX, gridColor, lineWidth);
 		}
 	}
 
-	private static void DrawMissileCompassCellBorders(Image<Rgba32> canvas, int cellW, int cellH)
+	private static void DrawVerticalLine(Image<Rgba32> canvas, int x, int yStart, int yEnd, Rgba32 color, int lineWidth)
 	{
-		var borderColor = new Rgba32(90, 90, 90, 220);
+		for (var dx = 0; dx < lineWidth; dx++)
+		{
+			var px = x + dx;
+			if (px < 0 || px >= canvas.Width)
+				continue;
+
+			for (var y = Math.Max(0, yStart); y < Math.Min(yEnd, canvas.Height); y++)
+				canvas[px, y] = color;
+		}
+	}
+
+	private static void DrawHorizontalLine(Image<Rgba32> canvas, int y, int xStart, int xEnd, Rgba32 color, int lineWidth)
+	{
+		for (var dy = 0; dy < lineWidth; dy++)
+		{
+			var py = y + dy;
+			if (py < 0 || py >= canvas.Height)
+				continue;
+
+			for (var x = Math.Max(0, xStart); x < Math.Min(xEnd, canvas.Width); x++)
+				canvas[x, py] = color;
+		}
+	}
+
+	private static void DrawMissileCompassCellBorders(Image<Rgba32> canvas, int cellW, int cellH, Rgba32 borderColor, int lineWidth)
+	{
 		for (var row = 0; row < 3; row++)
 		{
 			for (var col = 0; col < 3; col++)
@@ -284,34 +434,30 @@ public static class ThingAppearanceRenderer
 				if (col == 1 && row == 1)
 					continue;
 
-				DrawRectBorder(canvas, col * cellW, row * cellH, cellW, cellH, borderColor);
+				DrawRectBorder(canvas, col * cellW, row * cellH, cellW, cellH, borderColor, lineWidth);
 			}
 		}
 	}
 
-	private static void DrawRectBorder(Image<Rgba32> canvas, int x, int y, int width, int height, Rgba32 color)
+	private static void DrawRectBorder(Image<Rgba32> canvas, int x, int y, int width, int height, Rgba32 color, int lineWidth = 1)
 	{
-		var right = Math.Min(x + width - 1, canvas.Width - 1);
-		var bottom = Math.Min(y + height - 1, canvas.Height - 1);
+		var right = Math.Min(x + width, canvas.Width);
+		var bottom = Math.Min(y + height, canvas.Height);
 		x = Math.Clamp(x, 0, canvas.Width - 1);
 		y = Math.Clamp(y, 0, canvas.Height - 1);
 
-		for (var px = x; px <= right; px++)
-		{
-			canvas[px, y] = color;
-			canvas[px, bottom] = color;
-		}
+		DrawHorizontalLine(canvas, y, x, right, color, lineWidth);
+		if (bottom > y)
+			DrawHorizontalLine(canvas, bottom - lineWidth, x, right, color, lineWidth);
 
-		for (var py = y; py <= bottom; py++)
-		{
-			canvas[x, py] = color;
-			canvas[right, py] = color;
-		}
+		DrawVerticalLine(canvas, x, y, bottom, color, lineWidth);
+		if (right > x)
+			DrawVerticalLine(canvas, right - lineWidth, y, bottom, color, lineWidth);
 	}
 
 	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows)
 	{
-		DrawGrid(canvas, edge, cols, rows, 0, 0, canvas.Width, canvas.Height);
+		DrawGrid(canvas, edge, cols, rows, 0, 0, canvas.Width, canvas.Height, new Rgba32(80, 80, 80, 180), 1);
 	}
 
 	private static void DrawCropRect(Image<Rgba32> canvas, int exactSize, int canvasW, int canvasH, int offsetX = 0, int offsetY = 0)

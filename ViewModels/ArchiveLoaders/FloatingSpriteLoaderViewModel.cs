@@ -349,6 +349,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 		}
 
+		public void NotifyExternalArchiveMutation()
+		{
+			TotalSprites = Loader.SpriteCount;
+			if (CurrentPage > TotalPages && TotalPages > 0)
+				CurrentPage = TotalPages;
+			else
+				UpdatePage();
+		}
+
 		public void RemoveSprite(SpriteViewModel sprite) => RemoveSprites(new[] { sprite });
 
 		public void RemoveSprites(IEnumerable<SpriteViewModel> sprites)

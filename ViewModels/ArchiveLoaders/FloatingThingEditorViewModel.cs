@@ -46,11 +46,26 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private int _animationDirection = 1;
 	private int _frameBeforePreview;
 	private DispatcherTimer? _animationTimer;
+	private int _appearancePixelWidth;
+	private int _appearancePixelHeight;
+	private bool _showAddSpriteConfirmation;
+	private string _addSpriteConfirmationText = string.Empty;
+	private FloatingSpriteLoaderViewModel? _pendingSpriteSource;
+	private uint _pendingSpriteId;
+	private double _pendingDropX;
+	private double _pendingDropY;
+	private bool _isAppearanceDragHover;
+	private ThingAppearanceSlot? _hoverSlot;
 
 	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing)
 	{
 		SourcePanel = source;
-		RequestClose += _ => StopAnimationPreview(restoreFrame: false);
+		RequestClose += _ =>
+		{
+			StopAnimationPreview(restoreFrame: false);
+			SettingsViewModel.ThingEditorAppearanceSettingsChanged -= OnAppearanceSettingsChanged;
+		};
+		SettingsViewModel.ThingEditorAppearanceSettingsChanged += OnAppearanceSettingsChanged;
 		LoadThing(thing);
 		PanelWidth = 540;
 		ContentHeight = 680;
@@ -147,6 +162,153 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		get => _appearanceImage;
 		private set => SetProperty(ref _appearanceImage, value);
+	}
+
+	public int AppearancePixelWidth => _appearancePixelWidth;
+	public int AppearancePixelHeight => _appearancePixelHeight;
+
+	public bool ShowAddSpriteConfirmation
+	{
+		get => _showAddSpriteConfirmation;
+		private set => SetProperty(ref _showAddSpriteConfirmation, value);
+	}
+
+	public string AddSpriteConfirmationText
+	{
+		get => _addSpriteConfirmationText;
+		private set => SetProperty(ref _addSpriteConfirmationText, value);
+	}
+
+	public void HandleSpriteDrop(FloatingSpriteLoaderViewModel sourcePanel, uint spriteId, double dropX, double dropY)
+	{
+		ClearAppearanceDragHover();
+
+		if (sourcePanel is not { IsArchiveLoaded: true } || spriteId < 1)
+			return;
+
+		if (SourcePanel.GetActiveSpriteLoader() == null)
+			return;
+
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (linkedPanel == null)
+			return;
+
+		if (ReferenceEquals(linkedPanel, sourcePanel))
+		{
+			AssignSpriteToDropTarget(spriteId, dropX, dropY);
+			return;
+		}
+
+		_pendingSpriteSource = sourcePanel;
+		_pendingSpriteId = spriteId;
+		_pendingDropX = dropX;
+		_pendingDropY = dropY;
+
+		var linkedName = linkedPanel.FilePath;
+		var sourceName = string.IsNullOrWhiteSpace(sourcePanel.FilePath) || sourcePanel.FilePath == "No archive loaded"
+			? "another sprite viewer"
+			: sourcePanel.FilePath;
+
+		AddSpriteConfirmationText =
+			$"Sprite #{spriteId} is from {sourceName}, not from {linkedName} linked to this things archive.\n\n" +
+			"Add a copy of this sprite to the linked archive and assign it to the thing?";
+		ShowAddSpriteConfirmation = true;
+	}
+
+	public void UpdateAppearanceDragHover(double dropX, double dropY)
+	{
+		if (_appearancePixelWidth <= 0 || _appearancePixelHeight <= 0)
+			return;
+
+		var slot = ThingAppearanceDropTarget.Resolve(this, dropX, dropY, _appearancePixelWidth, _appearancePixelHeight);
+		if (_isAppearanceDragHover && Nullable.Equals(_hoverSlot, slot))
+			return;
+
+		_isAppearanceDragHover = true;
+		_hoverSlot = slot;
+		RefreshAppearance();
+	}
+
+	public void ClearAppearanceDragHover()
+	{
+		if (!_isAppearanceDragHover && _hoverSlot == null)
+			return;
+
+		_isAppearanceDragHover = false;
+		_hoverSlot = null;
+		RefreshAppearance();
+	}
+
+	private void OnAppearanceSettingsChanged() => RefreshAppearance();
+
+	[RelayCommand]
+	private void ConfirmAddSprite()
+	{
+		ShowAddSpriteConfirmation = false;
+
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (linkedPanel == null || _pendingSpriteSource == null || _pendingSpriteId < 1)
+		{
+			ClearPendingSpriteDrop();
+			return;
+		}
+
+		try
+		{
+			var pixels = _pendingSpriteSource.Loader.LoadSpritePixels(_pendingSpriteId);
+			var newId = linkedPanel.Loader.AddNewSprite();
+			linkedPanel.Loader.SetSpritePixels(newId, pixels);
+			linkedPanel.NotifyExternalArchiveMutation();
+			AssignSpriteToDropTarget(newId, _pendingDropX, _pendingDropY);
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Failed to add dragged sprite: {ex.Message}");
+		}
+
+		ClearPendingSpriteDrop();
+	}
+
+	[RelayCommand]
+	private void CancelAddSprite()
+	{
+		ShowAddSpriteConfirmation = false;
+		ClearPendingSpriteDrop();
+	}
+
+	private void ClearPendingSpriteDrop()
+	{
+		_pendingSpriteSource = null;
+		_pendingSpriteId = 0;
+		_pendingDropX = 0;
+		_pendingDropY = 0;
+	}
+
+	private void AssignSpriteToDropTarget(uint spriteId, double dropX, double dropY)
+	{
+		if (_appearancePixelWidth <= 0 || _appearancePixelHeight <= 0)
+			return;
+
+		var slot = ThingAppearanceDropTarget.Resolve(this, dropX, dropY, _appearancePixelWidth, _appearancePixelHeight);
+		if (slot == null)
+			return;
+
+		var fg = CurrentFrameGroup;
+		var index = fg.GetSpriteIndex(
+			slot.Value.InnerW,
+			slot.Value.InnerH,
+			(uint)SelectedLayer,
+			slot.Value.PatternX,
+			slot.Value.PatternY,
+			_viewPatternZ,
+			(uint)SelectedFrame);
+
+		if (index >= fg.SpriteIds.Length)
+			return;
+
+		fg.SpriteIds[index] = spriteId;
+		ApplyToCatalog();
+		RefreshAppearance();
 	}
 
 	public int SelectedFrameGroupIndex
@@ -770,20 +932,14 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		if (loader == null)
 		{
 			AppearanceImage = null;
+			_appearancePixelWidth = 0;
+			_appearancePixelHeight = 0;
+			OnPropertyChanged(nameof(AppearancePixelWidth));
+			OnPropertyChanged(nameof(AppearancePixelHeight));
 			return;
 		}
 
-		var options = new ThingAppearanceOptions
-		{
-			FrameGroupIndex = SelectedFrameGroupIndex,
-			Layer = SelectedLayer,
-			Frame = SelectedFrame,
-			PatternX = _viewPatternX,
-			PatternY = _viewPatternY,
-			PatternZ = _viewPatternZ,
-			ShowGrid = ShowGrid,
-			ShowCropSize = ShowCropSize,
-		};
+		var options = BuildAppearanceOptions();
 
 		var fg = CurrentFrameGroup;
 		var edge = SpritePixelCodec.SpriteEdgeLength;
@@ -810,13 +966,50 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			h = (int)(fg.Height * edge);
 		}
 
+		if (rgba == null && _isAppearanceDragHover && w > 0 && h > 0)
+			rgba = ThingAppearanceRenderer.RenderDragPreviewOverlay(w, h, fg, options, IsMissile, ShowPatternGrid);
+
 		if (rgba == null)
 		{
 			AppearanceImage = null;
+			_appearancePixelWidth = 0;
+			_appearancePixelHeight = 0;
+			OnPropertyChanged(nameof(AppearancePixelWidth));
+			OnPropertyChanged(nameof(AppearancePixelHeight));
 			return;
 		}
 
+		_appearancePixelWidth = w;
+		_appearancePixelHeight = h;
+		OnPropertyChanged(nameof(AppearancePixelWidth));
+		OnPropertyChanged(nameof(AppearancePixelHeight));
 		AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
+	}
+
+	private ThingAppearanceOptions BuildAppearanceOptions()
+	{
+		(int X, int Y, int Width, int Height)? highlightRect = null;
+		if (_isAppearanceDragHover && _hoverSlot is { } slot)
+			highlightRect = ThingAppearanceSlotGeometry.GetHighlightRect(this, slot);
+
+		return new ThingAppearanceOptions
+		{
+			FrameGroupIndex = SelectedFrameGroupIndex,
+			Layer = SelectedLayer,
+			Frame = SelectedFrame,
+			PatternX = _viewPatternX,
+			PatternY = _viewPatternY,
+			PatternZ = _viewPatternZ,
+			ShowGrid = ShowGrid,
+			ShowDragGrid = _isAppearanceDragHover,
+			ShowCropSize = ShowCropSize,
+			HighlightRect = highlightRect,
+			GridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorGridColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(80, 80, 80, 180)),
+			GridLineWidth = SettingsViewModel.ThingEditorGridLineWidth,
+			DragGridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragGridColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(255, 105, 180, 180)),
+			DragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
+			HighlightColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragHighlightColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(58, 123, 213, 128)),
+		};
 	}
 
 	private void ApplyToCatalog() => SourcePanel.ApplyThingEdit(Thing);

@@ -69,9 +69,15 @@
 												  VerticalScrollBarVisibility="Auto"
 												  MaxHeight="360"
 												  MaxWidth="480">
-										<Border Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
+										<Border x:Name="AppearanceDropTarget"
+												DragDrop.AllowDrop="True"
+												DragDrop.DragEnter="OnAppearanceDragEnter"
+												DragDrop.DragLeave="OnAppearanceDragLeave"
+												DragDrop.DragOver="OnAppearanceDragOver"
+												DragDrop.Drop="OnAppearanceDrop"
+												Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
 												HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
-											<Image Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
+											<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
 												   HorizontalAlignment="Center" VerticalAlignment="Center"/>
 										</Border>
 									</ScrollViewer>
@@ -216,6 +222,19 @@
 					IsVisible="{Binding ShowResizeHandles}"/>
 			<Border Grid.Row="1" Name="ResizeBottomLeft" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomLeftCorner"
 					IsVisible="{Binding ShowResizeHandles}"/>
+
+			<Border Grid.RowSpan="2" Background="#B0000000" IsVisible="{Binding ShowAddSpriteConfirmation}" CornerRadius="8">
+				<Border Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="380" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Add sprite?" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" FontSize="13"/>
+						<TextBlock Text="{Binding AddSpriteConfirmationText, Mode=OneWay}" FontSize="11" Foreground="#CCCCCC" TextWrapping="Wrap"/>
+						<Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
+							<Button Grid.Column="0" Content="Cancel" Command="{Binding CancelAddSpriteCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
+							<Button Grid.Column="1" Content="Add sprite" Command="{Binding ConfirmAddSpriteCommand}" Background="#3A7BD5" Foreground="White" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+			</Border>
 		</Grid>
 	</Border>
 </UserControl>

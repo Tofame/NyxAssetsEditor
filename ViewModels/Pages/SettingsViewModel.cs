@@ -48,6 +48,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private static uint _effectAnimationDurationMs = 100;
 		private static uint _missileAnimationDurationMs = 500;
 
+		private static string _thingEditorGridColor = "#B4808080";
+		private static int _thingEditorGridLineWidth = 1;
+		private static string _thingEditorDragGridColor = "#B4FF69B4";
+		private static int _thingEditorDragGridLineWidth = 1;
+		private static string _thingEditorDragHighlightColor = "#803A7BD5";
+
+		public static event Action? ThingEditorAppearanceSettingsChanged;
+
 		public static uint ItemAnimationDurationMs
 		{
 			get => _itemAnimationDurationMs;
@@ -80,6 +88,103 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_ => ItemAnimationDurationMs,
 		};
 
+		public static string ThingEditorGridColor
+		{
+			get => _thingEditorGridColor;
+			set
+			{
+				if (_thingEditorGridColor == value)
+					return;
+				_thingEditorGridColor = value;
+				ThingEditorAppearanceSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static int ThingEditorGridLineWidth
+		{
+			get => _thingEditorGridLineWidth;
+			set
+			{
+				var clamped = Math.Clamp(value, 1, 4);
+				if (_thingEditorGridLineWidth == clamped)
+					return;
+				_thingEditorGridLineWidth = clamped;
+				ThingEditorAppearanceSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static string ThingEditorDragGridColor
+		{
+			get => _thingEditorDragGridColor;
+			set
+			{
+				if (_thingEditorDragGridColor == value)
+					return;
+				_thingEditorDragGridColor = value;
+				ThingEditorAppearanceSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static int ThingEditorDragGridLineWidth
+		{
+			get => _thingEditorDragGridLineWidth;
+			set
+			{
+				var clamped = Math.Clamp(value, 1, 4);
+				if (_thingEditorDragGridLineWidth == clamped)
+					return;
+				_thingEditorDragGridLineWidth = clamped;
+				ThingEditorAppearanceSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static string ThingEditorDragHighlightColor
+		{
+			get => _thingEditorDragHighlightColor;
+			set
+			{
+				if (_thingEditorDragHighlightColor == value)
+					return;
+				_thingEditorDragHighlightColor = value;
+				ThingEditorAppearanceSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public string ThingEditorGridColorSetting
+		{
+			get => ThingEditorGridColor;
+			set => ThingEditorGridColor = value;
+		}
+
+		public int ThingEditorGridLineWidthSetting
+		{
+			get => ThingEditorGridLineWidth;
+			set => ThingEditorGridLineWidth = value;
+		}
+
+		public string ThingEditorDragGridColorSetting
+		{
+			get => ThingEditorDragGridColor;
+			set => ThingEditorDragGridColor = value;
+		}
+
+		public int ThingEditorDragGridLineWidthSetting
+		{
+			get => ThingEditorDragGridLineWidth;
+			set => ThingEditorDragGridLineWidth = value;
+		}
+
+		public string ThingEditorDragHighlightColorSetting
+		{
+			get => ThingEditorDragHighlightColor;
+			set => ThingEditorDragHighlightColor = value;
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -93,7 +198,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			uint itemAnimationDurationMs = 500,
 			uint outfitAnimationDurationMs = 300,
 			uint effectAnimationDurationMs = 100,
-			uint missileAnimationDurationMs = 500)
+			uint missileAnimationDurationMs = 500,
+			string? thingEditorGridColor = null,
+			int thingEditorGridLineWidth = 1,
+			string? thingEditorDragGridColor = null,
+			int thingEditorDragGridLineWidth = 1,
+			string? thingEditorDragHighlightColor = null)
 		{
 			DefaultPageSize = defaultPageSize;
 			_useTransparentPixels = useTransparentPixels;
@@ -104,6 +214,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OutfitAnimationDurationMs = outfitAnimationDurationMs;
 			EffectAnimationDurationMs = effectAnimationDurationMs;
 			MissileAnimationDurationMs = missileAnimationDurationMs;
+			if (!string.IsNullOrWhiteSpace(thingEditorGridColor))
+				_thingEditorGridColor = thingEditorGridColor;
+			_thingEditorGridLineWidth = Math.Clamp(thingEditorGridLineWidth, 1, 4);
+			if (!string.IsNullOrWhiteSpace(thingEditorDragGridColor))
+				_thingEditorDragGridColor = thingEditorDragGridColor;
+			_thingEditorDragGridLineWidth = Math.Clamp(thingEditorDragGridLineWidth, 1, 4);
+			if (!string.IsNullOrWhiteSpace(thingEditorDragHighlightColor))
+				_thingEditorDragHighlightColor = thingEditorDragHighlightColor;
 		}
 
 		public int SelectedThingIdOffset
