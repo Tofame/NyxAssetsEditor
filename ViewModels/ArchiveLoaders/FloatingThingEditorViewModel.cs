@@ -145,6 +145,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public string FrameGroupDisplay => SelectedFrameGroupIndex <= 0 ? "Idle/Stand" : "Walking";
 	public string PatternXDisplay => $"{ViewPatternXIndex + 1}/{Math.Max(1, (int)CurrentFrameGroup.PatternX)}";
 	public string PatternYDisplay => $"{ViewPatternYIndex + 1}/{Math.Max(1, (int)CurrentFrameGroup.PatternY)}";
+	public string PatternZDisplay => $"{ViewPatternZIndex + 1}/{Math.Max(1, (int)CurrentFrameGroup.PatternZ)}";
 
 	private bool ShowDurationEditorsForCategory =>
 		IsItem || IsEffect
@@ -885,6 +886,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(FrameDisplay));
 		OnPropertyChanged(nameof(PatternXDisplay));
 		OnPropertyChanged(nameof(PatternYDisplay));
+		OnPropertyChanged(nameof(PatternZDisplay));
 	}
 
 	private void SyncAnimationFieldsFromGroup()
@@ -913,6 +915,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(FrameGroupMaximum));
 		OnPropertyChanged(nameof(PatternXMaximum));
 		OnPropertyChanged(nameof(PatternYMaximum));
+		OnPropertyChanged(nameof(AddonMaximum));
 		OnPropertyChanged(nameof(PatternZMaximum));
 		OnPropertyChanged(nameof(ShowLayerSlider));
 		OnPropertyChanged(nameof(ShowFrameSlider));

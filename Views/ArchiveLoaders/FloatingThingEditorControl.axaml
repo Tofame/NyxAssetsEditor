@@ -5,6 +5,61 @@
 			 x:DataType="vm:FloatingThingEditorViewModel"
 			 Width="{Binding DisplayWidth}">
 
+	<UserControl.Resources>
+		<ControlTheme x:Key="FlatSliderTheme" TargetType="Slider">
+			<Setter Property="Background" Value="#252525"/>
+			<Setter Property="Foreground" Value="#707070"/>
+			<Setter Property="Height" Value="14"/>
+			<Setter Property="MinHeight" Value="14"/>
+			<Setter Property="Margin" Value="0"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Border Background="{TemplateBinding Background}"
+							BorderBrush="#3D3D3D"
+							BorderThickness="1"
+							CornerRadius="1"
+							Height="14"
+							VerticalAlignment="Center">
+						<Track Name="PART_Track"
+							   Minimum="{TemplateBinding Minimum}"
+							   Maximum="{TemplateBinding Maximum}"
+							   Value="{TemplateBinding Value, Mode=TwoWay}"
+							   Orientation="Horizontal">
+							<Track.DecreaseButton>
+								<RepeatButton Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+							</Track.DecreaseButton>
+							<Track.IncreaseButton>
+								<RepeatButton Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+							</Track.IncreaseButton>
+							<Thumb Name="thumb" Width="10" Height="12" Margin="0" Padding="0">
+								<Thumb.Template>
+									<ControlTemplate>
+										<Border Name="ThumbBorder"
+												Background="{TemplateBinding Foreground}"
+												BorderBrush="#555555"
+												BorderThickness="1"
+												CornerRadius="1"/>
+									</ControlTemplate>
+								</Thumb.Template>
+								<Thumb.Styles>
+									<Style Selector="Thumb:pointerover /template/ Border#ThumbBorder">
+										<Setter Property="Background" Value="#8A8A8A"/>
+										<Setter Property="BorderBrush" Value="#6A6A6A"/>
+									</Style>
+									<Style Selector="Thumb:pressed /template/ Border#ThumbBorder">
+										<Setter Property="Background" Value="#A0A0A0"/>
+										<Setter Property="BorderBrush" Value="#8A8A8A"/>
+									</Style>
+								</Thumb.Styles>
+							</Thumb>
+						</Track>
+					</Border>
+				</ControlTemplate>
+			</Setter>
+		</ControlTheme>
+	</UserControl.Resources>
+
 	<UserControl.Styles>
 		<Style Selector="Button.selected">
 			<Setter Property="Background" Value="#335E94FF"/>
@@ -84,37 +139,39 @@
 
 									<!-- Controls (right-aligned, OB-style) -->
 									<StackPanel Spacing="6" HorizontalAlignment="Right" Margin="0,4,0,0">
-
-										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowFrameGroupSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
-											<TextBlock Grid.Column="2" Text="{Binding FrameGroupDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="72"/>
+										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowFrameGroupSlider}">
+											<TextBlock Grid.Column="0" Text="Group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
+											<TextBlock Grid.Column="2" Text="{Binding FrameGroupDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
 										</Grid>
 
-										<Grid ColumnDefinitions="Auto,168,Auto,Auto" IsVisible="{Binding ShowFrameSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Animation:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameMaximum}" Value="{Binding SelectedFrame}" VerticalAlignment="Center"/>
-											<Button Grid.Column="2" Classes="icon-btn" Classes.selected="{Binding IsAnimationPlaying}" Command="{Binding ToggleAnimationPreviewCommand}" ToolTip.Tip="Play animation loop" Margin="8,0,0,0">
-												<Path Data="M8,5 L8,19 L19,12 Z" Fill="#CCCCCC" Width="10" Height="10" Stretch="Uniform"/>
-											</Button>
-											<TextBlock Grid.Column="3" Text="{Binding FrameDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowFrameSlider}">
+											<TextBlock Grid.Column="0" Text="Animation:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding FrameMaximum}" Value="{Binding SelectedFrame}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
+											<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0" VerticalAlignment="Center">
+												<Button Classes="icon-btn" Classes.selected="{Binding IsAnimationPlaying}" Command="{Binding ToggleAnimationPreviewCommand}" ToolTip.Tip="Play animation loop">
+													<Path Data="M8,5 L8,19 L19,12 Z" Fill="#CCCCCC" Width="10" Height="10" Stretch="Uniform"/>
+												</Button>
+												<TextBlock Text="{Binding FrameDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
+											</StackPanel>
 										</Grid>
 
-										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowLayerSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Layer:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding LayerMaximum}" Value="{Binding SelectedLayer}" VerticalAlignment="Center"/>
-											<TextBlock Grid.Column="2" Text="{Binding LayerDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowLayerSlider}">
+											<TextBlock Grid.Column="0" Text="Layer:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding LayerMaximum}" Value="{Binding SelectedLayer}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
+											<TextBlock Grid.Column="2" Text="{Binding LayerDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
 										</Grid>
 
-										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowAddonSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Addon:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding AddonMaximum}" Value="{Binding ViewPatternYIndex}" VerticalAlignment="Center"/>
-											<TextBlock Grid.Column="2" Text="{Binding PatternYDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowAddonSlider}">
+											<TextBlock Grid.Column="0" Text="Addon:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding AddonMaximum}" Value="{Binding ViewPatternYIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
+											<TextBlock Grid.Column="2" Text="{Binding PatternYDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
 										</Grid>
 
-										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowPatternZSlider}" HorizontalAlignment="Right">
-											<TextBlock Grid.Column="0" Text="Mount:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding PatternZMaximum}" Value="{Binding ViewPatternZIndex}" VerticalAlignment="Center"/>
+										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowPatternZSlider}">
+											<TextBlock Grid.Column="0" Text="Mount:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding PatternZMaximum}" Value="{Binding ViewPatternZIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
+											<TextBlock Grid.Column="2" Text="{Binding PatternZDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
 										</Grid>
 
 										<StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right" Margin="0,2,0,0">
