@@ -9,6 +9,16 @@
 		<Grid RowDefinitions="Auto, *, Auto">
 			<!-- Title Bar (Draggable) -->
 			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/>
+						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
 				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
 					<!-- Panel Name -->
 					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
@@ -137,8 +147,8 @@
 				</StackPanel>
 			</Grid>
 
-			<!-- Pagination Footer -->
-			<Border Grid.Row="2" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8">
+			<!-- Pagination Footer (also Draggable) -->
+			<Border Grid.Row="2" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8">
 				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
 					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
 					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>

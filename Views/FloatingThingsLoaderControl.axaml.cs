@@ -12,6 +12,8 @@ namespace NyxAssetsEditor.Views
 	{
 		private bool _isDragging;
 		private Point _clickPosition;
+		private Point _dragStartPosition;
+		private bool _dragThresholdMet;
 		private bool _isResizing;
 		private int _resizeDirection; // 1 = Right, 2 = Bottom, 3 = Corner, 4 = Left
 		private Point _initialPointerPosition;
@@ -20,6 +22,7 @@ namespace NyxAssetsEditor.Views
 		private double _initialPositionX;
 		private IPointer? _activePointer;
 		private static IPointer? _sharedActivePointer;
+		private const double DragThreshold = 8.0;
 
 		public FloatingThingsLoaderControl()
 		{
@@ -94,9 +97,11 @@ namespace NyxAssetsEditor.Views
 			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				_isDragging = true;
+				_dragThresholdMet = false;
 				_activePointer = e.Pointer;
 				_sharedActivePointer = e.Pointer;
 				_clickPosition = e.GetPosition(this);
+				_dragStartPosition = e.GetPosition(this);
 
 				vm.IsDraggingVM = true;
 				vm.DragClickX = _clickPosition.X;
@@ -109,63 +114,102 @@ namespace NyxAssetsEditor.Views
 
 		private void OnTitleBarPointerMoved(object? sender, PointerEventArgs e)
 		{
-			if (_isDragging && DataContext is FloatingThingsLoaderViewModel vm)
-			{
-				Visual? canvasVisual = GetParentCanvas();
-				if (canvasVisual != null)
-				{
-					if (!vm.IsFloating)
-					{
-						vm.DockState = "Floating";
-					}
-					var currentPosition = e.GetPosition(canvasVisual);
-					vm.PositionX = currentPosition.X - _clickPosition.X;
-					vm.PositionY = currentPosition.Y - _clickPosition.Y;
+			if (!_isDragging || DataContext is not FloatingThingsLoaderViewModel vm) return;
 
-					var assetsView = this.FindAncestorOfType<AssetsView>();
-					if (assetsView != null && assetsView.DataContext is AssetsViewModel parentVm)
-					{
-						double viewWidth = assetsView.Bounds.Width;
-						var relativePos = e.GetPosition(assetsView);
-						if (relativePos.X < viewWidth * 0.25)
-						{
-							parentVm.DragOverZone = "Left";
-						}
-						else if (relativePos.X > viewWidth * 0.75)
-						{
-							parentVm.DragOverZone = "Right";
-						}
-						else
-						{
-							parentVm.DragOverZone = "Center";
-						}
-					}
+			var assetsView = this.FindAncestorOfType<AssetsView>();
+			var parentVm = assetsView?.DataContext as AssetsViewModel;
+
+			// Check drag threshold before committing any undock
+			if (!_dragThresholdMet)
+			{
+				var curPos = e.GetPosition(this);
+				var dx = curPos.X - _dragStartPosition.X;
+				var dy = curPos.Y - _dragStartPosition.Y;
+				if (Math.Sqrt(dx * dx + dy * dy) < DragThreshold) return;
+				_dragThresholdMet = true;
+				if (parentVm != null) parentVm.IsDraggingPanel = true;
+			}
+
+			// If still docked, undock now (threshold already met)
+			if (!vm.IsFloating)
+			{
+				vm.DockState = "Floating";
+				if (assetsView != null)
+				{
+					var pos = e.GetPosition(assetsView);
+					vm.PositionX = pos.X - _clickPosition.X;
+					vm.PositionY = pos.Y - _clickPosition.Y;
 				}
 				e.Handled = true;
+				return;
 			}
+
+			// Move freely on canvas
+			Visual? canvasVisual = GetParentCanvas();
+			if (canvasVisual != null)
+			{
+				var currentPosition = e.GetPosition(canvasVisual);
+				vm.PositionX = currentPosition.X - _clickPosition.X;
+				vm.PositionY = currentPosition.Y - _clickPosition.Y;
+			}
+
+			// Highlight the drop target the cursor is currently over (hittest)
+			if (parentVm != null && assetsView != null)
+			{
+				var cursorInView = e.GetPosition(assetsView);
+				parentVm.DragOverZone = GetDropZoneFromPoint(assetsView, cursorInView);
+			}
+
+			e.Handled = true;
 		}
 
 		private void OnTitleBarPointerReleased(object? sender, PointerReleasedEventArgs e)
 		{
-			if (_isDragging && DataContext is FloatingThingsLoaderViewModel vm)
-			{
-				_isDragging = false;
-				_activePointer = null;
-				_sharedActivePointer = null;
-				vm.IsDraggingVM = false;
-				e.Pointer.Capture(null);
-				e.Handled = true;
+			if (!_isDragging || DataContext is not FloatingThingsLoaderViewModel vm) return;
 
-				var assetsView = this.FindAncestorOfType<AssetsView>();
-				if (assetsView != null && assetsView.DataContext is AssetsViewModel parentVm)
+			_isDragging = false;
+			_dragThresholdMet = false;
+			_activePointer = null;
+			_sharedActivePointer = null;
+			vm.IsDraggingVM = false;
+			e.Pointer.Capture(null);
+			e.Handled = true;
+
+			var assetsView = this.FindAncestorOfType<AssetsView>();
+			if (assetsView != null && assetsView.DataContext is AssetsViewModel parentVm)
+			{
+				// Dock only if released over an explicit drop target
+				var cursorInView = e.GetPosition(assetsView);
+				var hitZone = GetDropZoneFromPoint(assetsView, cursorInView);
+				if (hitZone != null)
 				{
-					if (parentVm.DragOverZone != null)
-					{
-						vm.DockState = parentVm.DragOverZone;
-					}
-					parentVm.DragOverZone = null;
+					vm.DockState = hitZone;
 				}
+				parentVm.DragOverZone = null;
+				parentVm.IsDraggingPanel = false;
+				parentVm.TriggerSaveAppState();
 			}
+		}
+
+		/// <summary>Checks if a point (in AssetsView coords) is within any named drop-target border.</summary>
+		private static string? GetDropZoneFromPoint(AssetsView assetsView, Point cursorInView)
+		{
+			var targets = new (string name, string zone)[]
+			{
+				("LeftDropTarget",   "Left"),
+				("CenterDropTarget", "Center"),
+				("RightDropTarget",  "Right"),
+			};
+			foreach (var (name, zone) in targets)
+			{
+				var border = assetsView.FindControl<Border>(name);
+				if (border == null || !border.IsVisible) continue;
+				var topLeft = border.TranslatePoint(new Point(0, 0), assetsView);
+				if (topLeft == null) continue;
+				var rect = new Rect(topLeft.Value, border.Bounds.Size);
+				if (rect.Contains(cursorInView)) return zone;
+			}
+			return null;
 		}
 
 		public async void OnEmptyStateClick(object? sender, PointerPressedEventArgs e)
@@ -307,6 +351,12 @@ namespace NyxAssetsEditor.Views
 				_isResizing = false;
 				e.Pointer.Capture(null);
 				e.Handled = true;
+
+				var assetsView = this.FindAncestorOfType<AssetsView>();
+				if (assetsView != null && assetsView.DataContext is AssetsViewModel parentVm)
+				{
+					parentVm.TriggerSaveAppState();
+				}
 			}
 		}
 

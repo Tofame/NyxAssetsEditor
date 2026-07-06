@@ -8,13 +8,49 @@ namespace NyxAssetsEditor.ViewModels
 		public string Description => "This is the dynamically loaded Settings View. Configure your editor options here.";
 
 		public static int DefaultPageSize { get; private set; } = 100;
-		public static bool UseTransparentPixels { get; set; } = true;
-		public static bool UseExtendedSpriteIds { get; set; } = true;
+
+		private static bool _useTransparentPixels = true;
+		public static bool UseTransparentPixels
+		{
+			get => _useTransparentPixels;
+			set
+			{
+				if (_useTransparentPixels != value)
+				{
+					_useTransparentPixels = value;
+					NyxAssetsEditor.Services.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private static bool _useExtendedSpriteIds = true;
+		public static bool UseExtendedSpriteIds
+		{
+			get => _useExtendedSpriteIds;
+			set
+			{
+				if (_useExtendedSpriteIds != value)
+				{
+					_useExtendedSpriteIds = value;
+					NyxAssetsEditor.Services.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		public static uint ThingIdOffset { get; set; } = 0;
 		public static uint ClientVersion { get; set; } = 1098;
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
+
+		public static void SetSettings(int defaultPageSize, bool useTransparentPixels, bool useExtendedSpriteIds, uint thingIdOffset, uint clientVersion)
+		{
+			DefaultPageSize = defaultPageSize;
+			_useTransparentPixels = useTransparentPixels;
+			_useExtendedSpriteIds = useExtendedSpriteIds;
+			ThingIdOffset = thingIdOffset;
+			ClientVersion = clientVersion;
+		}
 
 		public int SelectedThingIdOffset
 		{
@@ -27,6 +63,7 @@ namespace NyxAssetsEditor.ViewModels
 					ThingIdOffset = uValue;
 					OnPropertyChanged(nameof(SelectedThingIdOffset));
 					ThingIdOffsetChanged?.Invoke(uValue);
+					NyxAssetsEditor.Services.PersistenceService.SaveSettings();
 				}
 			}
 		}
@@ -51,6 +88,7 @@ namespace NyxAssetsEditor.ViewModels
 						_ => 1098
 					};
 					ClientVersionChanged?.Invoke(ClientVersion);
+					NyxAssetsEditor.Services.PersistenceService.SaveSettings();
 				}
 			}
 		}
@@ -76,8 +114,27 @@ namespace NyxAssetsEditor.ViewModels
 					};
 					DefaultPageSize = newSize;
 					DefaultPageSizeChanged?.Invoke(newSize);
+					NyxAssetsEditor.Services.PersistenceService.SaveSettings();
 				}
 			}
+		}
+
+		public SettingsViewModel()
+		{
+			_selectedPageIndex = DefaultPageSize switch
+			{
+				50 => 0,
+				100 => 1,
+				200 => 2,
+				_ => 1
+			};
+			_selectedVersionIndex = ClientVersion switch
+			{
+				1098 => 0,
+				860 => 1,
+				760 => 2,
+				_ => 0
+			};
 		}
 	}
 }

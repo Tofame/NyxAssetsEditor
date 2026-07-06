@@ -20,6 +20,57 @@ namespace NyxAssetsEditor.ViewModels
 		{
 			// Subscribe to defaults if settings change
 			SettingsViewModel.DefaultPageSizeChanged += OnDefaultPageSizeChanged;
+
+			// Restore workspace panels state
+			NyxAssetsEditor.Services.PersistenceService.LoadAppState(this, _renderer);
+		}
+
+		public void ClearAllPanels()
+		{
+			foreach (var panel in ActivePanels)
+			{
+				panel.RequestClose -= OnPanelRequestClose;
+				panel.RequestDockStateChanged -= OnPanelRequestDockStateChanged;
+				panel.PropertyChanged -= OnPanelPropertyChanged;
+				if (panel is IDisposable disp)
+				{
+					disp.Dispose();
+				}
+			}
+
+			ActivePanels.Clear();
+			FloatingPanels.Clear();
+			LeftDockedPanels.Clear();
+			CenterDockedPanels.Clear();
+			RightDockedPanels.Clear();
+			UpdateColumnWidths();
+		}
+
+		public void RestorePanel(PanelViewModelBase panel)
+		{
+			panel.RequestClose += OnPanelRequestClose;
+			panel.RequestDockStateChanged += OnPanelRequestDockStateChanged;
+			panel.PropertyChanged += OnPanelPropertyChanged;
+
+			ActivePanels.Add(panel);
+
+			switch (panel.DockState)
+			{
+				case "Left":
+					LeftDockedPanels.Add(panel);
+					break;
+				case "Center":
+					CenterDockedPanels.Add(panel);
+					break;
+				case "Right":
+					RightDockedPanels.Add(panel);
+					break;
+				default:
+					FloatingPanels.Add(panel);
+					break;
+			}
+
+			UpdateColumnWidths();
 		}
 
 		private void OnDefaultPageSizeChanged(int newPageSize)
@@ -87,6 +138,8 @@ namespace NyxAssetsEditor.ViewModels
 
 			ActivePanels.Add(panel);
 			FloatingPanels.Add(panel);
+
+			NyxAssetsEditor.Services.PersistenceService.SaveAppState(this);
 		}
 
 		private string? _dragOverZone;
@@ -109,6 +162,13 @@ namespace NyxAssetsEditor.ViewModels
 		public bool IsDragOverCenter => DragOverZone == "Center";
 		public bool IsDragOverRight => DragOverZone == "Right";
 
+		private bool _isDraggingPanel;
+		public bool IsDraggingPanel
+		{
+			get => _isDraggingPanel;
+			set => SetProperty(ref _isDraggingPanel, value);
+		}
+
 		public bool IsLeftEmpty => LeftDockedPanels.Count == 0;
 		public bool IsCenterEmpty => CenterDockedPanels.Count == 0;
 		public bool IsRightEmpty => RightDockedPanels.Count == 0;
@@ -118,6 +178,11 @@ namespace NyxAssetsEditor.ViewModels
 			OnPropertyChanged(nameof(IsLeftEmpty));
 			OnPropertyChanged(nameof(IsCenterEmpty));
 			OnPropertyChanged(nameof(IsRightEmpty));
+		}
+
+		public void TriggerSaveAppState()
+		{
+			NyxAssetsEditor.Services.PersistenceService.SaveAppState(this);
 		}
 
 		private void OnPanelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -132,6 +197,16 @@ namespace NyxAssetsEditor.ViewModels
 						thingsPanel.RefreshPreviews();
 					}
 				}
+			}
+
+			if (e.PropertyName == nameof(PanelViewModelBase.IsMinimized) ||
+				e.PropertyName == nameof(PanelViewModelBase.DockState) ||
+				e.PropertyName == "FilePath" ||
+				e.PropertyName == "IsGridView" ||
+				e.PropertyName == "PageSize" ||
+				e.PropertyName == "CurrentPage")
+			{
+				NyxAssetsEditor.Services.PersistenceService.SaveAppState(this);
 			}
 		}
 
@@ -150,6 +225,8 @@ namespace NyxAssetsEditor.ViewModels
 			RemoveFromDockCollections(panel);
 			UpdateColumnWidths();
 			OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
+
+			NyxAssetsEditor.Services.PersistenceService.SaveAppState(this);
 		}
 
 		private void OnPanelRequestDockStateChanged(PanelViewModelBase panel)
@@ -172,6 +249,8 @@ namespace NyxAssetsEditor.ViewModels
 					break;
 			}
 			UpdateColumnWidths();
+
+			NyxAssetsEditor.Services.PersistenceService.SaveAppState(this);
 		}
 
 		private void RemoveFromDockCollections(PanelViewModelBase panel)

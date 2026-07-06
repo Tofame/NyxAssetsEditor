@@ -111,6 +111,12 @@ namespace NyxAssetsEditor.ViewModels
 			DockState = state;
 		}
 
+		[RelayCommand]
+		public void Undock()
+		{
+			DockState = "Floating";
+		}
+
 		public bool IsDraggingVM { get; set; }
 		public double DragClickX { get; set; }
 		public double DragClickY { get; set; }
