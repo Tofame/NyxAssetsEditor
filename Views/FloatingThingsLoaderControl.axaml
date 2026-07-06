@@ -5,6 +5,23 @@
 			 x:DataType="vm:FloatingThingsLoaderViewModel"
 			 Width="{Binding DisplayWidth}">
 
+	<UserControl.Styles>
+		<Style Selector="Border.thing-tile">
+			<Setter Property="BorderBrush" Value="#353535"/>
+			<Setter Property="BorderThickness" Value="1"/>
+		</Style>
+		<Style Selector="Border.thing-tile.selected">
+			<Setter Property="BorderBrush" Value="#5E94FF"/>
+			<Setter Property="BorderThickness" Value="2"/>
+		</Style>
+		<Style Selector="Border.thing-list-row">
+			<Setter Property="Background" Value="Transparent"/>
+		</Style>
+		<Style Selector="Border.thing-list-row.selected">
+			<Setter Property="Background" Value="#225E94FF"/>
+		</Style>
+	</UserControl.Styles>
+
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
 		<Grid RowDefinitions="Auto, *, Auto">
 			<!-- Title Bar (Draggable) -->
@@ -66,8 +83,26 @@
 						</Style>
 					</ListBox.Styles>
 					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3">
+						<DataTemplate x:DataType="vm:ThingItemViewModel">
+							<Border Classes="thing-list-row" Classes.selected="{Binding IsSelected}" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3" PointerPressed="OnThingPointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="Spritesheet">
+												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+											</MenuItem>
+											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
+											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
 								<Grid ColumnDefinitions="Auto, *">
 									<!-- Square Image Container -->
 									<Border Grid.Column="0" Width="36" Height="36" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
@@ -90,8 +125,27 @@
 						</ItemsPanelTemplate>
 					</ListBox.ItemsPanel>
 					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<Border Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76" BorderBrush="#353535" BorderThickness="1">
+						<DataTemplate x:DataType="vm:ThingItemViewModel">
+							<Border Classes="thing-tile" Classes.selected="{Binding IsSelected}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76" BorderBrush="#353535" BorderThickness="1"
+									PointerPressed="OnThingPointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="Spritesheet">
+												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+											</MenuItem>
+											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
+											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
 								<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 									<Image Source="{Binding PreviewImage}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 									<TextBlock Text="{Binding DisplayedId}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
@@ -147,9 +201,30 @@
 				</StackPanel>
 			</Grid>
 
-			<!-- Pagination Footer (also Draggable) -->
-			<Border Grid.Row="2" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8">
-				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+			<!-- Footer: thing actions + pagination -->
+			<Border Grid.Row="2" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8,6">
+				<StackPanel Spacing="6">
+					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsArchiveLoaded}">
+						<Button Content="Import" Command="{Binding ImportThingCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Export" Padding="10,4" FontSize="11">
+							<Button.Flyout>
+								<MenuFlyout Placement="Top">
+									<MenuItem Header="Spritesheet">
+										<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
+										<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
+										<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
+									</MenuItem>
+									<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
+									<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
+								</MenuFlyout>
+							</Button.Flyout>
+						</Button>
+						<Button Content="Duplicate" Command="{Binding DuplicateSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Remove" Command="{Binding RemoveSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
+						<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasThingSelection}"/>
+					</StackPanel>
+
+					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
 					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
 					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>
 					
@@ -165,7 +240,8 @@
 					
 					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
 					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;&gt;" Padding="8,4" FontSize="11"/>
-				</Grid>
+					</Grid>
+				</StackPanel>
 			</Border>
 
 			<!-- Resize Handles (Overlay) -->
