@@ -60,6 +60,33 @@ public class SpriteLoader : IDisposable
         }
     }
 
+    public void OpenEmptyArchive(string format, bool extendedSpriteIds = true, bool transparentPixels = true)
+    {
+        ClearArchives();
+
+        _extendedSpriteIds = extendedSpriteIds;
+        _transparentPixels = transparentPixels;
+
+        if (format.ToLower() == "spr")
+        {
+            byte[] header = new byte[8];
+            _archive_spr = SpriteArchive.Load(header, extendedSpriteIds, transparentPixels, preloadSprites: false);
+        }
+        else if (format.ToLower() == "assets")
+        {
+            byte[] header = new byte[32];
+            uint signature = 0x54535341;
+            BitConverter.GetBytes(signature).CopyTo(header, 0);
+            uint version = 1;
+            BitConverter.GetBytes(version).CopyTo(header, 4);
+            _archive_assets = AssetArchive.Load(header, preloadPages: false);
+        }
+        else
+        {
+            throw new NotSupportedException($"The format '{format}' is not supported.");
+        }
+    }
+
     /// <summary>
     /// Decodes a specific sprite by checking whichever archive slot is active.
     /// </summary>

@@ -372,6 +372,52 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand]
+		private async System.Threading.Tasks.Task NewArchive()
+		{
+			var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+			if (desktop?.MainWindow is not Avalonia.Controls.Window mainWindow) return;
+
+			var dialog = new NyxAssetsEditor.Views.Shell.NewArchiveDialog();
+			await dialog.ShowDialog(mainWindow);
+
+			if (dialog.Result.IsConfirmed)
+			{
+				var spritePanel = new FloatingSpriteLoaderViewModel(_renderer)
+				{
+					PageSize = SettingsViewModel.DefaultPageSize,
+					UseTransparentPixels = dialog.Result.UseTransparentPixels,
+					UseExtendedSpriteIds = dialog.Result.UseExtendedSpriteIds,
+					PositionX = 100,
+					PositionY = 80 + ActivePanels.Count * 25,
+					IsVisible = true
+				};
+
+				AddPanel(spritePanel);
+
+				string sprFormat = dialog.Result.Format == "dat" ? "spr" : "assets";
+				await spritePanel.CreateNewArchiveAsync(sprFormat, dialog.Result.UseExtendedSpriteIds, dialog.Result.UseTransparentPixels);
+
+				var thingsPanel = new FloatingThingsLoaderViewModel(this)
+				{
+					PositionX = 100,
+					PositionY = 80 + ActivePanels.Count * 25,
+					IsVisible = true
+				};
+
+				AddPanel(thingsPanel);
+
+				string thingsFormat = dialog.Result.Format == "dat" ? "dat" : "things";
+				await thingsPanel.CreateNewArchiveAsync(thingsFormat, dialog.Result.ClientVersion, dialog.Result.UseExtendedSpriteIds, dialog.Result.UseFrameAnimations, dialog.Result.UseFrameGroups);
+
+				thingsPanel.LinkedSpritePanel = spritePanel;
+				thingsPanel.NotifySpriteLinkChanged();
+
+				RefreshCompileCommands();
+				PersistenceService.SaveAppState(this);
+			}
+		}
+
+		[RelayCommand]
 		private void LoadAssets()
 		{
 			var panel = new FloatingSpriteLoaderViewModel(_renderer)

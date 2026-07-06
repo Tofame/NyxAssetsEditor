@@ -60,11 +60,10 @@
 
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
-						<ComboBox SelectedIndex="{Binding SelectedVersionIndex}" Width="120" Height="28">
-							<ComboBoxItem Content="10.98"/>
-							<ComboBoxItem Content="8.60"/>
-							<ComboBoxItem Content="7.60"/>
-						</ComboBox>
+						<ComboBox ItemsSource="{Binding AvailableVersions}"
+								  SelectedItem="{Binding SelectedVersion}"
+								  DisplayMemberBinding="{Binding DisplayName}"
+								  Width="120" Height="28"/>
 						<TextBlock Text="Affects .dat binary format parsing rules and checkbox defaults."
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>

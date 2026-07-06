@@ -1,0 +1,80 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:common="using:NyxAssetsEditor.ViewModels.Common"
+		x:Class="NyxAssetsEditor.Views.Shell.NewArchiveDialog"
+		Title="Create New Archive"
+		Width="440"
+		SizeToContent="Height"
+		CanResize="False"
+		WindowStartupLocation="CenterOwner"
+		Background="#141414"
+		RequestedThemeVariant="Dark"
+		ShowInTaskbar="False">
+
+	<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1">
+		<StackPanel Spacing="0">
+
+			<!-- Header -->
+			<Border Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="20,16">
+				<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+					<TextBlock Text="Create New Archive" FontSize="16" FontWeight="SemiBold"
+							   Foreground="#F0F0F0" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Body -->
+			<Border Padding="20,18">
+				<StackPanel Spacing="16">
+					
+					<!-- Format Selection -->
+					<StackPanel Spacing="6">
+						<TextBlock Text="Archive Format:" Foreground="#CCCCCC" FontSize="12" FontWeight="SemiBold"/>
+						<ComboBox Name="FormatComboBox" SelectedIndex="0" HorizontalAlignment="Stretch" Height="30">
+							<ComboBoxItem Content="DAT + SPR (OG Classic)"/>
+							<ComboBoxItem Content="JSON + Assets (Nyx/Modern)"/>
+						</ComboBox>
+					</StackPanel>
+
+					<!-- Client Version Selection -->
+					<StackPanel Spacing="6">
+						<TextBlock Text="Client Version:" Foreground="#CCCCCC" FontSize="12" FontWeight="SemiBold"/>
+						<ComboBox Name="VersionComboBox" HorizontalAlignment="Stretch" Height="30" x:DataType="common:ClientVersion" DisplayMemberBinding="{Binding DisplayName}"/>
+					</StackPanel>
+
+					<!-- Options Checkboxes -->
+					<StackPanel Spacing="8" Margin="0,4,0,0">
+						<TextBlock Text="Options:" Foreground="#CCCCCC" FontSize="12" FontWeight="SemiBold"/>
+						
+						<CheckBox Name="ExtendedCheckbox" Content="Extended Sprite IDs"/>
+						<CheckBox Name="TransparentCheckbox" Content="Use Transparent Pixels"/>
+						<CheckBox Name="AnimationsCheckbox" Content="Improved Animations (Frame Duration/Group)"/>
+						<CheckBox Name="GroupsCheckbox" Content="Frame Groups (Outfit/Object/Effect)"/>
+					</StackPanel>
+
+				</StackPanel>
+			</Border>
+
+			<!-- Footer Buttons -->
+			<Border Padding="20,0,20,20">
+				<Grid ColumnDefinitions="*, Auto, Auto" HorizontalAlignment="Stretch">
+					<Border Grid.Column="0"/>
+
+					<Button Grid.Column="1" Name="ConfirmButton"
+							Content="Confirm"
+							Padding="20,8" Margin="0,0,8,0"
+							Background="#FF6B6B" BorderBrush="#FF5252" BorderThickness="1"
+							Foreground="#FFFFFF" FontSize="12" CornerRadius="4"
+							Click="OnConfirmClick"/>
+
+					<Button Grid.Column="2" Name="CancelButton"
+							Content="Cancel"
+							Padding="20,8"
+							Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1"
+							Foreground="#AAAAAA" FontSize="12" CornerRadius="4"
+							Click="OnCancelClick"/>
+				</Grid>
+			</Border>
+
+		</StackPanel>
+	</Border>
+</Window>

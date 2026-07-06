@@ -633,6 +633,38 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			NotifySelectionChanged();
 		}
 
+		public async Task CreateNewArchiveAsync(string format, uint clientVersion, bool useExtendedThingIds, bool useFrameAnimations, bool useFrameGroups)
+		{
+			AddedThingIds.Clear();
+			RemovedThingIds.Clear();
+			ModifiedThingIds.Clear();
+
+			UseExtendedThingIds = useExtendedThingIds;
+			UseFrameAnimations = useFrameAnimations;
+			UseFrameGroups = useFrameGroups;
+
+			FilePath = format.ToLower() == "dat" ? "Untitled.dat" : "Untitled.things";
+
+			var datFormat = clientVersion switch
+			{
+				740 => NyxAssets.Things.DatThingFormat.V2_7_40__7_50,
+				760 => NyxAssets.Things.DatThingFormat.V3_7_55__7_72,
+				860 => NyxAssets.Things.DatThingFormat.V5_8_60__9_86,
+				_ => NyxAssets.Things.DatThingFormat.V6_10_10__10_56
+			};
+
+			var catalog = new ThingCatalog();
+			catalog.DatSignature = 0U;
+			catalog.DatFormat = datFormat;
+			_catalog = catalog;
+
+			_selectedSection = ThingKind.Item;
+			NotifySectionProperties();
+			OnPropertyChanged(nameof(IsArchiveLoaded));
+			ReloadThingsForSection();
+			HasSavedChanges = true;
+		}
+
 		public void LoadArchive(string path, bool useLastLoadedSprite = true) =>
 			_ = LoadArchiveAsync(path, useLastLoadedSprite);
 

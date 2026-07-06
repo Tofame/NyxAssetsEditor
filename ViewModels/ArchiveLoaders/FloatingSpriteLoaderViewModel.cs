@@ -114,7 +114,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 		}
 
-		public bool IsArchiveLoaded => TotalSprites > 0;
+		public bool IsArchiveLoaded => Loader.ArchiveKind != SpriteArchiveKind.None;
 
 		private bool _isGridView = true;
 
@@ -233,6 +233,28 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			TotalSprites = Loader.SpriteCount;
 			CurrentPage = 1;
 			UpdatePage();
+			OnPropertyChanged(nameof(IsArchiveLoaded));
+			ParentViewModel?.OnSpriteArchiveLoaded(this);
+		}
+
+		public async Task CreateNewArchiveAsync(string format, bool extendedSpriteIds = true, bool transparentPixels = true)
+		{
+			AddedSpriteIds.Clear();
+			RemovedSpriteIds.Clear();
+			ModifiedSpriteIds.Clear();
+
+			UseExtendedSpriteIds = extendedSpriteIds;
+			UseTransparentPixels = transparentPixels;
+
+			FilePath = format.ToLower() == "spr" ? "Untitled.spr" : "Untitled.assets";
+
+			await Task.Run(() => Loader.OpenEmptyArchive(format, extendedSpriteIds, transparentPixels)).ConfigureAwait(true);
+
+			TotalSprites = Loader.SpriteCount;
+			CurrentPage = 1;
+			UpdatePage();
+			HasSavedChanges = true;
+			OnPropertyChanged(nameof(IsArchiveLoaded));
 			ParentViewModel?.OnSpriteArchiveLoaded(this);
 		}
 

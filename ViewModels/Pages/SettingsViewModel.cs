@@ -250,6 +250,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_assetDisplaySize = assetDisplaySize;
 			ThingIdOffset = thingIdOffset;
 			ClientVersion = clientVersion;
+			_selectedVersionIndex = System.Math.Max(0, NyxAssetsEditor.ViewModels.Common.ClientVersion.AvailableVersions.FindIndex(v => v.Version == clientVersion));
 			ItemAnimationDurationMs = itemAnimationDurationMs;
 			OutfitAnimationDurationMs = outfitAnimationDurationMs;
 			EffectAnimationDurationMs = effectAnimationDurationMs;
@@ -280,7 +281,36 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
-		private int _selectedVersionIndex = 0; // Index 0 maps to 10.98
+		public System.Collections.Generic.List<NyxAssetsEditor.ViewModels.Common.ClientVersion> AvailableVersions => NyxAssetsEditor.ViewModels.Common.ClientVersion.AvailableVersions;
+
+		public NyxAssetsEditor.ViewModels.Common.ClientVersion SelectedVersion
+		{
+			get
+			{
+				var found = AvailableVersions.Find(v => v.Version == ClientVersion);
+				return found ?? AvailableVersions[0];
+			}
+			set
+			{
+				if (value != null && ClientVersion != value.Version)
+				{
+					ClientVersion = value.Version;
+					OnPropertyChanged(nameof(SelectedVersion));
+
+					int idx = AvailableVersions.IndexOf(value);
+					if (idx >= 0 && _selectedVersionIndex != idx)
+					{
+						_selectedVersionIndex = idx;
+						OnPropertyChanged(nameof(SelectedVersionIndex));
+					}
+
+					ClientVersionChanged?.Invoke(ClientVersion);
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private static int _selectedVersionIndex = 0;
 
 		public int SelectedVersionIndex
 		{
@@ -292,15 +322,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					_selectedVersionIndex = value;
 					OnPropertyChanged(nameof(SelectedVersionIndex));
 
-					ClientVersion = value switch
+					if (value >= 0 && value < AvailableVersions.Count)
 					{
-						0 => 1098,
-						1 => 860,
-						2 => 760,
-						_ => 1098
-					};
-					ClientVersionChanged?.Invoke(ClientVersion);
-					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+						ClientVersion = AvailableVersions[value].Version;
+						OnPropertyChanged(nameof(SelectedVersion));
+						ClientVersionChanged?.Invoke(ClientVersion);
+						NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+					}
 				}
 			}
 		}

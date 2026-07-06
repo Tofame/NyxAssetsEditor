@@ -179,7 +179,7 @@
 					</ListBox.ItemTemplate>
 				</ListBox>
 				
-				<StackPanel IsVisible="{Binding !TotalSprites}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+				<StackPanel IsVisible="{Binding !IsArchiveLoaded}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
 					<Border Name="EmptyStateDropzone"
 							Background="#22000000"
 							BorderBrush="#3A7BD5"
