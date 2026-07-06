@@ -616,7 +616,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (_parentViewModel?.TryAssignPendingSpriteLink(this, thingsFormat) != true)
 					return;
 			}
-			else if (_parentViewModel?.ResolveSpritePanelFor(this) is not { IsArchiveLoaded: true })
+			else if (isNewArchive && _parentViewModel?.ResolveSpritePanelFor(this) is not { IsArchiveLoaded: true })
 				return;
 
 			FilePath = path;

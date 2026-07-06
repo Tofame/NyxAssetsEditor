@@ -254,7 +254,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand(CanExecute = nameof(CanCompile))]
-		private void Compile()
+		private async System.Threading.Tasks.Task Compile()
 		{
 			foreach (var pair in GetCompilePairs())
 			{
@@ -269,12 +269,17 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						pair.SpritePanel.FilePath,
 						pair.ThingsPanel.FilePath);
 
-					pair.SpritePanel.LoadArchive(pair.SpritePanel.FilePath);
-					pair.ThingsPanel.LoadArchive(pair.ThingsPanel.FilePath, useLastLoadedSprite: false);
+					// Await sprite reload first so the link is available for things reload
+					await pair.SpritePanel.LoadArchiveAsync(pair.SpritePanel.FilePath);
+					await pair.ThingsPanel.LoadArchiveAsync(pair.ThingsPanel.FilePath, useLastLoadedSprite: false);
+
+					pair.SpritePanel.HasSavedChanges = false;
+					pair.ThingsPanel.HasSavedChanges = false;
+					RefreshCompileCommands();
 				}
 				catch (Exception ex)
 				{
-					System.Diagnostics.Debug.WriteLine($"Compile failed: {ex.Message}");
+					System.Diagnostics.Debug.WriteLine($"Compile failed: {ex}");
 				}
 			}
 		}
@@ -286,13 +291,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				await CompileAsHandler();
 		}
 
-		public void CompilePairAs(LinkedArchivePair pair, string spriteOutputPath, string thingsOutputPath)
+		public async System.Threading.Tasks.Task CompilePairAs(LinkedArchivePair pair, string spriteOutputPath, string thingsOutputPath)
 		{
 			ArchiveCompileService.CompilePair(pair.SpritePanel, pair.ThingsPanel, spriteOutputPath, thingsOutputPath);
 			pair.SpritePanel.FilePath = spriteOutputPath;
 			pair.ThingsPanel.FilePath = thingsOutputPath;
-			pair.SpritePanel.LoadArchive(spriteOutputPath);
-			pair.ThingsPanel.LoadArchive(thingsOutputPath, useLastLoadedSprite: false);
+			await pair.SpritePanel.LoadArchiveAsync(spriteOutputPath);
+			await pair.ThingsPanel.LoadArchiveAsync(thingsOutputPath, useLastLoadedSprite: false);
+			pair.SpritePanel.HasSavedChanges = false;
+			pair.ThingsPanel.HasSavedChanges = false;
+			RefreshCompileCommands();
 			TriggerSaveAppState();
 		}
 

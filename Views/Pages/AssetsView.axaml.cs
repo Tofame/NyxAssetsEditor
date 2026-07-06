@@ -81,7 +81,7 @@ namespace NyxAssetsEditor.Views.Pages
 
 				try
 				{
-					_viewModel.CompilePairAs(pair, spriteFile.Path.LocalPath, thingsFile.Path.LocalPath);
+					await _viewModel.CompilePairAs(pair, spriteFile.Path.LocalPath, thingsFile.Path.LocalPath);
 				}
 				catch (Exception ex)
 				{

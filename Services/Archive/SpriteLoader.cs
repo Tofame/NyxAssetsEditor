@@ -152,14 +152,20 @@ public class SpriteLoader : IDisposable
         if (_archive_spr == null)
             throw new InvalidOperationException("No .spr archive is open.");
 
+        // Read all pixels into memory first
         var rgbaList = new byte[]?[SpriteCount + 1];
+        var sig = SprSignature;
         for (uint id = 1; id <= SpriteCount; id++)
             rgbaList[id] = IsEmptySprite(id) ? null : LoadSpritePixels(id);
+
+        // Release the file lock before writing to the same path
+        _archive_spr.Dispose();
+        _archive_spr = null;
 
         using var output = File.Create(path);
         SpriteSheetCompiler.WriteToStream(
             output,
-            SprSignature,
+            sig,
             _extendedSpriteIds,
             _transparentPixels,
             rgbaList);
@@ -190,6 +196,9 @@ public class SpriteLoader : IDisposable
             rgba.CopyTo(entry.AsSpan(4));
             spritesArray[id - 1] = entry;
         }
+
+        // Release the file lock before writing to the same path
+        ClearArchives();
 
         writer.AddRange(spritesArray);
         writer.Save(path, compressionLevel, spritesPerPage);
