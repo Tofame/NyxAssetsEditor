@@ -34,6 +34,12 @@ public sealed class SpriteLoaderSpriteSource : ISpriteSource
 
     public bool IsEmptySprite(uint spriteId) => _loader.IsEmptySprite(spriteId);
 
+    public void PutSprite(uint spriteId, byte[] rgba) => _loader.SetSpritePixels(spriteId, rgba);
+
+    public bool RemoveSprite(uint spriteId) => _loader.RemoveSprite(spriteId);
+
+    public void WriteToStream(System.IO.Stream output) => _loader.WriteToStream(output);
+
     public void Dispose()
     {
     }

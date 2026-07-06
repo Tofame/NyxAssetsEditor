@@ -888,39 +888,47 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			// Remove from local list
 			_allThings.RemoveAll(t => idsToRemove.Contains(t.Id));
 
-			var itemsByKind = itemsList.GroupBy(t => t.Kind).ToDictionary(g => g.Key, g => g.ToList());
-
-			foreach (var kvp in itemsByKind)
+			if (SelectedThing != null && idsToRemove.Contains(SelectedThing.Id))
 			{
-				var kind = kvp.Key;
-				var list = kvp.Value;
+				SelectedThing = null;
+				NotifySelectionChanged();
+			}
 
-				for (int i = 0; i < list.Count; i++)
+			var kind = SelectedSection;
+
+			for (int i = 0; i < itemsList.Count; i++)
+			{
+				var id = itemsList[i].Id;
+				bool rebuild = (i == itemsList.Count - 1);
+
+				switch (kind)
 				{
-					var id = list[i].Id;
-					bool rebuild = (i == list.Count - 1);
-
-					switch (kind)
-					{
-						case ThingKind.Item:
-							_catalog.RemoveItem(id, rebuild);
-							break;
-						case ThingKind.Outfit:
-							_catalog.RemoveOutfit(id, rebuild);
-							break;
-						case ThingKind.Effect:
-							_catalog.RemoveEffect(id, rebuild);
-							break;
-						case ThingKind.Missile:
-							_catalog.RemoveMissile(id, rebuild);
-							break;
-					}
+					case ThingKind.Item:
+						_catalog.RemoveItem(id, rebuild);
+						break;
+					case ThingKind.Outfit:
+						_catalog.RemoveOutfit(id, rebuild);
+						break;
+					case ThingKind.Effect:
+						_catalog.RemoveEffect(id, rebuild);
+						break;
+					case ThingKind.Missile:
+						_catalog.RemoveMissile(id, rebuild);
+						break;
 				}
 			}
 
-			// Reload the section list and refresh the UI state
-			ReloadThingsForSection();
 			TotalThings = (uint)_allThings.Count;
+
+			// Handle page overflow if the current page is now beyond the new total pages
+			int maxPage = Math.Max(1, (int)((TotalThings + (uint)PageSize - 1) / (uint)PageSize));
+			if (CurrentPage > maxPage)
+			{
+				_currentPage = maxPage;
+				OnPropertyChanged(nameof(CurrentPage));
+				OnPropertyChanged(nameof(HasNextPage));
+				OnPropertyChanged(nameof(HasPreviousPage));
+			}
 
 			RefreshAfterCatalogMutation(goToLastPage: false);
 		}

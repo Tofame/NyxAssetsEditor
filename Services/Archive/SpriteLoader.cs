@@ -170,6 +170,29 @@ public class SpriteLoader : IDisposable
         ms.CopyTo(output);
     }
 
+    public bool RemoveSprite(uint spriteId)
+    {
+        if (_archive_spr != null)
+        {
+            return _archive_spr.RemoveSprite(spriteId);
+        }
+        else if (_archive_assets != null)
+        {
+            return _archive_assets.RemoveSprite(spriteId);
+        }
+        return false;
+    }
+
+    public void WriteToStream(Stream output)
+    {
+        if (_archive_spr != null)
+            _archive_spr.WriteToStream(output);
+        else if (_archive_assets != null)
+            _archive_assets.WriteToStream(output);
+        else
+            throw new InvalidOperationException("No sprite archive is currently open.");
+    }
+
     private void ClearArchives()
     {
         _archive_spr?.Dispose();

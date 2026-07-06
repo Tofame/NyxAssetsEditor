@@ -14,6 +14,10 @@ namespace NyxAssetsEditor.Views.Shell
 	{
 		public ExitDialogResult Result { get; private set; } = ExitDialogResult.Cancel;
 
+		public ExitConfirmDialog() : this(string.Empty)
+		{
+		}
+
 		public ExitConfirmDialog(string summary)
 		{
 			InitializeComponent();

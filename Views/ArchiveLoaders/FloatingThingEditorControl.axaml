@@ -278,7 +278,7 @@
 											<Button.Flyout>
 												<Flyout Placement="BottomEdgeAlignedRight">
 													<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6" Width="268" Height="236">
-														<ItemsControl ItemsSource="{Binding PaletteColors}">
+														<ItemsControl ItemsSource="{Binding PaletteColors}" x:CompileBindings="False">
 															<ItemsControl.ItemsPanel>
 																<ItemsPanelTemplate>
 																	<UniformGrid Columns="16" Rows="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -314,7 +314,7 @@
 											<Button.Flyout>
 												<Flyout Placement="BottomEdgeAlignedRight">
 													<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6" Width="268" Height="236">
-														<ItemsControl ItemsSource="{Binding PaletteColors}">
+														<ItemsControl ItemsSource="{Binding PaletteColors}" x:CompileBindings="False">
 															<ItemsControl.ItemsPanel>
 																<ItemsPanelTemplate>
 																	<UniformGrid Columns="16" Rows="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
