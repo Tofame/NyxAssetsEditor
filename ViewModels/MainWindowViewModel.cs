@@ -40,6 +40,8 @@ public partial class MainWindowViewModel : ViewModelBase
 		var panel = new FloatingSpriteLoaderViewModel(_renderer)
 		{
 			PageSize = SettingsViewModel.DefaultPageSize,
+			UseTransparentPixels = SettingsViewModel.UseTransparentPixels,
+			UseExtendedSpriteIds = SettingsViewModel.UseExtendedSpriteIds,
 			PositionX = 100 + ActivePanels.Count * 30,
 			PositionY = 100 + ActivePanels.Count * 30,
 			IsVisible = true

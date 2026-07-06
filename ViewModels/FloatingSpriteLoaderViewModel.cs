@@ -21,8 +21,10 @@ namespace NyxAssetsEditor.ViewModels
 		private bool _useExtendedSpriteIds = true;
 		private double _panelWidth = 380;
 		private double _contentHeight = 400;
+		private bool _showSaveConfirmation;
 
 		public event Action<FloatingSpriteLoaderViewModel>? RequestClose;
+		public event EventHandler? RequestSaveAs;
 
 		public SpriteLoader Loader { get; } = new SpriteLoader();
 		public ObservableCollection<SpriteViewModel> PagedSprites { get; } = new ObservableCollection<SpriteViewModel>();
@@ -44,13 +46,25 @@ namespace NyxAssetsEditor.ViewModels
 		public bool UseTransparentPixels
 		{
 			get => _useTransparentPixels;
-			set => SetProperty(ref _useTransparentPixels, value);
+			set
+			{
+				if (SetProperty(ref _useTransparentPixels, value))
+				{
+					SettingsViewModel.UseTransparentPixels = value;
+				}
+			}
 		}
 
 		public bool UseExtendedSpriteIds
 		{
 			get => _useExtendedSpriteIds;
-			set => SetProperty(ref _useExtendedSpriteIds, value);
+			set
+			{
+				if (SetProperty(ref _useExtendedSpriteIds, value))
+				{
+					SettingsViewModel.UseExtendedSpriteIds = value;
+				}
+			}
 		}
 
 		public double PanelWidth
@@ -65,6 +79,14 @@ namespace NyxAssetsEditor.ViewModels
 			set => SetProperty(ref _contentHeight, value);
 		}
 
+		public int[] AvailablePageSizes { get; } = { 50, 100, 200, 300 };
+
+		public bool ShowSaveConfirmation
+		{
+			get => _showSaveConfirmation;
+			set => SetProperty(ref _showSaveConfirmation, value);
+		}
+
 		public uint TotalSprites
 		{
 			get => _totalSprites;
@@ -75,9 +97,12 @@ namespace NyxAssetsEditor.ViewModels
 					OnPropertyChanged(nameof(TotalPages));
 					OnPropertyChanged(nameof(HasNextPage));
 					OnPropertyChanged(nameof(HasPreviousPage));
+					OnPropertyChanged(nameof(IsArchiveLoaded));
 				}
 			}
 		}
+
+		public bool IsArchiveLoaded => TotalSprites > 0;
 
 		public int CurrentPage
 		{
@@ -209,6 +234,43 @@ namespace NyxAssetsEditor.ViewModels
 		{
 			IsVisible = false;
 			RequestClose?.Invoke(this);
+		}
+
+		[RelayCommand]
+		private void RequestSaveConfirmation()
+		{
+			if (string.IsNullOrEmpty(FilePath) || FilePath == "No archive loaded") return;
+			ShowSaveConfirmation = true;
+		}
+
+		[RelayCommand]
+		private void CancelSave()
+		{
+			ShowSaveConfirmation = false;
+		}
+
+		[RelayCommand]
+		private void ConfirmSave()
+		{
+			ShowSaveConfirmation = false;
+			if (string.IsNullOrEmpty(FilePath) || !System.IO.File.Exists(FilePath)) return;
+
+			try
+			{
+				string backupPath = FilePath + ".bak";
+				System.IO.File.Copy(FilePath, backupPath, true);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to save backup: {ex.Message}");
+			}
+		}
+
+		[RelayCommand]
+		private void SaveAs()
+		{
+			if (string.IsNullOrEmpty(FilePath) || FilePath == "No archive loaded") return;
+			RequestSaveAs?.Invoke(this, EventArgs.Empty);
 		}
 
 		public void Dispose()

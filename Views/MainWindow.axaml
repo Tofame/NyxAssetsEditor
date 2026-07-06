@@ -45,7 +45,7 @@
 			<ItemsControl Classes="overlay" ItemsSource="{Binding ActivePanels}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
-						<Canvas Background="Transparent"/>
+						<Canvas />
 					</ItemsPanelTemplate>
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.Styles>

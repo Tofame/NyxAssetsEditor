@@ -13,10 +13,11 @@ namespace NyxAssetsEditor.Views
 		private bool _isDragging;
 		private Point _clickPosition;
 		private bool _isResizing;
-		private int _resizeDirection; // 1 = Right, 2 = Bottom, 3 = Corner
+		private int _resizeDirection; // 1 = Right, 2 = Bottom, 3 = Corner, 4 = Left
 		private Point _initialPointerPosition;
 		private double _initialWidth;
 		private double _initialHeight;
+		private FloatingSpriteLoaderViewModel? _viewModel;
 
 		public FloatingSpriteLoaderControl()
 		{
@@ -29,10 +30,36 @@ namespace NyxAssetsEditor.Views
 				titleBar.PointerMoved += OnTitleBarPointerMoved;
 				titleBar.PointerReleased += OnTitleBarPointerReleased;
 			}
+
+			this.DataContextChanged += (s, e) =>
+			{
+				if (_viewModel != null)
+				{
+					_viewModel.RequestSaveAs -= OnSaveAsRequested;
+				}
+				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
+				if (_viewModel != null)
+				{
+					_viewModel.RequestSaveAs += OnSaveAsRequested;
+				}
+			};
 		}
 
 		private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
 		{
+			if (e.Source is Visual visual)
+			{
+				var current = visual;
+				while (current != null && current != this)
+				{
+					if (current is Button || current is ComboBox || current is TextBox)
+					{
+						return;
+					}
+					current = current.GetVisualParent();
+				}
+			}
+
 			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
 			{
 				_isDragging = true;
@@ -101,6 +128,11 @@ namespace NyxAssetsEditor.Views
 			}
 		}
 
+		private void OnResizeLeftPressed(object? sender, PointerPressedEventArgs e)
+		{
+			StartResizing(sender, e, 4);
+		}
+
 		private void OnResizeRightPressed(object? sender, PointerPressedEventArgs e)
 		{
 			StartResizing(sender, e, 1);
@@ -133,6 +165,11 @@ namespace NyxAssetsEditor.Views
 					e.Handled = true;
 				}
 			}
+		}
+
+		private void OnResizeLeftMoved(object? sender, PointerEventArgs e)
+		{
+			PerformResizing(e);
 		}
 
 		private void OnResizeRightMoved(object? sender, PointerEventArgs e)
@@ -169,6 +206,10 @@ namespace NyxAssetsEditor.Views
 					{
 						vm.ContentHeight = Math.Max(150, _initialHeight + dy);
 					}
+					if(_resizeDirection == 4)
+					{
+						vm.PanelWidth = Math.Max(240, _initialWidth - dx);
+					}
 					e.Handled = true;
 				}
 			}
@@ -192,6 +233,42 @@ namespace NyxAssetsEditor.Views
 				canvasVisual = canvasVisual.GetVisualParent();
 			}
 			return canvasVisual;
+		}
+
+		private async void OnSaveAsRequested(object? sender, EventArgs e)
+		{
+			if (DataContext is FloatingSpriteLoaderViewModel vm)
+			{
+				var topLevel = TopLevel.GetTopLevel(this);
+				if (topLevel != null)
+				{
+					var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+					{
+						Title = "Save Archive As",
+						DefaultExtension = System.IO.Path.GetExtension(vm.FilePath),
+						SuggestedFileName = System.IO.Path.GetFileName(vm.FilePath),
+						FileTypeChoices = new[]
+						{
+							new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } },
+							new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } },
+							new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.spr", "*.assets" } }
+						}
+					});
+
+					if (file != null)
+					{
+						try
+						{
+							System.IO.File.Copy(vm.FilePath, file.Path.LocalPath, true);
+							vm.FilePath = file.Path.LocalPath;
+						}
+						catch (Exception ex)
+						{
+							System.Diagnostics.Debug.WriteLine($"Failed to save as: {ex.Message}");
+						}
+					}
+				}
+			}
 		}
 	}
 }
