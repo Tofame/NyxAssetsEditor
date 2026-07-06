@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -820,8 +821,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(PatternYCount));
 		OnPropertyChanged(nameof(PatternZCount));
 		OnPropertyChanged(nameof(FrameCount));
-	}
-	private void NotifyThingProperties()
+	}	private void NotifyThingProperties()
 	{
 		OnPropertyChanged(nameof(Thing));
 		OnPropertyChanged(nameof(ThingId));
@@ -864,6 +864,57 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(DefaultActionIndex));
 		OnPropertyChanged(nameof(IsLensHelp));
 		OnPropertyChanged(nameof(LensHelpIndex));
+		OnPropertyChanged(nameof(IsDat));
+		OnPropertyChanged(nameof(IsJson));
+		OnPropertyChanged(nameof(ShowGroundBorder));
+		OnPropertyChanged(nameof(ShowHasCharges));
+		OnPropertyChanged(nameof(ShowNoMoveAnimation));
+		OnPropertyChanged(nameof(ShowHangable));
+		OnPropertyChanged(nameof(ShowIsVertical));
+		OnPropertyChanged(nameof(ShowIsHorizontal));
+		OnPropertyChanged(nameof(ShowDontHide));
+		OnPropertyChanged(nameof(ShowIsTranslucent));
+		OnPropertyChanged(nameof(ShowIgnoreLook));
+		OnPropertyChanged(nameof(ShowCloth));
+		OnPropertyChanged(nameof(ShowMarket));
+		OnPropertyChanged(nameof(ShowHasDefaultAction));
+		OnPropertyChanged(nameof(ShowWrappable));
+		OnPropertyChanged(nameof(ShowUnwrappable));
+		OnPropertyChanged(nameof(ShowBottomEffect));
+		OnPropertyChanged(nameof(ShowDontCenterOutfit));
+		OnPropertyChanged(nameof(ShowUsable));
+
+		// Notify remaining flags
+		OnPropertyChanged(nameof(IsGroundBorder));
+		OnPropertyChanged(nameof(IsOnBottom));
+		OnPropertyChanged(nameof(IsOnTop));
+		OnPropertyChanged(nameof(IsContainer));
+		OnPropertyChanged(nameof(ForceUse));
+		OnPropertyChanged(nameof(MultiUse));
+		OnPropertyChanged(nameof(HasCharges));
+		OnPropertyChanged(nameof(IsFluidContainer));
+		OnPropertyChanged(nameof(IsFluid));
+		OnPropertyChanged(nameof(IsUnpassable));
+		OnPropertyChanged(nameof(IsUnmoveable));
+		OnPropertyChanged(nameof(BlockPathfind));
+		OnPropertyChanged(nameof(NoMoveAnimation));
+		OnPropertyChanged(nameof(Hangable));
+		OnPropertyChanged(nameof(IsVertical));
+		OnPropertyChanged(nameof(IsHorizontal));
+		OnPropertyChanged(nameof(DontHide));
+		OnPropertyChanged(nameof(IsTranslucent));
+		OnPropertyChanged(nameof(FloorChange));
+		OnPropertyChanged(nameof(IsLyingObject));
+		OnPropertyChanged(nameof(IsFullGround));
+		OnPropertyChanged(nameof(IgnoreLook));
+		OnPropertyChanged(nameof(Cloth));
+		OnPropertyChanged(nameof(ClothSlot));
+		OnPropertyChanged(nameof(Wrappable));
+		OnPropertyChanged(nameof(Unwrappable));
+		OnPropertyChanged(nameof(Usable));
+
+		NotifyRadioProperties();
+		RefreshCustomFlags();
 	}
 
 	private AnimationFrameTiming? GetCurrentTiming()
@@ -1363,5 +1414,388 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void SelectMiniMapColor(int colorIndex)
 	{
 		MiniMapColor = (uint)colorIndex;
+	}
+
+	public bool IsFlagsCommon
+	{
+		get => !Thing.IsGroundBorder && !Thing.IsOnBottom && !Thing.IsOnTop;
+		set
+		{
+			if (value)
+			{
+				Thing.IsGroundBorder = false;
+				Thing.IsOnBottom = false;
+				Thing.IsOnTop = false;
+				NotifyRadioProperties();
+				ApplyToCatalog();
+			}
+		}
+	}
+
+	public bool IsFlagsGroundBorder
+	{
+		get => Thing.IsGroundBorder;
+		set
+		{
+			if (value)
+			{
+				Thing.IsGroundBorder = true;
+				Thing.IsOnBottom = false;
+				Thing.IsOnTop = false;
+				NotifyRadioProperties();
+				ApplyToCatalog();
+			}
+		}
+	}
+
+	public bool IsFlagsBottom
+	{
+		get => Thing.IsOnBottom;
+		set
+		{
+			if (value)
+			{
+				Thing.IsGroundBorder = false;
+				Thing.IsOnBottom = true;
+				Thing.IsOnTop = false;
+				NotifyRadioProperties();
+				ApplyToCatalog();
+			}
+		}
+	}
+
+	public bool IsFlagsTop
+	{
+		get => Thing.IsOnTop;
+		set
+		{
+			if (value)
+			{
+				Thing.IsGroundBorder = false;
+				Thing.IsOnBottom = false;
+				Thing.IsOnTop = true;
+				NotifyRadioProperties();
+				ApplyToCatalog();
+			}
+		}
+	}
+
+	public void NotifyRadioProperties()
+	{
+		OnPropertyChanged(nameof(IsFlagsCommon));
+		OnPropertyChanged(nameof(IsFlagsGroundBorder));
+		OnPropertyChanged(nameof(IsFlagsBottom));
+		OnPropertyChanged(nameof(IsFlagsTop));
+	}
+
+	public enum DatVersionFormat
+	{
+		V1,
+		V2,
+		V3,
+		V4,
+		V5,
+		V6
+	}
+
+	public DatVersionFormat DatVersion
+	{
+		get
+		{
+			uint v = SettingsViewModel.ClientVersion;
+			if (v < 740) return DatVersionFormat.V1;
+			if (v < 755) return DatVersionFormat.V2;
+			if (v < 780) return DatVersionFormat.V3;
+			if (v < 860) return DatVersionFormat.V4;
+			if (v < 1010) return DatVersionFormat.V5;
+			return DatVersionFormat.V6;
+		}
+	}
+
+	public bool IsDat => SourcePanel.ArchiveFormat == Common.ArchiveFormat.Dat;
+	public bool IsJson => SourcePanel.ArchiveFormat == Common.ArchiveFormat.Things;
+
+	public bool IsGroundBorder
+	{
+		get => Thing.IsGroundBorder;
+		set { if (Thing.IsGroundBorder == value) return; Thing.IsGroundBorder = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsOnBottom
+	{
+		get => Thing.IsOnBottom;
+		set { if (Thing.IsOnBottom == value) return; Thing.IsOnBottom = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsOnTop
+	{
+		get => Thing.IsOnTop;
+		set { if (Thing.IsOnTop == value) return; Thing.IsOnTop = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsContainer
+	{
+		get => Thing.IsContainer;
+		set { if (Thing.IsContainer == value) return; Thing.IsContainer = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool ForceUse
+	{
+		get => Thing.ForceUse;
+		set { if (Thing.ForceUse == value) return; Thing.ForceUse = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool MultiUse
+	{
+		get => Thing.MultiUse;
+		set { if (Thing.MultiUse == value) return; Thing.MultiUse = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool HasCharges
+	{
+		get => Thing.HasCharges;
+		set { if (Thing.HasCharges == value) return; Thing.HasCharges = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsFluidContainer
+	{
+		get => Thing.IsFluidContainer;
+		set { if (Thing.IsFluidContainer == value) return; Thing.IsFluidContainer = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsFluid
+	{
+		get => Thing.IsFluid;
+		set { if (Thing.IsFluid == value) return; Thing.IsFluid = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsUnpassable
+	{
+		get => Thing.IsUnpassable;
+		set { if (Thing.IsUnpassable == value) return; Thing.IsUnpassable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsUnmoveable
+	{
+		get => Thing.IsUnmoveable;
+		set { if (Thing.IsUnmoveable == value) return; Thing.IsUnmoveable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool BlockPathfind
+	{
+		get => Thing.BlockPathfind;
+		set { if (Thing.BlockPathfind == value) return; Thing.BlockPathfind = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool NoMoveAnimation
+	{
+		get => Thing.NoMoveAnimation;
+		set { if (Thing.NoMoveAnimation == value) return; Thing.NoMoveAnimation = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Hangable
+	{
+		get => Thing.Hangable;
+		set { if (Thing.Hangable == value) return; Thing.Hangable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsVertical
+	{
+		get => Thing.IsVertical;
+		set { if (Thing.IsVertical == value) return; Thing.IsVertical = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsHorizontal
+	{
+		get => Thing.IsHorizontal;
+		set { if (Thing.IsHorizontal == value) return; Thing.IsHorizontal = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool DontHide
+	{
+		get => Thing.DontHide;
+		set { if (Thing.DontHide == value) return; Thing.DontHide = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsTranslucent
+	{
+		get => Thing.IsTranslucent;
+		set { if (Thing.IsTranslucent == value) return; Thing.IsTranslucent = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool FloorChange
+	{
+		get => Thing.FloorChange;
+		set { if (Thing.FloorChange == value) return; Thing.FloorChange = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsLyingObject
+	{
+		get => Thing.IsLyingObject;
+		set { if (Thing.IsLyingObject == value) return; Thing.IsLyingObject = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IsFullGround
+	{
+		get => Thing.IsFullGround;
+		set { if (Thing.IsFullGround == value) return; Thing.IsFullGround = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool IgnoreLook
+	{
+		get => Thing.IgnoreLook;
+		set { if (Thing.IgnoreLook == value) return; Thing.IgnoreLook = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Cloth
+	{
+		get => Thing.Cloth;
+		set { if (Thing.Cloth == value) return; Thing.Cloth = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public uint ClothSlot
+	{
+		get => Thing.ClothSlot;
+		set { if (Thing.ClothSlot == value) return; Thing.ClothSlot = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Wrappable
+	{
+		get => Thing.Wrappable;
+		set { if (Thing.Wrappable == value) return; Thing.Wrappable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Unwrappable
+	{
+		get => Thing.Unwrappable;
+		set { if (Thing.Unwrappable == value) return; Thing.Unwrappable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool Usable
+	{
+		get => Thing.Usable;
+		set { if (Thing.Usable == value) return; Thing.Usable = value; OnPropertyChanged(); ApplyToCatalog(); }
+	}
+
+	public bool ShowGroundBorder => DatVersion >= DatVersionFormat.V3;
+	public bool ShowHasCharges => DatVersion == DatVersionFormat.V4;
+	public bool ShowNoMoveAnimation => DatVersion >= DatVersionFormat.V6;
+	public bool ShowHangable => DatVersion >= DatVersionFormat.V2;
+	public bool ShowIsVertical => DatVersion >= DatVersionFormat.V2;
+	public bool ShowIsHorizontal => DatVersion >= DatVersionFormat.V2;
+	public bool ShowDontHide => DatVersion >= DatVersionFormat.V4;
+	public bool ShowIsTranslucent => DatVersion >= DatVersionFormat.V5;
+	public bool ShowIgnoreLook => DatVersion >= DatVersionFormat.V4;
+	public bool ShowCloth => DatVersion >= DatVersionFormat.V5;
+	public bool ShowMarket => DatVersion >= DatVersionFormat.V5;
+	public bool ShowHasDefaultAction => DatVersion >= DatVersionFormat.V6;
+	public bool ShowWrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
+	public bool ShowUnwrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
+	public bool ShowBottomEffect => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
+	public bool ShowDontCenterOutfit => DatVersion >= DatVersionFormat.V5;
+	public bool ShowUsable => DatVersion >= DatVersionFormat.V6;
+
+	public ObservableCollection<CustomFlagViewModel> CustomFlags { get; } = new();
+	private readonly System.Collections.Generic.HashSet<string> _possibleFlags = new();
+	private string _newFlagName = string.Empty;
+
+	public string NewFlagName
+	{
+		get => _newFlagName;
+		set => SetProperty(ref _newFlagName, value);
+	}
+
+	[RelayCommand]
+	public void AddCustomFlag()
+	{
+		if (string.IsNullOrWhiteSpace(NewFlagName)) return;
+		string name = NewFlagName.Trim();
+		if (!_possibleFlags.Contains(name))
+		{
+			_possibleFlags.Add(name);
+			CustomFlags.Add(new CustomFlagViewModel(name, this));
+		}
+		Thing.ExtraProperties[name] = "true";
+		NewFlagName = string.Empty;
+		ApplyToCatalog();
+	}
+
+	public void RemoveCustomFlag(string flagName)
+	{
+		_possibleFlags.Remove(flagName);
+		var vm = CustomFlags.FirstOrDefault(f => f.Name == flagName);
+		if (vm != null) CustomFlags.Remove(vm);
+		Thing.ExtraProperties.Remove(flagName);
+		ApplyToCatalog();
+	}
+
+	public void RefreshCustomFlags()
+	{
+		_possibleFlags.Clear();
+		CustomFlags.Clear();
+		if (IsJson && SourcePanel.Catalog != null)
+		{
+			foreach (var t in SourcePanel.Catalog.EnumerateItems())
+				foreach (var key in t.ExtraProperties.Keys)
+					_possibleFlags.Add(key);
+			foreach (var t in SourcePanel.Catalog.EnumerateOutfits())
+				foreach (var key in t.ExtraProperties.Keys)
+					_possibleFlags.Add(key);
+			foreach (var t in SourcePanel.Catalog.EnumerateEffects())
+				foreach (var key in t.ExtraProperties.Keys)
+					_possibleFlags.Add(key);
+			foreach (var t in SourcePanel.Catalog.EnumerateMissiles())
+				foreach (var key in t.ExtraProperties.Keys)
+					_possibleFlags.Add(key);
+
+			foreach (var key in Thing.ExtraProperties.Keys)
+				_possibleFlags.Add(key);
+
+			foreach (var flag in _possibleFlags.OrderBy(f => f))
+			{
+				CustomFlags.Add(new CustomFlagViewModel(flag, this));
+			}
+		}
+	}
+
+	public void RequestApplyToCatalog() => ApplyToCatalog();
+}
+
+public partial class CustomFlagViewModel : ViewModelBase
+{
+	private readonly string _name;
+	private readonly FloatingThingEditorViewModel _editor;
+
+	public string Name => _name;
+
+	public bool IsChecked
+	{
+		get => _editor.Thing.ExtraProperties.ContainsKey(_name) && 
+			   _editor.Thing.ExtraProperties[_name].Equals("true", StringComparison.OrdinalIgnoreCase);
+		set
+		{
+			if (value)
+			{
+				_editor.Thing.ExtraProperties[_name] = "true";
+			}
+			else
+			{
+				_editor.Thing.ExtraProperties.Remove(_name);
+			}
+			OnPropertyChanged();
+			_editor.RequestApplyToCatalog();
+		}
+	}
+
+	public CustomFlagViewModel(string name, FloatingThingEditorViewModel editor)
+	{
+		_name = name;
+		_editor = editor;
+	}
+
+	[RelayCommand]
+	private void Remove()
+	{
+		_editor.RemoveCustomFlag(_name);
 	}
 }

@@ -359,9 +359,8 @@
 									</StackPanel>
 								</Grid>
 							</Border>
-
 							<!-- Market Section -->
-							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsItem}">
+							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding ShowMarket}">
 								<Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="*, Auto">
 									<ToggleSwitch Grid.Row="0" Grid.Column="0" Content="Market" IsChecked="{Binding IsMarketItem}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
 									
@@ -408,9 +407,8 @@
 									</Grid>
 								</StackPanel>
 							</Border>
-
 							<!-- Has Action Section -->
-							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsItem}">
+							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding ShowHasDefaultAction}">
 								<Grid ColumnDefinitions="*, Auto">
 									<ToggleSwitch Grid.Column="0" Content="Has Action" IsChecked="{Binding HasDefaultAction}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasDefaultAction}" VerticalAlignment="Center">
@@ -437,16 +435,81 @@
 				<TabItem Header="Flags">
 					<ScrollViewer>
 						<StackPanel Spacing="8" Margin="0,8,0,16">
-							<!-- General Properties -->
-							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
-								<StackPanel Spacing="6">
-									<CheckBox Content="Stackable" IsChecked="{Binding Stackable}" IsVisible="{Binding IsItem}" FontSize="11"/>
-									<CheckBox Content="Rotatable" IsChecked="{Binding Rotatable}" IsVisible="{Binding IsItem}" FontSize="11"/>
-									<CheckBox Content="Pickupable" IsChecked="{Binding Pickupable}" FontSize="11"/>
-									<CheckBox Content="Block missile" IsChecked="{Binding BlockMissile}" IsVisible="{Binding !IsMissile}" FontSize="11"/>
-									<CheckBox Content="Animate always" IsChecked="{Binding AnimateAlways}" IsVisible="{Binding IsOutfit}" FontSize="11"/>
-									<CheckBox Content="Don't center outfit" IsChecked="{Binding DontCenterOutfit}" IsVisible="{Binding IsOutfit}" FontSize="11"/>
-									<CheckBox Content="Bottom effect" IsChecked="{Binding BottomEffect}" IsVisible="{Binding IsEffect}" FontSize="11"/>
+							<!-- DAT File Flags -->
+							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsDat}">
+								<StackPanel Spacing="8">
+									<TextBlock Text="Flags" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,6"/>
+									<Grid ColumnDefinitions="*, *">
+										<!-- Left Column -->
+										<StackPanel Grid.Column="0" Spacing="6" Margin="0,0,10,0">
+											<!-- Radio buttons group -->
+											<StackPanel Spacing="2" IsEnabled="{Binding !IsGround}" Margin="0,0,0,8">
+												<RadioButton Content="Common" IsChecked="{Binding IsFlagsCommon}" FontSize="11"/>
+												<RadioButton Content="Ground Border" IsChecked="{Binding IsFlagsGroundBorder}" IsVisible="{Binding ShowGroundBorder}" FontSize="11"/>
+												<RadioButton Content="Bottom" IsChecked="{Binding IsFlagsBottom}" FontSize="11"/>
+												<RadioButton Content="Top" IsChecked="{Binding IsFlagsTop}" FontSize="11"/>
+											</StackPanel>
+
+											<ToggleSwitch Content="Container" IsChecked="{Binding IsContainer}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Stackable" IsChecked="{Binding Stackable}" IsVisible="{Binding IsItem}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Force Use" IsChecked="{Binding ForceUse}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Multi Use" IsChecked="{Binding MultiUse}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Fluid Container" IsChecked="{Binding IsFluidContainer}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Fluid" IsChecked="{Binding IsFluid}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Unpassable" IsChecked="{Binding IsUnpassable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Unmoveable" IsChecked="{Binding IsUnmoveable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Block Missile" IsChecked="{Binding BlockMissile}" IsVisible="{Binding !IsMissile}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Block Pathfinder" IsChecked="{Binding BlockPathfind}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Floor Change" IsChecked="{Binding FloorChange}" OnContent="" OffContent="" FontSize="11"/>
+										</StackPanel>
+
+										<!-- Right Column -->
+										<StackPanel Grid.Column="1" Spacing="6" Margin="10,0,0,0">
+											<ToggleSwitch Content="No Move Animation" IsChecked="{Binding NoMoveAnimation}" IsVisible="{Binding ShowNoMoveAnimation}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Pickupable" IsChecked="{Binding Pickupable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Hangable" IsChecked="{Binding Hangable}" IsVisible="{Binding ShowHangable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Hook East" IsChecked="{Binding IsHorizontal}" IsVisible="{Binding ShowIsHorizontal}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Hook South" IsChecked="{Binding IsVertical}" IsVisible="{Binding ShowIsVertical}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Rotatable" IsChecked="{Binding Rotatable}" IsVisible="{Binding IsItem}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Don't Hide" IsChecked="{Binding DontHide}" IsVisible="{Binding ShowDontHide}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Translucent" IsChecked="{Binding IsTranslucent}" IsVisible="{Binding ShowIsTranslucent}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Lying Object" IsChecked="{Binding IsLyingObject}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Full Ground" IsChecked="{Binding IsFullGround}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Ignore Look" IsChecked="{Binding IgnoreLook}" IsVisible="{Binding ShowIgnoreLook}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Useable" IsChecked="{Binding Usable}" IsVisible="{Binding ShowUsable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Wrappable" IsChecked="{Binding Wrappable}" IsVisible="{Binding ShowWrappable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Unwrappable" IsChecked="{Binding Unwrappable}" IsVisible="{Binding ShowUnwrappable}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Bottom Effect" IsChecked="{Binding BottomEffect}" IsVisible="{Binding ShowBottomEffect}" OnContent="" OffContent="" FontSize="11"/>
+										</StackPanel>
+									</Grid>
+								</StackPanel>
+							</Border>
+
+							<!-- JSON Custom Flags -->
+							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsJson}">
+								<StackPanel Spacing="8">
+									<TextBlock Text="JSON Custom Flags" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,6"/>
+									<!-- Add custom flag input -->
+									<Grid ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+										<TextBox Grid.Column="0" Text="{Binding NewFlagName}" PlaceholderText="New flag name..." Height="28" Padding="6,4" FontSize="11" Background="#262626" BorderBrush="#3D3D3D"/>
+										<Button Grid.Column="1" Content="Add Flag" Command="{Binding AddCustomFlagCommand}" Margin="8,0,0,0" FontSize="11" Height="28" Padding="12,0" Background="#3A7BD5" Foreground="White"/>
+									</Grid>
+
+									<TextBlock Text="Possible Flags:" Foreground="#888" FontSize="11" Margin="0,4,0,2"/>
+									<Border Background="#262626" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Height="200">
+										<ScrollViewer>
+											<ItemsControl ItemsSource="{Binding CustomFlags}">
+												<ItemsControl.ItemTemplate>
+													<DataTemplate x:DataType="vm:CustomFlagViewModel">
+														<Grid ColumnDefinitions="*, Auto" Margin="6,1">
+															<CheckBox Grid.Column="0" Content="{Binding Name}" IsChecked="{Binding IsChecked}" FontSize="11" VerticalAlignment="Center"/>
+															<Button Grid.Column="1" Content="Delete" Command="{Binding RemoveCommand}" FontSize="10" Background="#D9534F" Foreground="White" Padding="6,2" Height="20" VerticalAlignment="Center"/>
+														</Grid>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+										</ScrollViewer>
+									</Border>
 								</StackPanel>
 							</Border>
 						</StackPanel>
