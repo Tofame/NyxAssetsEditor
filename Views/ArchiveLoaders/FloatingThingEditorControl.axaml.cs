@@ -219,4 +219,53 @@ public partial class FloatingThingEditorControl : UserControl
 		if (handle != null)
 			interaction.RegisterResizeHandle(handle, direction);
 	}
+
+	protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+	{
+		base.OnAttachedToVisualTree(e);
+
+		if (DataContext is FloatingThingEditorViewModel vm && vm.IsDefaultPosition)
+		{
+			var canvasVisual = GetParentCanvas();
+			if (canvasVisual != null)
+			{
+				void CenterPanel()
+				{
+					double canvasWidth = canvasVisual.Bounds.Width;
+					double canvasHeight = canvasVisual.Bounds.Height;
+					if (canvasWidth > 0 && canvasHeight > 0)
+					{
+						vm.PositionX = (canvasWidth - vm.PanelWidth) / 2;
+						vm.PositionY = (canvasHeight - vm.ContentHeight) / 2;
+						vm.IsDefaultPosition = false;
+					}
+				}
+
+				if (canvasVisual.Bounds.Width > 0 && canvasVisual.Bounds.Height > 0)
+				{
+					CenterPanel();
+				}
+				else
+				{
+					canvasVisual.SizeChanged += OnCanvasSizeChanged;
+					void OnCanvasSizeChanged(object? sender, SizeChangedEventArgs args)
+					{
+						if (args.NewSize.Width > 0 && args.NewSize.Height > 0)
+						{
+							canvasVisual.SizeChanged -= OnCanvasSizeChanged;
+							CenterPanel();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private Canvas? GetParentCanvas()
+	{
+		Visual? visual = this;
+		while (visual != null && visual is not Canvas)
+			visual = Avalonia.VisualTree.VisualExtensions.GetVisualParent(visual);
+		return visual as Canvas;
+	}
 }

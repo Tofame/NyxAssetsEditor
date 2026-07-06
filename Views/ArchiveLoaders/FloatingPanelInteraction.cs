@@ -96,9 +96,11 @@ public sealed class FloatingPanelInteraction
 		e.Handled = true;
 	}
 
+
 	private void OnTitleBarPointerMoved(object? sender, PointerEventArgs e)
 	{
-		if (!_isDragging || Vm == null)
+		var vm = Vm;
+		if (!_isDragging || vm == null)
 			return;
 
 		var assetsView = _host.FindAncestorOfType<Pages.AssetsView>();
@@ -116,14 +118,14 @@ public sealed class FloatingPanelInteraction
 			parentVm?.IsDraggingPanel = true;
 		}
 
-		if (!Vm.IsFloating)
+		if (!vm.IsFloating)
 		{
-			Vm.DockState = "Floating";
+			vm.DockState = "Floating";
 			if (assetsView != null)
 			{
 				var pos = e.GetPosition(assetsView);
-				Vm.PositionX = pos.X - _clickPosition.X;
-				Vm.PositionY = pos.Y - _clickPosition.Y;
+				vm.PositionX = pos.X - _clickPosition.X;
+				vm.PositionY = pos.Y - _clickPosition.Y;
 			}
 
 			e.Handled = true;
@@ -134,8 +136,8 @@ public sealed class FloatingPanelInteraction
 		if (canvasVisual != null)
 		{
 			var currentPosition = e.GetPosition(canvasVisual);
-			Vm.PositionX = currentPosition.X - _clickPosition.X;
-			Vm.PositionY = currentPosition.Y - _clickPosition.Y;
+			vm.PositionX = currentPosition.X - _clickPosition.X;
+			vm.PositionY = currentPosition.Y - _clickPosition.Y;
 		}
 
 		if (parentVm != null && assetsView != null)
@@ -149,14 +151,15 @@ public sealed class FloatingPanelInteraction
 
 	private void OnTitleBarPointerReleased(object? sender, PointerReleasedEventArgs e)
 	{
-		if (!_isDragging || Vm == null)
+		var vm = Vm;
+		if (!_isDragging || vm == null)
 			return;
 
 		_isDragging = false;
 		_dragThresholdMet = false;
 		_activePointer = null;
 		_sharedActivePointer = null;
-		Vm.IsDraggingVM = false;
+		vm.IsDraggingVM = false;
 		e.Pointer.Capture(null);
 		e.Handled = true;
 
@@ -167,7 +170,7 @@ public sealed class FloatingPanelInteraction
 		var cursorInView = e.GetPosition(assetsView);
 		var hitZone = GetDropZoneFromPoint(assetsView, cursorInView);
 		if (hitZone != null)
-			Vm.DockState = hitZone;
+			vm.DockState = hitZone;
 
 		parentVm.DragOverZone = null;
 		parentVm.IsDraggingPanel = false;
