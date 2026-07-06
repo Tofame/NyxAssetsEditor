@@ -587,7 +587,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					if (desktop?.MainWindow is Avalonia.Controls.Window mainWindow)
 					{
 						bool hasUnsaved = linkedThingsPanels.Any(tp => tp.HasSavedChanges);
-						var summary = string.Join("\n", linkedThingsPanels.Select(p => $"• {string.Format("{0} (ID: {1}){(p.HasSavedChanges ? " *UNSAVED CHANGES*" : "")}", System.IO.Path.GetFileName(p.FilePath), p.GetHashCode())}"));
+						var summary = string.Join("\n", linkedThingsPanels.Select(p => $"• {System.IO.Path.GetFileName(p.FilePath)} (ID: {p.GetHashCode()}){(p.HasSavedChanges ? " *UNSAVED CHANGES*" : "")}"));
 						var dialog = new NyxAssetsEditor.Views.Shell.SpritesCloseDialog(summary, hasUnsaved);
 						await dialog.ShowDialog(mainWindow);
 
