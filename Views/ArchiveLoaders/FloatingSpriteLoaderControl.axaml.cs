@@ -98,6 +98,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				_spriteDragStart = e.GetPosition(this);
 				_spriteDragStarted = false;
 				_spriteDragPressEvent = e;
+				e.Handled = true;
 			}
 
 			if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)

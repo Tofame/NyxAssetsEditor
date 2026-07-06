@@ -99,6 +99,9 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 				var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 				await vm.RequestSelectThing(thing, shift, ctrl);
+
+				if (e.GetCurrentPoint(control).Properties.IsLeftButtonPressed)
+					e.Handled = true;
 			}
 
 			if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)

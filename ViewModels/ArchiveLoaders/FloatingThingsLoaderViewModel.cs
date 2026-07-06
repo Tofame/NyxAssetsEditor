@@ -885,36 +885,88 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			var idsToRemove = new HashSet<uint>(itemsList.Select(t => t.Id));
 
-			// Remove from local list
-			_allThings.RemoveAll(t => idsToRemove.Contains(t.Id));
-
 			if (SelectedThing != null && idsToRemove.Contains(SelectedThing.Id))
 			{
 				SelectedThing = null;
 				NotifySelectionChanged();
 			}
 
+			// Sort descending to allow sequential deletion from the end
+			var idsDescending = itemsList.Select(t => t.Id).Distinct().OrderByDescending(id => id).ToList();
 			var kind = SelectedSection;
 
-			for (int i = 0; i < itemsList.Count; i++)
+			for (int i = 0; i < idsDescending.Count; i++)
 			{
-				var id = itemsList[i].Id;
-				bool rebuild = (i == itemsList.Count - 1);
+				var id = idsDescending[i];
+				bool rebuild = (i == idsDescending.Count - 1);
 
-				switch (kind)
+				uint lastId = kind switch
 				{
-					case ThingKind.Item:
-						_catalog.RemoveItem(id, rebuild);
-						break;
-					case ThingKind.Outfit:
-						_catalog.RemoveOutfit(id, rebuild);
-						break;
-					case ThingKind.Effect:
-						_catalog.RemoveEffect(id, rebuild);
-						break;
-					case ThingKind.Missile:
-						_catalog.RemoveMissile(id, rebuild);
-						break;
+					ThingKind.Item => _catalog.ItemCount,
+					ThingKind.Outfit => _catalog.OutfitCount,
+					ThingKind.Effect => _catalog.EffectCount,
+					ThingKind.Missile => _catalog.MissileCount,
+					_ => 0
+				};
+
+				if (id == lastId)
+				{
+					switch (kind)
+					{
+						case ThingKind.Item:
+							_catalog.RemoveItem(id, rebuild);
+							break;
+						case ThingKind.Outfit:
+							_catalog.RemoveOutfit(id, rebuild);
+							break;
+						case ThingKind.Effect:
+							_catalog.RemoveEffect(id, rebuild);
+							break;
+						case ThingKind.Missile:
+							_catalog.RemoveMissile(id, rebuild);
+							break;
+					}
+					_allThings.RemoveAll(t => t.Id == id);
+				}
+				else
+				{
+					var emptyThing = new ThingType { Id = id, Kind = kind };
+					var fg = new ThingFrameGroup
+					{
+						GroupTypeId = 0,
+						Width = 1,
+						Height = 1,
+						ExactSize = 32,
+						Layers = 1,
+						PatternX = 1,
+						PatternY = 1,
+						PatternZ = 1,
+						Frames = 1,
+						SpriteIds = new uint[1]
+					};
+					emptyThing.FrameGroups.Add(fg);
+
+					switch (kind)
+					{
+						case ThingKind.Item:
+							_catalog.PutItem(emptyThing, rebuild);
+							break;
+						case ThingKind.Outfit:
+							_catalog.PutOutfit(emptyThing, rebuild);
+							break;
+						case ThingKind.Effect:
+							_catalog.PutEffect(emptyThing, rebuild);
+							break;
+						case ThingKind.Missile:
+							_catalog.PutMissile(emptyThing, rebuild);
+							break;
+					}
+
+					var idx = _allThings.FindIndex(t => t.Id == id);
+					if (idx >= 0)
+					{
+						_allThings[idx] = emptyThing;
+					}
 				}
 			}
 

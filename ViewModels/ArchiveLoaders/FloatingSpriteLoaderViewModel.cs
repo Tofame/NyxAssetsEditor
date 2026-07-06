@@ -390,6 +390,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			TotalSprites = Loader.SpriteCount;
 			_selectionAnchor = null;
 			SelectedSprite = null;
+			HasSavedChanges = true;
 			if (CurrentPage > TotalPages && TotalPages > 0)
 				CurrentPage = TotalPages;
 			else

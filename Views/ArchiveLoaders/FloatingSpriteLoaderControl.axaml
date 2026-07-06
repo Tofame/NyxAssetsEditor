@@ -10,6 +10,7 @@
 	<UserControl.KeyBindings>
 		<KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedSpriteCommand}"/>
 		<KeyBinding Gesture="Ctrl+V" Command="{Binding PasteSelectedSpriteCommand}"/>
+		<KeyBinding Gesture="Delete" Command="{Binding RemoveSelectedSpritesCommand}"/>
 	</UserControl.KeyBindings>
 
 	<UserControl.Styles>
@@ -92,7 +93,7 @@
 			<!-- Content Area (Scrollable Sprite Grid/List) -->
 			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#1E1E1E" Height="{Binding DisplayHeight}">
 				<!-- Grid View Mode -->
-				<ListBox x:Name="SpriteGridListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsGridView, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
+				<ListBox x:Name="SpriteGridListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsGridView, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8" SelectionMode="Multiple">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
@@ -132,7 +133,7 @@
 				</ListBox>
 
 				<!-- List View Mode -->
-				<ListBox x:Name="SpriteListListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsListView, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0">
+				<ListBox x:Name="SpriteListListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsListView, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0" SelectionMode="Multiple">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<VirtualizingStackPanel/>

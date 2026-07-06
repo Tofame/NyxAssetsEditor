@@ -3,7 +3,12 @@
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
 			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingThingsLoaderControl"
 			 x:DataType="vm:FloatingThingsLoaderViewModel"
-			 Width="{Binding DisplayWidth}">
+			 Width="{Binding DisplayWidth}"
+			 Focusable="True">
+
+	<UserControl.KeyBindings>
+		<KeyBinding Gesture="Delete" Command="{Binding RemoveSelectedThingsCommand}"/>
+	</UserControl.KeyBindings>
 
 	<UserControl.Styles>
 		<Style Selector="Border.thing-tile">
@@ -98,7 +103,7 @@
 			<!-- Content Area (List of Things) -->
 			<Grid Grid.Row="2" IsVisible="{Binding !IsMinimized}" Background="#222222" Height="{Binding DisplayHeight}">
 				<!-- List View Mode -->
-				<ListBox x:Name="ThingListListBox" ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowListViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0">
+				<ListBox x:Name="ThingListListBox" ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowListViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0" SelectionMode="Multiple">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<VirtualizingStackPanel/>
@@ -150,7 +155,7 @@
 				</ListBox>
 
 				<!-- Grid View Mode -->
-				<ListBox x:Name="ThingGridListBox" ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowGridViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
+				<ListBox x:Name="ThingGridListBox" ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowGridViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8" SelectionMode="Multiple">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
