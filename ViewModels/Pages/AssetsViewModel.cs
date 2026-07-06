@@ -552,8 +552,68 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
-		private void OnPanelRequestClose(PanelViewModelBase panel)
+		private async void OnPanelRequestClose(PanelViewModelBase panel)
 		{
+			bool hasChanges = false;
+			if (panel is FloatingSpriteLoaderViewModel sprPanel && sprPanel.HasSavedChanges)
+				hasChanges = true;
+			else if (panel is FloatingThingsLoaderViewModel thPanel && thPanel.HasSavedChanges)
+				hasChanges = true;
+
+			if (hasChanges)
+			{
+				panel.IsVisible = true;
+				var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+				if (desktop?.MainWindow is Avalonia.Controls.Window mainWindow)
+				{
+					var dialog = new NyxAssetsEditor.Views.Shell.WarningDialog(
+						"Unsaved Changes",
+						"This panel has unsaved changes. Please compile or cancel your changes before closing this panel.");
+					await dialog.ShowDialog(mainWindow);
+				}
+				return;
+			}
+
+			if (panel is FloatingSpriteLoaderViewModel spritePanel)
+			{
+				var linkedThingsPanels = ActivePanels
+					.OfType<FloatingThingsLoaderViewModel>()
+					.Where(tp => tp.LinkedSpritePanel == spritePanel)
+					.ToList();
+
+				if (linkedThingsPanels.Count > 0)
+				{
+					var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+					if (desktop?.MainWindow is Avalonia.Controls.Window mainWindow)
+					{
+						bool hasUnsaved = linkedThingsPanels.Any(tp => tp.HasSavedChanges);
+						var summary = string.Join("\n", linkedThingsPanels.Select(p => $"• {string.Format("{0} (ID: {1}){(p.HasSavedChanges ? " *UNSAVED CHANGES*" : "")}", System.IO.Path.GetFileName(p.FilePath), p.GetHashCode())}"));
+						var dialog = new NyxAssetsEditor.Views.Shell.SpritesCloseDialog(summary, hasUnsaved);
+						await dialog.ShowDialog(mainWindow);
+
+						if (dialog.Result == NyxAssetsEditor.Views.Shell.SpritesCloseResult.Cancel)
+						{
+							return;
+						}
+						else if (dialog.Result == NyxAssetsEditor.Views.Shell.SpritesCloseResult.CloseBoth)
+						{
+							// Close all linked things panels first
+							foreach (var tp in linkedThingsPanels)
+							{
+								OnPanelRequestClose(tp);
+							}
+						}
+					}
+					else
+					{
+						foreach (var tp in linkedThingsPanels)
+						{
+							OnPanelRequestClose(tp);
+						}
+					}
+				}
+			}
+
 			panel.RequestClose -= OnPanelRequestClose;
 			panel.RequestDockStateChanged -= OnPanelRequestDockStateChanged;
 			panel.PropertyChanged -= OnPanelPropertyChanged;
@@ -563,8 +623,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				disp.Dispose();
 			}
 
-			if (panel is FloatingSpriteLoaderViewModel spritePanel)
-				UnregisterSpritePanel(spritePanel);
+			if (panel is FloatingSpriteLoaderViewModel spr)
+				UnregisterSpritePanel(spr);
 
 			ActivePanels.Remove(panel);
 			RemoveFromDockCollections(panel);
