@@ -10,6 +10,7 @@ using NyxAssets.Things.Frames;
 using NyxAssetsEditor.Services.Exchange;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
+using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
@@ -354,7 +355,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			ApplyPatternChange(g =>
 			{
 				g.Frames = frames;
-				var defaults = ThingFrameGroupEditor.GetDefaultDurationMs(Kind);
+				var defaults = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 				ThingFrameGroupEditor.EnsureFrameTimings(g, defaults, defaults);
 			});
 			SyncAnimationFieldsFromGroup();
@@ -476,7 +477,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	[RelayCommand]
 	private void ApplyDefaultDurations()
 	{
-		var ms = ThingFrameGroupEditor.GetDefaultDurationMs(Kind);
+		var ms = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 		SetCurrentTiming(new AnimationFrameTiming(ms, ms));
 	}
 
@@ -583,7 +584,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		if (timing != null)
 			return (timing.Value.MinimumMilliseconds + timing.Value.MaximumMilliseconds) / 2;
 
-		return ThingFrameGroupEditor.GetDefaultDurationMs(Kind);
+		return SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 	}
 
 	private AnimationFrameTiming? GetFrameTiming(int frameIndex)
@@ -687,7 +688,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		if (CurrentFrameGroup.FrameTimings == null)
 		{
-			var defaults = ThingFrameGroupEditor.GetDefaultDurationMs(Kind);
+			var defaults = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 			ThingFrameGroupEditor.EnsureFrameTimings(CurrentFrameGroup, defaults, defaults);
 		}
 

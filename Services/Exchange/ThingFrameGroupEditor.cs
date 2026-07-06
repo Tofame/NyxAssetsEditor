@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using NyxAssets.Things;
 
 namespace NyxAssetsEditor.Services.Exchange;
@@ -51,11 +50,4 @@ public static class ThingFrameGroupEditor
 		for (var i = 0; i < group.FrameTimings.Length; i++)
 			group.FrameTimings[i] = timing;
 	}
-
-	public static uint GetDefaultDurationMs(ThingKind kind) => kind switch
-	{
-		ThingKind.Outfit => 300,
-		ThingKind.Effect => 100,
-		_ => 500,
-	};
 }

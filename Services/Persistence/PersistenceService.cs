@@ -24,6 +24,10 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool UseExtendedSpriteIds { get; set; } = true;
 			public uint ThingIdOffset { get; set; } = 0;
 			public uint ClientVersion { get; set; } = 1098;
+			public uint ItemAnimationDurationMs { get; set; } = 500;
+			public uint OutfitAnimationDurationMs { get; set; } = 300;
+			public uint EffectAnimationDurationMs { get; set; } = 100;
+			public uint MissileAnimationDurationMs { get; set; } = 500;
 		}
 
 		public class AppStateTomlModel
@@ -79,8 +83,11 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.UseTransparentPixels,
 							model.UseExtendedSpriteIds,
 							model.ThingIdOffset,
-							model.ClientVersion
-						);
+							model.ClientVersion,
+							model.ItemAnimationDurationMs,
+							model.OutfitAnimationDurationMs,
+							model.EffectAnimationDurationMs,
+							model.MissileAnimationDurationMs);
 					}
 				}
 			}
@@ -101,7 +108,11 @@ namespace NyxAssetsEditor.Services.Persistence
 					UseTransparentPixels = SettingsViewModel.UseTransparentPixels,
 					UseExtendedSpriteIds = SettingsViewModel.UseExtendedSpriteIds,
 					ThingIdOffset = SettingsViewModel.ThingIdOffset,
-					ClientVersion = SettingsViewModel.ClientVersion
+					ClientVersion = SettingsViewModel.ClientVersion,
+					ItemAnimationDurationMs = SettingsViewModel.ItemAnimationDurationMs,
+					OutfitAnimationDurationMs = SettingsViewModel.OutfitAnimationDurationMs,
+					EffectAnimationDurationMs = SettingsViewModel.EffectAnimationDurationMs,
+					MissileAnimationDurationMs = SettingsViewModel.MissileAnimationDurationMs
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);

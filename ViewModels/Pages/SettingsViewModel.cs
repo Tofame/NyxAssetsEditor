@@ -1,4 +1,5 @@
 using System;
+using NyxAssets.Things;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.ViewModels.Core;
 
@@ -41,17 +42,68 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public static uint ThingIdOffset { get; set; } = 0;
 		public static uint ClientVersion { get; set; } = 1098;
+
+		private static uint _itemAnimationDurationMs = 500;
+		private static uint _outfitAnimationDurationMs = 300;
+		private static uint _effectAnimationDurationMs = 100;
+		private static uint _missileAnimationDurationMs = 500;
+
+		public static uint ItemAnimationDurationMs
+		{
+			get => _itemAnimationDurationMs;
+			set => _itemAnimationDurationMs = Math.Max(0, value);
+		}
+
+		public static uint OutfitAnimationDurationMs
+		{
+			get => _outfitAnimationDurationMs;
+			set => _outfitAnimationDurationMs = Math.Max(0, value);
+		}
+
+		public static uint EffectAnimationDurationMs
+		{
+			get => _effectAnimationDurationMs;
+			set => _effectAnimationDurationMs = Math.Max(0, value);
+		}
+
+		public static uint MissileAnimationDurationMs
+		{
+			get => _missileAnimationDurationMs;
+			set => _missileAnimationDurationMs = Math.Max(0, value);
+		}
+
+		public static uint GetDefaultAnimationDurationMs(ThingKind kind) => kind switch
+		{
+			ThingKind.Outfit => OutfitAnimationDurationMs,
+			ThingKind.Effect => EffectAnimationDurationMs,
+			ThingKind.Missile => MissileAnimationDurationMs,
+			_ => ItemAnimationDurationMs,
+		};
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
 
-		public static void SetSettings(int defaultPageSize, bool useTransparentPixels, bool useExtendedSpriteIds, uint thingIdOffset, uint clientVersion)
+		public static void SetSettings(
+			int defaultPageSize,
+			bool useTransparentPixels,
+			bool useExtendedSpriteIds,
+			uint thingIdOffset,
+			uint clientVersion,
+			uint itemAnimationDurationMs = 500,
+			uint outfitAnimationDurationMs = 300,
+			uint effectAnimationDurationMs = 100,
+			uint missileAnimationDurationMs = 500)
 		{
 			DefaultPageSize = defaultPageSize;
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			ThingIdOffset = thingIdOffset;
 			ClientVersion = clientVersion;
+			ItemAnimationDurationMs = itemAnimationDurationMs;
+			OutfitAnimationDurationMs = outfitAnimationDurationMs;
+			EffectAnimationDurationMs = effectAnimationDurationMs;
+			MissileAnimationDurationMs = missileAnimationDurationMs;
 		}
 
 		public int SelectedThingIdOffset
@@ -119,6 +171,41 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
 				}
 			}
+		}
+
+		public int ItemAnimationDuration
+		{
+			get => (int)ItemAnimationDurationMs;
+			set => SetAnimationDuration(ref _itemAnimationDurationMs, value, nameof(ItemAnimationDuration));
+		}
+
+		public int OutfitAnimationDuration
+		{
+			get => (int)OutfitAnimationDurationMs;
+			set => SetAnimationDuration(ref _outfitAnimationDurationMs, value, nameof(OutfitAnimationDuration));
+		}
+
+		public int EffectAnimationDuration
+		{
+			get => (int)EffectAnimationDurationMs;
+			set => SetAnimationDuration(ref _effectAnimationDurationMs, value, nameof(EffectAnimationDuration));
+		}
+
+		public int MissileAnimationDuration
+		{
+			get => (int)MissileAnimationDurationMs;
+			set => SetAnimationDuration(ref _missileAnimationDurationMs, value, nameof(MissileAnimationDuration));
+		}
+
+		private void SetAnimationDuration(ref uint field, int value, string propertyName)
+		{
+			var clamped = value < 0 ? 0u : (uint)value;
+			if (field == clamped)
+				return;
+
+			field = clamped;
+			OnPropertyChanged(propertyName);
+			PersistenceService.SaveSettings();
 		}
 
 		public SettingsViewModel()
