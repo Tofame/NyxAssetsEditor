@@ -111,6 +111,72 @@ public static class ThingAppearanceRenderer
 		return ExtractRgba(canvas);
 	}
 
+	/// <summary>
+	/// Renders all eight missile directions in a 3×3 compass grid (center cell empty).
+	/// </summary>
+	public static byte[]? RenderMissileDirectionGrid(ThingType thing, SpriteLoader loader, ThingAppearanceOptions options)
+	{
+		if (thing.Kind != ThingKind.Missile || thing.FrameGroups.Count == 0)
+			return null;
+
+		var groupIndex = Math.Clamp(options.FrameGroupIndex, 0, thing.FrameGroups.Count - 1);
+		var fg = thing.FrameGroups[groupIndex];
+		if (fg.Width == 0 || fg.Height == 0)
+			return null;
+
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+		var cellW = (int)(fg.Width * edge);
+		var cellH = (int)(fg.Height * edge);
+		var canvasW = cellW * 3;
+		var canvasH = cellH * 3;
+		using var canvas = new Image<Rgba32>(canvasW, canvasH, default);
+
+		ReadOnlySpan<(Direction8 Direction, int Column, int Row)> slots =
+		[
+			(Direction8.NorthWest, 0, 0),
+			(Direction8.North, 1, 0),
+			(Direction8.NorthEast, 2, 0),
+			(Direction8.West, 0, 1),
+			(Direction8.East, 2, 1),
+			(Direction8.SouthWest, 0, 2),
+			(Direction8.South, 1, 2),
+			(Direction8.SouthEast, 2, 2),
+		];
+
+		var drewAny = false;
+		foreach (var (direction, column, row) in slots)
+		{
+			var (patternX, patternY) = MissileDirectionPatterns.GetPattern(direction);
+			var cellOptions = new ThingAppearanceOptions
+			{
+				FrameGroupIndex = options.FrameGroupIndex,
+				Layer = options.Layer,
+				Frame = options.Frame,
+				PatternX = patternX,
+				PatternY = patternY,
+				PatternZ = options.PatternZ,
+				ShowGrid = false,
+				ShowCropSize = false,
+			};
+			var offsetX = column * cellW;
+			var offsetY = row * cellH;
+			if (DrawFrameGroupCell(canvas, fg, loader, cellOptions, offsetX, offsetY))
+				drewAny = true;
+
+			if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
+				DrawCropRect(canvas, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
+
+			if (options.ShowGrid)
+				DrawGrid(canvas, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH);
+		}
+
+		if (!drewAny)
+			return null;
+
+		DrawMissileCompassCellBorders(canvas, cellW, cellH);
+		return ExtractRgba(canvas);
+	}
+
 	private static bool DrawFrameGroupCell(
 		Image<Rgba32> canvas,
 		ThingFrameGroup fg,
@@ -183,22 +249,69 @@ public static class ThingAppearanceRenderer
 		};
 	}
 
-	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows)
+	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows, int offsetX = 0, int offsetY = 0, int? clipW = null, int? clipH = null)
 	{
 		var gridColor = new Rgba32(80, 80, 80, 180);
+		var maxX = offsetX + (clipW ?? canvas.Width);
+		var maxY = offsetY + (clipH ?? canvas.Height);
+
 		for (var x = 1; x < cols; x++)
 		{
-			var px = x * edge;
-			for (var y = 0; y < canvas.Height; y++)
+			var px = offsetX + x * edge;
+			if (px >= maxX)
+				continue;
+			for (var y = offsetY; y < maxY && y < canvas.Height; y++)
 				canvas[px, y] = gridColor;
 		}
 
 		for (var y = 1; y < rows; y++)
 		{
-			var py = y * edge;
-			for (var x = 0; x < canvas.Width; x++)
+			var py = offsetY + y * edge;
+			if (py >= maxY)
+				continue;
+			for (var x = offsetX; x < maxX && x < canvas.Width; x++)
 				canvas[x, py] = gridColor;
 		}
+	}
+
+	private static void DrawMissileCompassCellBorders(Image<Rgba32> canvas, int cellW, int cellH)
+	{
+		var borderColor = new Rgba32(90, 90, 90, 220);
+		for (var row = 0; row < 3; row++)
+		{
+			for (var col = 0; col < 3; col++)
+			{
+				if (col == 1 && row == 1)
+					continue;
+
+				DrawRectBorder(canvas, col * cellW, row * cellH, cellW, cellH, borderColor);
+			}
+		}
+	}
+
+	private static void DrawRectBorder(Image<Rgba32> canvas, int x, int y, int width, int height, Rgba32 color)
+	{
+		var right = Math.Min(x + width - 1, canvas.Width - 1);
+		var bottom = Math.Min(y + height - 1, canvas.Height - 1);
+		x = Math.Clamp(x, 0, canvas.Width - 1);
+		y = Math.Clamp(y, 0, canvas.Height - 1);
+
+		for (var px = x; px <= right; px++)
+		{
+			canvas[px, y] = color;
+			canvas[px, bottom] = color;
+		}
+
+		for (var py = y; py <= bottom; py++)
+		{
+			canvas[x, py] = color;
+			canvas[right, py] = color;
+		}
+	}
+
+	private static void DrawGrid(Image<Rgba32> canvas, int edge, int cols, int rows)
+	{
+		DrawGrid(canvas, edge, cols, rows, 0, 0, canvas.Width, canvas.Height);
 	}
 
 	private static void DrawCropRect(Image<Rgba32> canvas, int exactSize, int canvasW, int canvasH, int offsetX = 0, int offsetY = 0)

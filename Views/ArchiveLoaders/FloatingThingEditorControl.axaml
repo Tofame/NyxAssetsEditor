@@ -63,18 +63,6 @@
 										<Button Grid.Row="1" Grid.Column="2" Classes.selected="{Binding IsDirectionEast}" Command="{Binding SetDirectionEastCommand}" Content="&gt;" Width="32" Height="28" Margin="2"/>
 									</Grid>
 
-									<!-- Missile directions -->
-									<WrapPanel IsVisible="{Binding ShowMissileDirections}" HorizontalAlignment="Center" MaxWidth="280">
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="NorthWest" Content="NW" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="North" Content="N" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="NorthEast" Content="NE" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="West" Content="W" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="East" Content="E" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="SouthWest" Content="SW" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="South" Content="S" Margin="2" Padding="6,4" FontSize="10"/>
-										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="SouthEast" Content="SE" Margin="2" Padding="6,4" FontSize="10"/>
-									</WrapPanel>
-
 									<!-- Preview (centered) -->
 									<ScrollViewer HorizontalAlignment="Center"
 												  HorizontalScrollBarVisibility="Auto"

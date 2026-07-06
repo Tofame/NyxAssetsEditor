@@ -105,7 +105,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool IsItem => Kind == ThingKind.Item;
 	public bool IsEffect => Kind == ThingKind.Effect;
 	public bool ShowOutfitDirections => IsOutfit;
-	public bool ShowMissileDirections => IsMissile;
+	public bool ShowMissileDirections => false;
 	public bool ShowLayerSlider => CurrentFrameGroup.Layers > 1;
 	public bool UsesOutfitFrameGroups => IsOutfit && OutfitFrameGroupsEnabled && Thing.FrameGroups.Count > 1;
 	public bool ShowFrameSlider => CurrentFrameGroup.Frames > 1 && (!UsesOutfitFrameGroups || SelectedFrameGroupIndex > 0);
@@ -791,7 +791,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		int w;
 		int h;
 
-		if (ShowPatternGrid)
+		if (IsMissile)
+		{
+			rgba = ThingAppearanceRenderer.RenderMissileDirectionGrid(Thing, loader, options);
+			w = (int)(fg.Width * edge) * 3;
+			h = (int)(fg.Height * edge) * 3;
+		}
+		else if (ShowPatternGrid)
 		{
 			rgba = ThingAppearanceRenderer.RenderPatternGrid(Thing, loader, options);
 			w = (int)(fg.PatternX * fg.Width * edge);
