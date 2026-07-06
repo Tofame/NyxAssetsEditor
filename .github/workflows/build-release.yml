@@ -1,0 +1,93 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Publish for ${{ matrix.runtime }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, linux-x64, osx-x64, osx-arm64]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Publish Binaries
+        run: |
+          dotnet publish NyxAssetsEditor.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -o publish/${{ matrix.runtime }}
+
+      - name: Archive Release Assets (Windows)
+        if: matrix.runtime == 'win-x64'
+        run: |
+          cd publish/win-x64
+          zip -r ../../NyxAssetsEditor-win-x64.zip .
+
+      - name: Archive Release Assets (Linux)
+        if: matrix.runtime == 'linux-x64'
+        run: |
+          cd publish/linux-x64
+          tar -czvf ../../NyxAssetsEditor-linux-x64.tar.gz .
+
+      - name: Archive Release Assets (macOS x64)
+        if: matrix.runtime == 'osx-x64'
+        run: |
+          cd publish/osx-x64
+          zip -r ../../NyxAssetsEditor-osx-x64.zip .
+
+      - name: Archive Release Assets (macOS ARM64)
+        if: matrix.runtime == 'osx-arm64'
+        run: |
+          cd publish/osx-arm64
+          zip -r ../../NyxAssetsEditor-osx-arm64.zip .
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NyxAssetsEditor-${{ matrix.runtime }}
+          path: |
+            NyxAssetsEditor-*.zip
+            NyxAssetsEditor-*.tar.gz
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Move Assets to Flat Directory
+        run: |
+          mkdir release_assets
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec cp {} release_assets/ \;
+          ls -R release_assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release_assets/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
