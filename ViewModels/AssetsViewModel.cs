@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -48,10 +49,27 @@ namespace NyxAssetsEditor.ViewModels
 			AddPanel(panel);
 		}
 
+		public bool IsSpriteArchiveLoaded
+		{
+			get
+			{
+				foreach (var panel in ActivePanels)
+				{
+					if (panel is FloatingSpriteLoaderViewModel spritePanel && spritePanel.IsArchiveLoaded)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+		}
+
 		[RelayCommand]
 		private void LoadThings()
 		{
-			var panel = new FloatingThingsLoaderViewModel
+			if (!IsSpriteArchiveLoaded) return;
+
+			var panel = new FloatingThingsLoaderViewModel(this)
 			{
 				PositionX = 100,
 				PositionY = 80 + ActivePanels.Count * 25,
@@ -65,6 +83,7 @@ namespace NyxAssetsEditor.ViewModels
 		{
 			panel.RequestClose += OnPanelRequestClose;
 			panel.RequestDockStateChanged += OnPanelRequestDockStateChanged;
+			panel.PropertyChanged += OnPanelPropertyChanged;
 
 			ActivePanels.Add(panel);
 			FloatingPanels.Add(panel);
@@ -101,14 +120,36 @@ namespace NyxAssetsEditor.ViewModels
 			OnPropertyChanged(nameof(IsRightEmpty));
 		}
 
+		private void OnPanelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == nameof(FloatingSpriteLoaderViewModel.IsArchiveLoaded))
+			{
+				OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
+				foreach (var panel in ActivePanels)
+				{
+					if (panel is FloatingThingsLoaderViewModel thingsPanel)
+					{
+						thingsPanel.RefreshPreviews();
+					}
+				}
+			}
+		}
+
 		private void OnPanelRequestClose(PanelViewModelBase panel)
 		{
 			panel.RequestClose -= OnPanelRequestClose;
 			panel.RequestDockStateChanged -= OnPanelRequestDockStateChanged;
+			panel.PropertyChanged -= OnPanelPropertyChanged;
+
+			if (panel is IDisposable disp)
+			{
+				disp.Dispose();
+			}
 
 			ActivePanels.Remove(panel);
 			RemoveFromDockCollections(panel);
 			UpdateColumnWidths();
+			OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
 		}
 
 		private void OnPanelRequestDockStateChanged(PanelViewModelBase panel)

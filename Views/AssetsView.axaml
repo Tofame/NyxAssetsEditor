@@ -30,7 +30,7 @@
 		<Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Height="45" Padding="15,0">
 			<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 				<Button Content="Load Assets" Command="{Binding LoadAssetsCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
-				<Button Content="Load Things (.dat/.things)" Command="{Binding LoadThingsCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Button Content="Load Things (.dat/.things)" Command="{Binding LoadThingsCommand}" IsEnabled="{Binding IsSpriteArchiveLoaded}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
 			</StackPanel>
 		</Border>
 

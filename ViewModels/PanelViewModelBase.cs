@@ -110,5 +110,9 @@ namespace NyxAssetsEditor.ViewModels
 		{
 			DockState = state;
 		}
+
+		public bool IsDraggingVM { get; set; }
+		public double DragClickX { get; set; }
+		public double DragClickY { get; set; }
 	}
 }

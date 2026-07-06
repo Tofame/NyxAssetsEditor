@@ -19,6 +19,7 @@ namespace NyxAssetsEditor.Views
 		private double _initialHeight;
 		private double _initialPositionX;
 		private IPointer? _activePointer;
+		private static IPointer? _sharedActivePointer;
 
 		public FloatingThingsLoaderControl()
 		{
@@ -60,8 +61,12 @@ namespace NyxAssetsEditor.Views
 					}
 				}
 
-				if (_isDragging && _activePointer != null)
+				if (vm.IsDraggingVM && _sharedActivePointer != null)
 				{
+					_isDragging = true;
+					_activePointer = _sharedActivePointer;
+					_clickPosition = new Point(vm.DragClickX, vm.DragClickY);
+
 					var titleBar = this.FindControl<Border>("TitleBar");
 					if (titleBar != null)
 					{
@@ -90,7 +95,13 @@ namespace NyxAssetsEditor.Views
 			{
 				_isDragging = true;
 				_activePointer = e.Pointer;
+				_sharedActivePointer = e.Pointer;
 				_clickPosition = e.GetPosition(this);
+
+				vm.IsDraggingVM = true;
+				vm.DragClickX = _clickPosition.X;
+				vm.DragClickY = _clickPosition.Y;
+
 				e.Pointer.Capture(sender as IInputElement);
 				e.Handled = true;
 			}
@@ -140,6 +151,8 @@ namespace NyxAssetsEditor.Views
 			{
 				_isDragging = false;
 				_activePointer = null;
+				_sharedActivePointer = null;
+				vm.IsDraggingVM = false;
 				e.Pointer.Capture(null);
 				e.Handled = true;
 
@@ -168,9 +181,9 @@ namespace NyxAssetsEditor.Views
 					AllowMultiple = false,
 					FileTypeFilter = new[]
 					{
-						new FilePickerFileType("Nyx Things Archive") { Patterns = new[] { "*.things" } },
 						new FilePickerFileType("Nyx Dat Archive") { Patterns = new[] { "*.dat" } },
-						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.things", "*.dat" } }
+						new FilePickerFileType("Nyx Things Archive") { Patterns = new[] { "*.things" } },
+						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.dat", "*.things" } }
 					}
 				});
 

@@ -20,6 +20,7 @@ namespace NyxAssetsEditor.Views
 		private double _initialPositionX;
 		private FloatingSpriteLoaderViewModel? _viewModel;
 		private IPointer? _activePointer;
+		private static IPointer? _sharedActivePointer;
 
 		public FloatingSpriteLoaderControl()
 		{
@@ -74,8 +75,12 @@ namespace NyxAssetsEditor.Views
 					}
 				}
 
-				if (_isDragging && _activePointer != null)
+				if (vm.IsDraggingVM && _sharedActivePointer != null)
 				{
+					_isDragging = true;
+					_activePointer = _sharedActivePointer;
+					_clickPosition = new Point(vm.DragClickX, vm.DragClickY);
+
 					var titleBar = this.FindControl<Border>("TitleBar");
 					if (titleBar != null)
 					{
@@ -104,7 +109,13 @@ namespace NyxAssetsEditor.Views
 			{
 				_isDragging = true;
 				_activePointer = e.Pointer;
+				_sharedActivePointer = e.Pointer;
 				_clickPosition = e.GetPosition(this);
+
+				vm.IsDraggingVM = true;
+				vm.DragClickX = _clickPosition.X;
+				vm.DragClickY = _clickPosition.Y;
+
 				e.Pointer.Capture(sender as IInputElement);
 				e.Handled = true;
 			}
@@ -154,6 +165,8 @@ namespace NyxAssetsEditor.Views
 			{
 				_isDragging = false;
 				_activePointer = null;
+				_sharedActivePointer = null;
+				vm.IsDraggingVM = false;
 				e.Pointer.Capture(null);
 				e.Handled = true;
 
