@@ -93,7 +93,7 @@
 
 										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowFrameGroupSlider}" HorizontalAlignment="Right">
 											<TextBlock Grid.Column="0" Text="Group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
 											<TextBlock Grid.Column="2" Text="{Binding FrameGroupDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="72"/>
 										</Grid>
 

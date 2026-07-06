@@ -63,14 +63,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void LoadThing(ThingType thing)
 	{
 		StopAnimationPreview(restoreFrame: false);
-		var preserveFrameGroupIndex = _selectedFrameGroupIndex;
 		_thing = SourcePanel.GetThingType(thing.Id) ?? thing;
-
-		var targetFrameGroupIndex = Kind == ThingKind.Outfit && OutfitFrameGroupsEnabled && Thing.FrameGroups.Count > 1
-			? Math.Clamp(preserveFrameGroupIndex, 0, Thing.FrameGroups.Count - 1)
-			: 0;
-
-		_selectedFrameGroupIndex = targetFrameGroupIndex;
 		_selectedFrame = 0;
 		_selectedLayer = 0;
 		_viewPatternX = 0;
@@ -78,14 +71,18 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_viewPatternZ = 0;
 		_outfitDirection = Direction4.South;
 		_missileDirection = Direction8.South;
+
+		NotifyThingProperties();
+		NotifyAppearanceControls();
+
+		_selectedFrameGroupIndex = 0;
+		OnPropertyChanged(nameof(SelectedFrameGroupIndex));
+		OnPropertyChanged(nameof(FrameGroupDisplay));
+
 		SyncPatternFieldsFromGroup();
 		SyncViewPatternsFromDirection();
 		SyncAnimationFieldsFromGroup();
-		NotifyThingProperties();
-		NotifyAppearanceControls();
 		NotifySliderDisplays();
-		OnPropertyChanged(nameof(SelectedFrameGroupIndex));
-		OnPropertyChanged(nameof(FrameGroupDisplay));
 		RefreshAppearance();
 	}
 
@@ -750,6 +747,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		OnPropertyChanged(nameof(LayerMaximum));
 		OnPropertyChanged(nameof(FrameMaximum));
+		OnPropertyChanged(nameof(FrameGroupMaximum));
 		OnPropertyChanged(nameof(PatternXMaximum));
 		OnPropertyChanged(nameof(PatternYMaximum));
 		OnPropertyChanged(nameof(PatternZMaximum));
