@@ -17,6 +17,7 @@ namespace NyxAssetsEditor.Views
 		private Point _initialPointerPosition;
 		private double _initialWidth;
 		private double _initialHeight;
+		private double _initialPositionX;
 		private FloatingSpriteLoaderViewModel? _viewModel;
 
 		public FloatingSpriteLoaderControl()
@@ -148,6 +149,11 @@ namespace NyxAssetsEditor.Views
 			StartResizing(sender, e, 3);
 		}
 
+		private void OnResizeBottomLeftPressed(object? sender, PointerPressedEventArgs e)
+		{
+			StartResizing(sender, e, 5);
+		}
+
 		private void StartResizing(object? sender, PointerPressedEventArgs e, int direction)
 		{
 			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingSpriteLoaderViewModel vm)
@@ -161,6 +167,7 @@ namespace NyxAssetsEditor.Views
 					_initialPointerPosition = e.GetPosition(canvasVisual);
 					_initialWidth = vm.PanelWidth;
 					_initialHeight = vm.ContentHeight;
+					_initialPositionX = vm.PositionX;
 					e.Pointer.Capture(sender as IInputElement);
 					e.Handled = true;
 				}
@@ -187,6 +194,11 @@ namespace NyxAssetsEditor.Views
 			PerformResizing(e);
 		}
 
+		private void OnResizeBottomLeftMoved(object? sender, PointerEventArgs e)
+		{
+			PerformResizing(e);
+		}
+
 		private void PerformResizing(PointerEventArgs e)
 		{
 			if (_isResizing && DataContext is FloatingSpriteLoaderViewModel vm)
@@ -200,15 +212,20 @@ namespace NyxAssetsEditor.Views
 
 					if (_resizeDirection == 1 || _resizeDirection == 3)
 					{
-						vm.PanelWidth = Math.Max(240, _initialWidth + dx);
+						vm.PanelWidth = Math.Max(340, _initialWidth + dx);
 					}
-					if (_resizeDirection == 2 || _resizeDirection == 3)
+					
+					if (_resizeDirection == 4 || _resizeDirection == 5)
+					{
+						double newWidth = Math.Max(340, _initialWidth - dx);
+						double widthDiff = newWidth - _initialWidth;
+						vm.PanelWidth = newWidth;
+						vm.PositionX = _initialPositionX - widthDiff;
+					}
+					
+					if (_resizeDirection == 2 || _resizeDirection == 3 || _resizeDirection == 5)
 					{
 						vm.ContentHeight = Math.Max(150, _initialHeight + dy);
-					}
-					if(_resizeDirection == 4)
-					{
-						vm.PanelWidth = Math.Max(240, _initialWidth - dx);
 					}
 					e.Handled = true;
 				}
