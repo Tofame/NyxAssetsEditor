@@ -1,0 +1,317 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingThingsLoaderControl"
+			 x:DataType="vm:FloatingThingsLoaderViewModel"
+			 Width="{Binding DisplayWidth}">
+
+	<UserControl.Styles>
+		<Style Selector="Border.thing-tile">
+			<Setter Property="BorderBrush" Value="#353535"/>
+			<Setter Property="BorderThickness" Value="1"/>
+		</Style>
+		<Style Selector="Border.thing-tile.selected">
+			<Setter Property="BorderBrush" Value="#5E94FF"/>
+			<Setter Property="BorderThickness" Value="2"/>
+		</Style>
+		<Style Selector="Border.thing-list-row">
+			<Setter Property="Background" Value="Transparent"/>
+		</Style>
+		<Style Selector="Border.thing-list-row.selected">
+			<Setter Property="Background" Value="#225E94FF"/>
+		</Style>
+		<Style Selector="Button.thing-section-tab">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0,0,0,2"/>
+			<Setter Property="Foreground" Value="#888888"/>
+			<Setter Property="Padding" Value="12,6"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="CornerRadius" Value="0"/>
+		</Style>
+		<Style Selector="Button.thing-section-tab.selected">
+			<Setter Property="Foreground" Value="#E0E0E0"/>
+			<Setter Property="BorderBrush" Value="#5E94FF"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto, Auto, *, Auto">
+			<!-- Title Bar (Draggable) -->
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/>
+						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
+					<!-- Panel Name -->
+					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
+						<TextBlock Text="Things Archive Viewer" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13"/>
+						<TextBlock Text="{Binding FileName, Mode=OneWay}" ToolTip.Tip="{Binding FilePath, Mode=OneWay}" FontSize="11" Foreground="#888888" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+					</StackPanel>
+					
+					<!-- Page Size Dropdown -->
+					<StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0" Spacing="4" IsVisible="{Binding IsArchiveLoaded}">
+						<TextBlock Text="Page size:" FontSize="10" Foreground="#888888" VerticalAlignment="Center"/>
+						<ComboBox ItemsSource="{Binding AvailablePageSizes}" SelectedItem="{Binding PageSize}" FontSize="10" Height="22" Padding="6,2" BorderThickness="0" Background="#1E1E1E" CornerRadius="4"/>
+					</StackPanel>
+
+					<!-- List/Grid Switcher Button -->
+					<Button Grid.Column="2" Command="{Binding ToggleViewModeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Toggle List/Grid View">
+						<Panel>
+							<!-- List Icon (Visible when GridView is active, because clicking toggles to List) -->
+							<Path Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12" Stroke="#E0E0E0" StrokeThickness="1.5" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsGridView}"/>
+							<!-- Grid Icon (Visible when ListView is active, because clicking toggles to Grid) -->
+							<Path Data="M1,1 H6 V6 H1 Z M9,1 H14 V6 H9 Z M1,9 H6 V14 H1 Z M9,9 H14 V14 H9 Z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsListView}"/>
+						</Panel>
+					</Button>
+					
+					<!-- Minimize Button -->
+					<Button Grid.Column="3" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
+						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Button>
+					
+					<!-- Close Button -->
+					<Button Grid.Column="4" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
+						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Button>
+				</Grid>
+			</Border>
+
+			<!-- Section tabs -->
+			<Border Grid.Row="1" IsVisible="{Binding IsArchiveLoaded}" Background="#262626" BorderBrush="#3C3C3C" BorderThickness="0,1,0,1" Padding="8,0">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<Button Classes="thing-section-tab" Classes.selected="{Binding IsItemsSection}" Content="Items" Command="{Binding SelectItemsSectionCommand}"/>
+					<Button Classes="thing-section-tab" Classes.selected="{Binding IsOutfitsSection}" Content="Outfits" Command="{Binding SelectOutfitsSectionCommand}"/>
+					<Button Classes="thing-section-tab" Classes.selected="{Binding IsEffectsSection}" Content="Effects" Command="{Binding SelectEffectsSectionCommand}"/>
+					<Button Classes="thing-section-tab" Classes.selected="{Binding IsMissilesSection}" Content="Missiles" Command="{Binding SelectMissilesSectionCommand}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Content Area (List of Things) -->
+			<Grid Grid.Row="2" IsVisible="{Binding !IsMinimized}" Background="#222222" Height="{Binding DisplayHeight}">
+				<!-- List View Mode -->
+				<ListBox ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowListViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0">
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<VirtualizingStackPanel/>
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem">
+							<Setter Property="Padding" Value="0"/>
+							<Setter Property="MinHeight" Value="42"/>
+							<Setter Property="Background" Value="Transparent"/>
+						</Style>
+					</ListBox.Styles>
+					<ListBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:ThingItemViewModel">
+							<Border Classes="thing-list-row" Classes.selected="{Binding IsSelected, Mode=OneWay}" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3" PointerPressed="OnThingPointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="Spritesheet">
+												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+											</MenuItem>
+											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
+											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
+								<Grid ColumnDefinitions="Auto, *">
+									<!-- Square Image Container -->
+									<Border Grid.Column="0" Width="36" Height="36" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
+										<Image Source="{Binding PreviewImage, Mode=OneWay}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None"/>
+									</Border>
+									
+									<!-- ID Text -->
+									<TextBlock Grid.Column="1" Text="{Binding DisplayedId, Mode=OneWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#E0E0E0" FontSize="13" FontWeight="SemiBold"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
+				<!-- Grid View Mode -->
+				<ListBox ItemsSource="{Binding PagedThings, Mode=OneWay}" IsVisible="{Binding ShowGridViewContent, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+					<ListBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:ThingItemViewModel">
+							<Border Classes="thing-tile" Classes.selected="{Binding IsSelected, Mode=OneWay}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76" BorderBrush="#353535" BorderThickness="1"
+									PointerPressed="OnThingPointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="Spritesheet">
+												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+											</MenuItem>
+											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
+											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
+								<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+									<Image Source="{Binding PreviewImage, Mode=OneWay}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									<TextBlock Text="{Binding DisplayedId, Mode=OneWay}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
+				<StackPanel IsVisible="{Binding IsSectionEmpty}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+					<TextBlock Text="{Binding SectionLabelPlural, StringFormat='No {0} in this archive'}" Foreground="#888888" FontSize="13" HorizontalAlignment="Center"/>
+				</StackPanel>
+				
+				<StackPanel IsVisible="{Binding !IsArchiveLoaded}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+					<!-- Warning state when Sprites are not loaded -->
+					<Border IsVisible="{Binding !IsSpriteLoaderLoaded}"
+							Background="#331A1A"
+							BorderBrush="#FF5E5E"
+							BorderThickness="1.5"
+							CornerRadius="8"
+							Padding="18"
+							Width="340">
+						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<TextBlock Text="Sprites Not Loaded" FontWeight="SemiBold" Foreground="#FF5E5E" FontSize="13" HorizontalAlignment="Center"/>
+							<TextBlock Text="You must load a Sprite Archive (.spr / .assets) in the Sprite Loader panel before you can load things." Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+
+					<!-- Click to Load Dropzone (Visible only when Sprites are loaded) -->
+					<Border Name="EmptyStateDropzone"
+							IsVisible="{Binding IsSpriteLoaderLoaded}"
+							Background="#22000000"
+							BorderBrush="#5E94FF"
+							BorderThickness="1.5"
+							CornerRadius="8"
+							Padding="18"
+							Width="340"
+							Cursor="Hand"
+							PointerPressed="OnEmptyStateClick">
+						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#5E94FF" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<TextBlock Text="Click to Load Things" FontWeight="SemiBold" Foreground="#5E94FF" FontSize="13" HorizontalAlignment="Center"/>
+							<TextBlock Text="Supports .dat and .things archives" Foreground="#666666" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Loading Settings Container -->
+					<Border Background="#252525" BorderBrush="#353535" BorderThickness="1" CornerRadius="6" Padding="12" Width="340">
+						<StackPanel Spacing="8">
+							<TextBlock Text="Loading Settings" FontSize="11" FontWeight="SemiBold" Foreground="#888888" Margin="0,0,0,4"/>
+							<CheckBox Content="Extended Thing IDs" IsChecked="{Binding UseExtendedThingIds}" FontSize="11" Height="20"/>
+							<CheckBox Content="Frame Animations" IsChecked="{Binding UseFrameAnimations}" FontSize="11" Height="20"/>
+							<CheckBox Content="Frame Groups" IsChecked="{Binding UseFrameGroups}" FontSize="11" Height="20"/>
+						</StackPanel>
+					</Border>
+				</StackPanel>
+			</Grid>
+
+			<!-- Footer: thing actions + pagination -->
+			<Border Grid.Row="3" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8,6">
+				<StackPanel Spacing="6">
+					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsArchiveLoaded}">
+						<Button Content="Import" Command="{Binding ImportThingCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Export" Padding="10,4" FontSize="11">
+							<Button.Flyout>
+								<MenuFlyout Placement="Top">
+									<MenuItem Header="Spritesheet">
+										<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
+										<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
+										<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
+									</MenuItem>
+									<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
+									<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
+								</MenuFlyout>
+							</Button.Flyout>
+						</Button>
+						<Button Content="Duplicate" Command="{Binding DuplicateSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Remove" Command="{Binding RemoveSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
+						<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasThingSelection}"/>
+					</StackPanel>
+
+					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
+					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>
+					
+					<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+						<TextBlock Text="Page" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+						<TextBox Text="{Binding CurrentPage, Mode=TwoWay}" Width="38" Height="22" Padding="2,1" FontSize="11" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#1E1E1E" BorderThickness="0" CornerRadius="4" Foreground="#E0E0E0"/>
+						<TextBlock Text="of" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+						<TextBlock Text="{Binding TotalPages}" FontWeight="Bold" Foreground="#E0E0E0" FontSize="12" VerticalAlignment="Center"/>
+						<TextBlock Text="(" Foreground="#666666" FontSize="10" VerticalAlignment="Center" Margin="4,0,0,0"/>
+						<TextBlock Text="{Binding TotalThings}" Foreground="#666666" FontSize="10" VerticalAlignment="Center"/>
+						<TextBlock Text="{Binding SectionLabelPlural, StringFormat='{}{0})'}" Foreground="#666666" FontSize="10" VerticalAlignment="Center"/>
+					</StackPanel>
+					
+					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
+					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;&gt;" Padding="8,4" FontSize="11"/>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+			<!-- Resize Handles (Overlay) -->
+			<!-- Left edge resize handle -->
+			<Border Grid.RowSpan="4" Width="5" HorizontalAlignment="Left" Background="Transparent" Cursor="SizeWestEast" 
+			        IsVisible="{Binding ShowResizeHandles}"
+			        PointerPressed="OnResizeLeftPressed" 
+			        PointerMoved="OnResizeLeftMoved" 
+			        PointerReleased="OnResizeReleased"/>
+
+			<!-- Right edge resize handle -->
+			<Border Grid.RowSpan="4" Width="5" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWestEast" 
+					IsVisible="{Binding ShowResizeHandles}"
+					PointerPressed="OnResizeRightPressed" 
+					PointerMoved="OnResizeRightMoved" 
+					PointerReleased="OnResizeReleased"/>
+			
+			<!-- Bottom edge resize handle -->
+			<Border Grid.Row="3" Height="5" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNorthSouth" 
+					IsVisible="{Binding ShowResizeHandles}"
+					PointerPressed="OnResizeBottomPressed" 
+					PointerMoved="OnResizeBottomMoved" 
+					PointerReleased="OnResizeReleased"/>
+			
+			<!-- Bottom-right corner resize handle -->
+			<Border Grid.Row="3" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner" 
+					IsVisible="{Binding ShowResizeHandles}"
+					PointerPressed="OnResizeCornerPressed" 
+					PointerMoved="OnResizeCornerMoved" 
+					PointerReleased="OnResizeReleased"/>
+			
+			<!-- Bottom-left corner resize handle -->
+			<Border Grid.Row="3" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomLeftCorner" 
+					IsVisible="{Binding ShowResizeHandles}"
+					PointerPressed="OnResizeBottomLeftPressed" 
+					PointerMoved="OnResizeBottomLeftMoved" 
+					PointerReleased="OnResizeReleased"/>
+		</Grid>
+	</Border>
+</UserControl>
