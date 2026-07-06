@@ -199,6 +199,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public int GridTileWidth => AssetDisplaySize + 40;
 		public int GridTileHeight => AssetDisplaySize + 44;
 
+		public readonly HashSet<uint> AddedSpriteIds = new HashSet<uint>();
+		public readonly HashSet<uint> RemovedSpriteIds = new HashSet<uint>();
+		public readonly HashSet<uint> ModifiedSpriteIds = new HashSet<uint>();
+
+		public void DiscardChanges()
+		{
+			if (!string.IsNullOrEmpty(FilePath))
+			{
+				LoadArchive(FilePath);
+				HasSavedChanges = false;
+			}
+		}
+
 		public FloatingSpriteLoaderViewModel(SpriteRenderer renderer)
 		{
 			_renderer = renderer;
@@ -209,6 +222,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path)
 		{
+			AddedSpriteIds.Clear();
+			RemovedSpriteIds.Clear();
+			ModifiedSpriteIds.Clear();
+
 			FilePath = path;
 			await Task.Run(() =>
 				Loader.OpenArchive(path, extendedSpriteIds: UseExtendedSpriteIds, transparentPixels: UseTransparentPixels))
@@ -332,6 +349,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				var pixels = clipboard[Math.Min(i, clipboard.Count - 1)];
 				Loader.SetSpritePixels(targets[i].Id, pixels);
 				targets[i].InvalidatePreview();
+
+				if (!AddedSpriteIds.Contains(targets[i].Id))
+					ModifiedSpriteIds.Add(targets[i].Id);
 			}
 		}
 
@@ -365,6 +385,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			{
 				Loader.SetSpritePixels(sprite.Id, rgba);
 				sprite.InvalidatePreview();
+
+				if (!AddedSpriteIds.Contains(sprite.Id))
+					ModifiedSpriteIds.Add(sprite.Id);
 			}
 		}
 
@@ -391,6 +414,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					Loader.RemoveLastSprite();
 				else
 					Loader.ClearSprite(id);
+
+				if (AddedSpriteIds.Contains(id))
+					AddedSpriteIds.Remove(id);
+				else
+					RemovedSpriteIds.Add(id);
+				ModifiedSpriteIds.Remove(id);
 			}
 
 			TotalSprites = Loader.SpriteCount;
@@ -410,6 +439,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			Loader.AddNewSprite();
 			TotalSprites = Loader.SpriteCount;
+			AddedSpriteIds.Add(TotalSprites);
 			HasSavedChanges = true;
 
 			var lastPage = TotalPages;

@@ -221,30 +221,31 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				if (!pair.ThingsPanel.HasSavedChanges && !pair.SpritePanel.HasSavedChanges)
 					continue;
 
-				var catalog = pair.ThingsPanel.Catalog;
 				var fileName = pair.ThingsPanel.FileName;
-
 				if (!string.IsNullOrEmpty(fileName))
 					lines.Add($"Archive: {fileName}");
 
-				if (pair.ThingsPanel.HasSavedChanges && catalog != null)
+				if (pair.ThingsPanel.HasSavedChanges)
 				{
-					var itemCount   = (int)catalog.ItemCount   - (int)NyxAssets.Things.ThingCatalog.FirstItemId   + 1;
-					var outfitCount = (int)catalog.OutfitCount - (int)NyxAssets.Things.ThingCatalog.FirstOutfitId + 1;
-					var effectCount = (int)catalog.EffectCount - (int)NyxAssets.Things.ThingCatalog.FirstEffectId + 1;
-					var missileCount= (int)catalog.MissileCount- (int)NyxAssets.Things.ThingCatalog.FirstMissileId+ 1;
-
-					if (itemCount    > 0) lines.Add($"  Items:    {itemCount}");
-					if (outfitCount  > 0) lines.Add($"  Outfits:  {outfitCount}");
-					if (effectCount  > 0) lines.Add($"  Effects:  {effectCount}");
-					if (missileCount > 0) lines.Add($"  Missiles: {missileCount}");
+					lines.Add($"  Things changes:");
+					if (pair.ThingsPanel.AddedThingIds.Count > 0)
+						lines.Add($"    Added ({pair.ThingsPanel.AddedThingIds.Count}): {string.Join(", ", pair.ThingsPanel.AddedThingIds)}");
+					if (pair.ThingsPanel.ModifiedThingIds.Count > 0)
+						lines.Add($"    Modified ({pair.ThingsPanel.ModifiedThingIds.Count}): {string.Join(", ", pair.ThingsPanel.ModifiedThingIds)}");
+					if (pair.ThingsPanel.RemovedThingIds.Count > 0)
+						lines.Add($"    Removed ({pair.ThingsPanel.RemovedThingIds.Count}): {string.Join(", ", pair.ThingsPanel.RemovedThingIds)}");
 				}
 
 				if (pair.SpritePanel.HasSavedChanges)
 				{
 					var sprFile = pair.SpritePanel.FileName;
-					lines.Add($"  Sprites:  {pair.SpritePanel.Loader.SpriteCount} total" +
-					          (string.IsNullOrEmpty(sprFile) ? "" : $" ({sprFile})"));
+					lines.Add($"  Sprites changes" + (string.IsNullOrEmpty(sprFile) ? ":" : $" ({sprFile}):"));
+					if (pair.SpritePanel.AddedSpriteIds.Count > 0)
+						lines.Add($"    Added ({pair.SpritePanel.AddedSpriteIds.Count}): {string.Join(", ", pair.SpritePanel.AddedSpriteIds)}");
+					if (pair.SpritePanel.ModifiedSpriteIds.Count > 0)
+						lines.Add($"    Modified ({pair.SpritePanel.ModifiedSpriteIds.Count}): {string.Join(", ", pair.SpritePanel.ModifiedSpriteIds)}");
+					if (pair.SpritePanel.RemovedSpriteIds.Count > 0)
+						lines.Add($"    Removed ({pair.SpritePanel.RemovedSpriteIds.Count}): {string.Join(", ", pair.SpritePanel.RemovedSpriteIds)}");
 				}
 			}
 
@@ -555,10 +556,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private async void OnPanelRequestClose(PanelViewModelBase panel)
 		{
 			bool hasChanges = false;
-			if (panel is FloatingSpriteLoaderViewModel sprPanel && sprPanel.HasSavedChanges)
+			string summaryText = string.Empty;
+
+			if (panel is FloatingThingsLoaderViewModel thPanelUnsaved && thPanelUnsaved.HasSavedChanges)
+			{
 				hasChanges = true;
-			else if (panel is FloatingThingsLoaderViewModel thPanel && thPanel.HasSavedChanges)
+				var sb = new System.Text.StringBuilder();
+				sb.AppendLine($"Things Panel: {System.IO.Path.GetFileName(thPanelUnsaved.FilePath)}");
+				if (thPanelUnsaved.AddedThingIds.Count > 0)
+					sb.AppendLine($"  Added ({thPanelUnsaved.AddedThingIds.Count}): {string.Join(", ", thPanelUnsaved.AddedThingIds)}");
+				if (thPanelUnsaved.ModifiedThingIds.Count > 0)
+					sb.AppendLine($"  Modified ({thPanelUnsaved.ModifiedThingIds.Count}): {string.Join(", ", thPanelUnsaved.ModifiedThingIds)}");
+				if (thPanelUnsaved.RemovedThingIds.Count > 0)
+					sb.AppendLine($"  Removed ({thPanelUnsaved.RemovedThingIds.Count}): {string.Join(", ", thPanelUnsaved.RemovedThingIds)}");
+				summaryText = sb.ToString();
+			}
+			else if (panel is FloatingSpriteLoaderViewModel sprPanelUnsaved && sprPanelUnsaved.HasSavedChanges)
+			{
 				hasChanges = true;
+				var sb = new System.Text.StringBuilder();
+				sb.AppendLine($"Sprites Panel: {System.IO.Path.GetFileName(sprPanelUnsaved.FilePath)}");
+				if (sprPanelUnsaved.AddedSpriteIds.Count > 0)
+					sb.AppendLine($"  Added ({sprPanelUnsaved.AddedSpriteIds.Count}): {string.Join(", ", sprPanelUnsaved.AddedSpriteIds)}");
+				if (sprPanelUnsaved.ModifiedSpriteIds.Count > 0)
+					sb.AppendLine($"  Modified ({sprPanelUnsaved.ModifiedSpriteIds.Count}): {string.Join(", ", sprPanelUnsaved.ModifiedSpriteIds)}");
+				if (sprPanelUnsaved.RemovedSpriteIds.Count > 0)
+					sb.AppendLine($"  Removed ({sprPanelUnsaved.RemovedSpriteIds.Count}): {string.Join(", ", sprPanelUnsaved.RemovedSpriteIds)}");
+				summaryText = sb.ToString();
+			}
 
 			if (hasChanges)
 			{
@@ -566,19 +591,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
 				if (desktop?.MainWindow is Avalonia.Controls.Window mainWindow)
 				{
-					var dialog = new NyxAssetsEditor.Views.Shell.WarningDialog(
-						"Unsaved Changes",
-						"This panel has unsaved changes. Please compile or cancel your changes before closing this panel.");
+					var dialog = new NyxAssetsEditor.Views.Shell.PanelUnsavedChangesDialog("Unsaved Changes", summaryText);
 					await dialog.ShowDialog(mainWindow);
+
+					if (dialog.Result == NyxAssetsEditor.Views.Shell.PanelUnsavedChangesResult.Cancel)
+					{
+						return;
+					}
+					else if (dialog.Result == NyxAssetsEditor.Views.Shell.PanelUnsavedChangesResult.Discard)
+					{
+						if (panel is FloatingThingsLoaderViewModel thDiscard)
+							thDiscard.DiscardChanges();
+						else if (panel is FloatingSpriteLoaderViewModel sprDiscard)
+							sprDiscard.DiscardChanges();
+
+						panel.IsVisible = false;
+					}
 				}
-				return;
+				else
+				{
+					return;
+				}
 			}
 
-			if (panel is FloatingSpriteLoaderViewModel spritePanel)
+			if (panel is FloatingSpriteLoaderViewModel sprPanelClose)
 			{
 				var linkedThingsPanels = ActivePanels
 					.OfType<FloatingThingsLoaderViewModel>()
-					.Where(tp => tp.LinkedSpritePanel == spritePanel)
+					.Where(tp => tp.LinkedSpritePanel == sprPanelClose)
 					.ToList();
 
 				if (linkedThingsPanels.Count > 0)
@@ -623,8 +663,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				disp.Dispose();
 			}
 
-			if (panel is FloatingSpriteLoaderViewModel spr)
-				UnregisterSpritePanel(spr);
+			if (panel is FloatingSpriteLoaderViewModel sprPanelUnregister)
+				UnregisterSpritePanel(sprPanelUnregister);
 
 			ActivePanels.Remove(panel);
 			RemoveFromDockCollections(panel);

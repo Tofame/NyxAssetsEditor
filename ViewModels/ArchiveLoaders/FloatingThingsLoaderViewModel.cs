@@ -374,6 +374,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public int GridTileWidth => AssetDisplaySize + 40;
 		public int GridTileHeight => AssetDisplaySize + 44;
 
+		public readonly HashSet<uint> AddedThingIds = new HashSet<uint>();
+		public readonly HashSet<uint> RemovedThingIds = new HashSet<uint>();
+		public readonly HashSet<uint> ModifiedThingIds = new HashSet<uint>();
+
+		public void DiscardChanges()
+		{
+			if (!string.IsNullOrEmpty(FilePath) && FilePath != "No things loaded")
+			{
+				LoadArchive(FilePath);
+				HasSavedChanges = false;
+			}
+		}
+
 		public FloatingThingsLoaderViewModel(AssetsViewModel? parentViewModel = null)
 		{
 			_parentViewModel = parentViewModel;
@@ -532,6 +545,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					break;
 			}
 
+			if (!AddedThingIds.Contains(thing.Id))
+			{
+				ModifiedThingIds.Add(thing.Id);
+			}
+
 			SyncThingInList(thing, replaceExisting: true);
 			PagedThings.FirstOrDefault(t => t.Id == thing.Id)?.InvalidatePreview();
 		}
@@ -620,6 +638,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true)
 		{
+			AddedThingIds.Clear();
+			RemovedThingIds.Clear();
+			ModifiedThingIds.Clear();
+
 			var thingsFormat = ArchiveFormatHelper.FromPath(path);
 			var isNewArchive = !IsArchiveLoaded
 				|| string.IsNullOrEmpty(FilePath)
@@ -821,6 +843,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				var thing = ThingExchangeHelper.GetThingFromCatalog(_catalog, document.Thing.Kind, assignId);
 				if (thing != null)
 				{
+					if (replaceExisting)
+					{
+						if (!AddedThingIds.Contains(assignId))
+							ModifiedThingIds.Add(assignId);
+					}
+					else
+					{
+						AddedThingIds.Add(assignId);
+					}
+
 					if (thing.Kind != SelectedSection)
 						SelectedSection = thing.Kind;
 					else
@@ -875,6 +907,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 							_catalog.PutMissile(clone);
 							break;
 					}
+
+					AddedThingIds.Add(newId);
 
 					_allThings.Add(clone);
 					_allThings.Sort((a, b) => a.Id.CompareTo(b.Id));
@@ -983,6 +1017,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						_allThings[idx] = emptyThing;
 					}
 				}
+
+				if (AddedThingIds.Contains(id))
+				{
+					AddedThingIds.Remove(id);
+				}
+				else
+				{
+					RemovedThingIds.Add(id);
+				}
+				ModifiedThingIds.Remove(id);
 			}
 
 			TotalThings = (uint)_allThings.Count;
@@ -1098,6 +1142,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				}
 				
 				_allThings.Add(newThing);
+				AddedThingIds.Add(newId);
 				_allThings.Sort((a, b) => a.Id.CompareTo(b.Id));
 				TotalThings = (uint)_allThings.Count;
 				
