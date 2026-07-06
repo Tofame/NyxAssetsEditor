@@ -398,36 +398,16 @@ namespace NyxAssetsEditor.ViewModels
 		{
 			var loader = GetActiveSpriteLoader();
 			if (loader == null)
-			{
-				Console.WriteLine($"[ThingsLoader] Preview failed for ThingID {thing.Id}: SpriteLoader is null or not loaded.");
-				return null;
-			}
-
-			if (thing.FrameGroups == null || thing.FrameGroups.Count == 0)
-			{
-				Console.WriteLine($"[ThingsLoader] Preview failed for ThingID {thing.Id}: FrameGroups is null or empty.");
-				return null;
-			}
-
-			var group = thing.FrameGroups[0];
-			if (group.SpriteIds == null || group.SpriteIds.Length == 0)
-			{
-				Console.WriteLine($"[ThingsLoader] Preview failed for ThingID {thing.Id}: SpriteIds is null or empty.");
-				return null;
-			}
-
-			uint spriteId = group.SpriteIds[0];
-			if (spriteId == 0)
 				return null;
 
 			try
 			{
-				var pixels = loader.LoadSpritePixels(spriteId);
-				return _renderer.Convert(pixels);
+				var pixels = ThingPreviewRenderer.RenderPreviewRgba(thing, loader);
+				return pixels == null ? null : _renderer.Convert(pixels);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"[ThingsLoader] Preview failed for ThingID {thing.Id} (SpriteID {spriteId}): {ex.Message}");
+				Console.WriteLine($"[ThingsLoader] Preview failed for ThingID {thing.Id}: {ex.Message}");
 				return null;
 			}
 		}
