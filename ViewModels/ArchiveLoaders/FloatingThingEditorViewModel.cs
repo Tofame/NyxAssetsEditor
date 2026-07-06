@@ -61,6 +61,83 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private bool _isAppearanceDragHover;
 	private ThingAppearanceSlot? _hoverSlot;
 
+	private ThingType _originalThing = null!;
+	private bool _isDirty;
+	private bool _showPromptOverlay;
+	private string _promptTitle = string.Empty;
+	private string _promptText = string.Empty;
+	private System.Threading.Tasks.TaskCompletionSource<PromptResult>? _promptTcs;
+
+	public enum PromptResult
+	{
+		Save,
+		DontSave,
+		Cancel
+	}
+
+	public bool IsDirty
+	{
+		get => _isDirty;
+		set
+		{
+			if (SetProperty(ref _isDirty, value))
+			{
+				OnPropertyChanged(nameof(CanSave));
+				OnPropertyChanged(nameof(CanCancel));
+			}
+		}
+	}
+
+	public bool CanSave => IsDirty;
+	public bool CanCancel => IsDirty;
+
+	public bool ShowPromptOverlay
+	{
+		get => _showPromptOverlay;
+		set => SetProperty(ref _showPromptOverlay, value);
+	}
+
+	public string PromptTitle
+	{
+		get => _promptTitle;
+		set => SetProperty(ref _promptTitle, value);
+	}
+
+	public string PromptText
+	{
+		get => _promptText;
+		set => SetProperty(ref _promptText, value);
+	}
+
+	public void ShowPrompt(string title, string text, System.Threading.Tasks.TaskCompletionSource<PromptResult> tcs)
+	{
+		PromptTitle = title;
+		PromptText = text;
+		_promptTcs = tcs;
+		ShowPromptOverlay = true;
+	}
+
+	[RelayCommand]
+	public void PromptSave()
+	{
+		ShowPromptOverlay = false;
+		_promptTcs?.SetResult(PromptResult.Save);
+	}
+
+	[RelayCommand]
+	public void PromptDontSave()
+	{
+		ShowPromptOverlay = false;
+		_promptTcs?.SetResult(PromptResult.DontSave);
+	}
+
+	[RelayCommand]
+	public void PromptCancel()
+	{
+		ShowPromptOverlay = false;
+		_promptTcs?.SetResult(PromptResult.Cancel);
+	}
+
 	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing)
 	{
 		SourcePanel = source;
@@ -82,7 +159,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void LoadThing(ThingType thing)
 	{
 		StopAnimationPreview(restoreFrame: false);
-		_thing = SourcePanel.GetThingType(thing.Id) ?? thing;
+		_originalThing = SourcePanel.GetThingType(thing.Id) ?? thing;
+		_thing = Services.Exchange.ThingCloner.Clone(_originalThing, _originalThing.Id);
+		_isDirty = false;
+		OnPropertyChanged(nameof(IsDirty));
+		OnPropertyChanged(nameof(CanSave));
+		OnPropertyChanged(nameof(CanCancel));
+
 		_selectedFrameGroupIndex = 0;
 		_selectedFrame = 0;
 		_selectedLayer = 0;
@@ -1096,7 +1179,25 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		};
 	}
 
-	private void ApplyToCatalog() => SourcePanel.ApplyThingEdit(Thing);
+	private void ApplyToCatalog()
+	{
+		IsDirty = true;
+	}
+
+	[RelayCommand]
+	public void Save()
+	{
+		SourcePanel.ApplyThingEdit(Thing);
+		_originalThing = Services.Exchange.ThingCloner.Clone(Thing, Thing.Id);
+		IsDirty = false;
+		SourcePanel.HasSavedChanges = true;
+	}
+
+	[RelayCommand]
+	public void Cancel()
+	{
+		LoadThing(_originalThing);
+	}
 
 	public int FrameStrategyIndex
 	{

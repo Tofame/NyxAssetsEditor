@@ -27,6 +27,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
 
+		public bool HasSavedChanges => false;
+
 		public event EventHandler? RequestSaveAs;
 		public event EventHandler<SpriteFileRequestEventArgs>? RequestSpriteFileDialog;
 

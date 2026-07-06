@@ -42,8 +42,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
-
-		public bool CanCompile => GetCompilePairs().Any();
+		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 
 		public System.Collections.Generic.IReadOnlyList<LinkedArchivePair> GetCompilePairs()
 		{
@@ -203,8 +202,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 		}
-
-		private void RefreshCompileCommands()
+		public void RefreshCompileCommands()
 		{
 			OnPropertyChanged(nameof(CanCompile));
 			CompileCommand.NotifyCanExecuteChanged();
@@ -380,7 +378,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			RefreshCompileCommands();
 		}
 
-		public void OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
+		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
 		{
 			var thing = source.GetThingType(thingId);
 			if (thing == null)
@@ -392,6 +390,28 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, source));
 				if (existing != null)
 				{
+					if (existing.IsDirty && existing.ThingId != thingId)
+					{
+						var tcs = new System.Threading.Tasks.TaskCompletionSource<FloatingThingEditorViewModel.PromptResult>();
+						existing.ShowPrompt(
+							"Save Changes?",
+							$"Save changes done to thing {existing.ThingId}?",
+							tcs);
+						var result = await tcs.Task;
+						if (result == FloatingThingEditorViewModel.PromptResult.Save)
+						{
+							existing.Save();
+						}
+						else if (result == FloatingThingEditorViewModel.PromptResult.Cancel)
+						{
+							var previousItem = source.PagedThings.FirstOrDefault(t => t.Id == existing.ThingId);
+							if (previousItem != null)
+							{
+								source.SelectThing(previousItem);
+							}
+							return;
+						}
+					}
 					existing.LoadThing(thing);
 					existing.IsVisible = true;
 					existing.IsMinimized = false;

@@ -76,7 +76,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			Dispatcher.UIThread.Post(() => listBox.ScrollIntoView(item), DispatcherPriority.Loaded);
 		}
 
-		private void OnThingPointerPressed(object? sender, PointerPressedEventArgs e)
+		private async void OnThingPointerPressed(object? sender, PointerPressedEventArgs e)
 		{
 			if (sender is not Control control || control.DataContext is not ThingItemViewModel thing)
 				return;
@@ -91,14 +91,14 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 				if (e.ClickCount >= 2)
 				{
-					vm.OpenThingEditor(thing);
+					await vm.OpenThingEditor(thing);
 					e.Handled = true;
 					return;
 				}
 
 				var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 				var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
-				vm.SelectThing(thing, shift, ctrl);
+				await vm.RequestSelectThing(thing, shift, ctrl);
 			}
 
 			if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)

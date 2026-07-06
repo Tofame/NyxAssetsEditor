@@ -519,8 +519,51 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			PagedThings.FirstOrDefault(t => t.Id == thing.Id)?.InvalidatePreview();
 		}
 
-		public void OpenThingEditor(ThingItemViewModel item, bool newWindow = false) =>
-			_parentViewModel?.OpenThingEditor(this, item.Id, newWindow);
+		private bool _hasSavedChanges;
+		public bool HasSavedChanges
+		{
+			get => _hasSavedChanges;
+			set
+			{
+				if (SetProperty(ref _hasSavedChanges, value))
+				{
+					_parentViewModel?.RefreshCompileCommands();
+				}
+			}
+		}
+
+		public FloatingThingEditorViewModel? GetActiveEditor() =>
+			_parentViewModel?.ActivePanels.OfType<FloatingThingEditorViewModel>()
+				.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, this));
+
+		public async System.Threading.Tasks.Task<bool> RequestSelectThing(ThingItemViewModel thing, bool shift = false, bool ctrl = false)
+		{
+			var editor = GetActiveEditor();
+			if (editor != null && editor.IsDirty && editor.ThingId != thing.Id)
+			{
+				var tcs = new System.Threading.Tasks.TaskCompletionSource<FloatingThingEditorViewModel.PromptResult>();
+				editor.ShowPrompt(
+					"Save Changes?",
+					$"Save changes done to thing {editor.ThingId}?",
+					tcs);
+				var result = await tcs.Task;
+				if (result == FloatingThingEditorViewModel.PromptResult.Save)
+				{
+					editor.Save();
+				}
+				else if (result == FloatingThingEditorViewModel.PromptResult.Cancel)
+				{
+					return false;
+				}
+			}
+			SelectThing(thing, shift, ctrl);
+			return true;
+		}
+
+		public System.Threading.Tasks.Task OpenThingEditor(ThingItemViewModel item, bool newWindow = false) =>
+			_parentViewModel != null
+				? _parentViewModel.OpenThingEditor(this, item.Id, newWindow)
+				: System.Threading.Tasks.Task.CompletedTask;
 
 		private IEnumerable<ThingType> EnumerateSelectedSection()
 		{
@@ -893,7 +936,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			&& uint.TryParse(_jumpToIdText.Trim(), out _);
 
 		[RelayCommand(CanExecute = nameof(CanGoToId))]
-		private void GoToId()
+		private async System.Threading.Tasks.Task GoToId()
 		{
 			if (!uint.TryParse(JumpToIdText.Trim(), out var enteredId))
 				return;
@@ -908,9 +951,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (thing == null)
 				return;
 
-			SelectThing(thing);
-			ScrollToItemRequested?.Invoke(thing);
-			OpenThingEditor(thing);
+			if (await RequestSelectThing(thing))
+			{
+				ScrollToItemRequested?.Invoke(thing);
+				await OpenThingEditor(thing);
+			}
 		}
 
 		public event Action<object>? ScrollToItemRequested;
