@@ -46,7 +46,7 @@
 					<!-- Panel Name -->
 					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
 						<TextBlock Text="Sprite Archive Viewer" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13"/>
-						<TextBlock Text="{Binding FileName}" FontSize="11" Foreground="#888888" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+						<TextBlock Text="{Binding FileName}" ToolTip.Tip="{Binding FilePath}" FontSize="11" Foreground="#888888" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 					</StackPanel>
 					
 					<!-- Page Size Dropdown -->

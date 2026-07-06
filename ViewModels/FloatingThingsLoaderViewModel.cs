@@ -19,7 +19,7 @@ namespace NyxAssetsEditor.ViewModels
 
 		public uint Id { get; }
 
-		public uint DisplayedId => Id + SettingsViewModel.ThingIdOffset;
+		public uint DisplayedId => _panel.GetDisplayedId(Id);
 
 		public bool IsSelected
 		{
@@ -106,7 +106,79 @@ namespace NyxAssetsEditor.ViewModels
 		private bool _useFrameAnimations = true;
 		private bool _useFrameGroups = true;
 
+		private ThingKind _selectedSection = ThingKind.Item;
+
 		private ThingItemViewModel? _selectionAnchor;
+
+		public ThingKind SelectedSection
+		{
+			get => _selectedSection;
+			set
+			{
+				if (SetProperty(ref _selectedSection, value))
+				{
+					NotifySectionProperties();
+					ReloadThingsForSection();
+				}
+			}
+		}
+
+		public bool IsItemsSection => SelectedSection == ThingKind.Item;
+		public bool IsOutfitsSection => SelectedSection == ThingKind.Outfit;
+		public bool IsEffectsSection => SelectedSection == ThingKind.Effect;
+		public bool IsMissilesSection => SelectedSection == ThingKind.Missile;
+
+		public bool IsSectionEmpty => IsArchiveLoaded && TotalThings == 0;
+
+		public bool ShowThingList => IsArchiveLoaded && TotalThings > 0;
+
+		public bool ShowListViewContent => ShowThingList && IsListView;
+
+		public bool ShowGridViewContent => ShowThingList && IsGridView;
+
+		public string SectionLabel => SelectedSection switch
+		{
+			ThingKind.Item => "item",
+			ThingKind.Outfit => "outfit",
+			ThingKind.Effect => "effect",
+			ThingKind.Missile => "missile",
+			_ => "thing",
+		};
+
+		public string SectionLabelPlural => SelectedSection switch
+		{
+			ThingKind.Item => "items",
+			ThingKind.Outfit => "outfits",
+			ThingKind.Effect => "effects",
+			ThingKind.Missile => "missiles",
+			_ => "things",
+		};
+
+		public uint GetDisplayedId(uint id) =>
+			SelectedSection == ThingKind.Item ? id + SettingsViewModel.ThingIdOffset : id;
+
+		[RelayCommand]
+		private void SelectItemsSection() => SelectedSection = ThingKind.Item;
+
+		[RelayCommand]
+		private void SelectOutfitsSection() => SelectedSection = ThingKind.Outfit;
+
+		[RelayCommand]
+		private void SelectEffectsSection() => SelectedSection = ThingKind.Effect;
+
+		[RelayCommand]
+		private void SelectMissilesSection() => SelectedSection = ThingKind.Missile;
+
+		private void NotifySectionProperties()
+		{
+			OnPropertyChanged(nameof(IsItemsSection));
+			OnPropertyChanged(nameof(IsOutfitsSection));
+			OnPropertyChanged(nameof(IsEffectsSection));
+			OnPropertyChanged(nameof(IsMissilesSection));
+			OnPropertyChanged(nameof(SectionLabel));
+			OnPropertyChanged(nameof(SectionLabelPlural));
+			OnPropertyChanged(nameof(IsSectionEmpty));
+		}
 
 		public event EventHandler<ThingFileRequestEventArgs>? RequestThingFileDialog;
 
@@ -171,13 +243,16 @@ namespace NyxAssetsEditor.ViewModels
 					OnPropertyChanged(nameof(TotalPages));
 					OnPropertyChanged(nameof(HasNextPage));
 					OnPropertyChanged(nameof(HasPreviousPage));
-					OnPropertyChanged(nameof(IsArchiveLoaded));
+					OnPropertyChanged(nameof(IsSectionEmpty));
+					OnPropertyChanged(nameof(ShowThingList));
+					OnPropertyChanged(nameof(ShowListViewContent));
+					OnPropertyChanged(nameof(ShowGridViewContent));
 					ImportThingCommand.NotifyCanExecuteChanged();
 				}
 			}
 		}
 
-		public bool IsArchiveLoaded => TotalThings > 0;
+		public bool IsArchiveLoaded => _catalog != null;
 
 		private bool _isGridView = true;
 
@@ -189,6 +264,8 @@ namespace NyxAssetsEditor.ViewModels
 				if (SetProperty(ref _isGridView, value))
 				{
 					OnPropertyChanged(nameof(IsListView));
+					OnPropertyChanged(nameof(ShowListViewContent));
+					OnPropertyChanged(nameof(ShowGridViewContent));
 				}
 			}
 		}
@@ -287,7 +364,7 @@ namespace NyxAssetsEditor.ViewModels
 				if (replaceExisting)
 					_allThings[idx] = thing;
 			}
-			else if (thing.Kind == ThingKind.Item)
+			else if (thing.Kind == SelectedSection)
 			{
 				_allThings.Add(thing);
 				_allThings.Sort((a, b) => a.Id.CompareTo(b.Id));
@@ -368,6 +445,39 @@ namespace NyxAssetsEditor.ViewModels
 			}
 		}
 
+		private IEnumerable<ThingType> EnumerateSelectedSection()
+		{
+			if (_catalog == null)
+				yield break;
+
+			foreach (var thing in SelectedSection switch
+			{
+				ThingKind.Item => _catalog.EnumerateItems(),
+				ThingKind.Outfit => _catalog.EnumerateOutfits(),
+				ThingKind.Effect => _catalog.EnumerateEffects(),
+				ThingKind.Missile => _catalog.EnumerateMissiles(),
+				_ => Enumerable.Empty<ThingType>(),
+			})
+				yield return thing;
+		}
+
+		private void ReloadThingsForSection()
+		{
+			_allThings.Clear();
+			foreach (var thing in EnumerateSelectedSection())
+				_allThings.Add(thing);
+
+			TotalThings = (uint)_allThings.Count;
+			_selectionAnchor = null;
+			SelectedThing = null;
+			_currentPage = 1;
+			OnPropertyChanged(nameof(CurrentPage));
+			OnPropertyChanged(nameof(HasNextPage));
+			OnPropertyChanged(nameof(HasPreviousPage));
+			UpdatePage();
+			NotifySelectionChanged();
+		}
+
 		public void LoadArchive(string path, bool useLastLoadedSprite = true)
 		{
 			var thingsFormat = ArchiveFormatHelper.FromPath(path);
@@ -394,23 +504,21 @@ namespace NyxAssetsEditor.ViewModels
 					_catalog = reader.Read(bytes, options);
 				}
 
-				_allThings.Clear();
-				if (_catalog != null)
-				{
-					foreach (var item in _catalog.EnumerateItems())
-						_allThings.Add(item);
-				}
-
-				TotalThings = (uint)_allThings.Count;
+				_selectedSection = ThingKind.Item;
+				NotifySectionProperties();
+				OnPropertyChanged(nameof(IsArchiveLoaded));
+				ReloadThingsForSection();
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine($"[ThingsLoader] FAILED TO LOAD DAT/THINGS: {ex}");
 				Debug.WriteLine($"Failed to load catalog: {ex.Message}");
+				_catalog = null;
+				OnPropertyChanged(nameof(IsArchiveLoaded));
 				_allThings.Clear();
 				for (uint i = 1; i <= 320; i++)
 				{
-					var mockThing = new ThingType { Id = i };
+					var mockThing = new ThingType { Id = i, Kind = ThingKind.Item };
 					var mockGroup = new ThingFrameGroup { SpriteIds = new uint[] { i } };
 					mockThing.FrameGroups.Add(mockGroup);
 					_allThings.Add(mockThing);
@@ -420,8 +528,10 @@ namespace NyxAssetsEditor.ViewModels
 
 			_selectionAnchor = null;
 			SelectedThing = null;
-			CurrentPage = 1;
-			UpdatePage();
+			if (_currentPage != 1)
+				CurrentPage = 1;
+			else
+				UpdatePage();
 		}
 
 		private void UpdatePage()
@@ -566,7 +676,12 @@ namespace NyxAssetsEditor.ViewModels
 				ThingExchangeHelper.ImportDocument(document, _catalog, assignId, loader);
 				var thing = ThingExchangeHelper.GetThingFromCatalog(_catalog, document.Thing.Kind, assignId);
 				if (thing != null)
-					SyncThingInList(thing, replaceExisting);
+				{
+					if (thing.Kind != SelectedSection)
+						SelectedSection = thing.Kind;
+					else
+						SyncThingInList(thing, replaceExisting);
+				}
 			}
 			catch (Exception ex)
 			{
