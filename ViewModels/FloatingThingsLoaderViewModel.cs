@@ -100,6 +100,28 @@ namespace NyxAssetsEditor.ViewModels
 
 		public bool IsArchiveLoaded => TotalThings > 0;
 
+		private bool _isGridView = true;
+
+		public bool IsGridView
+		{
+			get => _isGridView;
+			set
+			{
+				if (SetProperty(ref _isGridView, value))
+				{
+					OnPropertyChanged(nameof(IsListView));
+				}
+			}
+		}
+
+		public bool IsListView => !_isGridView;
+
+		[RelayCommand]
+		private void ToggleViewMode()
+		{
+			IsGridView = !IsGridView;
+		}
+
 		public int CurrentPage
 		{
 			get => _currentPage;

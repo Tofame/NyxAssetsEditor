@@ -9,7 +9,7 @@
 		<Grid RowDefinitions="Auto, *, Auto">
 			<!-- Title Bar (Draggable) -->
 			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
-				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
+				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto">
 					<!-- Panel Name -->
 					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
 						<TextBlock Text="Sprite Archive Viewer" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13"/>
@@ -33,21 +33,32 @@
 						</Button.Flyout>
 					</Button>
 					
+					<!-- List/Grid Switcher Button -->
+					<Button Grid.Column="3" Command="{Binding ToggleViewModeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Toggle List/Grid View">
+						<Panel>
+							<!-- List Icon (Visible when GridView is active, because clicking toggles to List) -->
+							<Path Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12" Stroke="#E0E0E0" StrokeThickness="1.5" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsGridView}"/>
+							<!-- Grid Icon (Visible when ListView is active, because clicking toggles to Grid) -->
+							<Path Data="M1,1 H6 V6 H1 Z M9,1 H14 V6 H9 Z M1,9 H6 V14 H1 Z M9,9 H14 V14 H9 Z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsListView}"/>
+						</Panel>
+					</Button>
+					
 					<!-- Minimize Button -->
-					<Button Grid.Column="3" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
+					<Button Grid.Column="4" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
 						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 					</Button>
 					
 					<!-- Close Button -->
-					<Button Grid.Column="4" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
+					<Button Grid.Column="5" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
 						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 					</Button>
 				</Grid>
 			</Border>
 
-			<!-- Content Area (Scrollable Sprite Grid) -->
+			<!-- Content Area (Scrollable Sprite Grid/List) -->
 			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#1E1E1E" Height="{Binding DisplayHeight}">
-				<ListBox ItemsSource="{Binding PagedSprites}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
+				<!-- Grid View Mode -->
+				<ListBox ItemsSource="{Binding PagedSprites}" IsVisible="{Binding IsGridView}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
@@ -60,6 +71,32 @@
 									<Image Source="{Binding Preview}" Width="32" Height="32" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 									<TextBlock Text="{Binding Id}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
 								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
+				<!-- List View Mode -->
+				<ListBox ItemsSource="{Binding PagedSprites}" IsVisible="{Binding IsListView}" Background="Transparent" BorderThickness="0" Padding="0">
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem">
+							<Setter Property="Padding" Value="0"/>
+							<Setter Property="MinHeight" Value="42"/>
+							<Setter Property="Background" Value="Transparent"/>
+						</Style>
+					</ListBox.Styles>
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3">
+								<Grid ColumnDefinitions="Auto, *">
+									<!-- Square Image Container -->
+									<Border Grid.Column="0" Width="36" Height="36" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
+										<Image Source="{Binding Preview}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None"/>
+									</Border>
+									
+									<!-- ID Text -->
+									<TextBlock Grid.Column="1" Text="{Binding Id}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#E0E0E0" FontSize="13" FontWeight="SemiBold"/>
+								</Grid>
 							</Border>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
