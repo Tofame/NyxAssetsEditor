@@ -8,7 +8,7 @@ using NyxAssetsEditor.ViewModels;
 
 namespace NyxAssetsEditor.Views
 {
-	public partial class FloatingSpriteLoaderControl : UserControl
+	public partial class FloatingThingsLoaderControl : UserControl
 	{
 		private bool _isDragging;
 		private Point _clickPosition;
@@ -18,10 +18,9 @@ namespace NyxAssetsEditor.Views
 		private double _initialWidth;
 		private double _initialHeight;
 		private double _initialPositionX;
-		private FloatingSpriteLoaderViewModel? _viewModel;
 		private IPointer? _activePointer;
 
-		public FloatingSpriteLoaderControl()
+		public FloatingThingsLoaderControl()
 		{
 			InitializeComponent();
 			
@@ -32,26 +31,13 @@ namespace NyxAssetsEditor.Views
 				titleBar.PointerMoved += OnTitleBarPointerMoved;
 				titleBar.PointerReleased += OnTitleBarPointerReleased;
 			}
-
-			this.DataContextChanged += (s, e) =>
-			{
-				if (_viewModel != null)
-				{
-					_viewModel.RequestSaveAs -= OnSaveAsRequested;
-				}
-				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
-				if (_viewModel != null)
-				{
-					_viewModel.RequestSaveAs += OnSaveAsRequested;
-				}
-			};
 		}
 
 		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
 		{
 			base.OnAttachedToVisualTree(e);
 
-			if (DataContext is FloatingSpriteLoaderViewModel vm)
+			if (DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				if (vm.PositionX == 100)
 				{
@@ -100,7 +86,7 @@ namespace NyxAssetsEditor.Views
 				}
 			}
 
-			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingSpriteLoaderViewModel vm)
+			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				_isDragging = true;
 				_activePointer = e.Pointer;
@@ -112,7 +98,7 @@ namespace NyxAssetsEditor.Views
 
 		private void OnTitleBarPointerMoved(object? sender, PointerEventArgs e)
 		{
-			if (_isDragging && DataContext is FloatingSpriteLoaderViewModel vm)
+			if (_isDragging && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				Visual? canvasVisual = GetParentCanvas();
 				if (canvasVisual != null)
@@ -150,7 +136,7 @@ namespace NyxAssetsEditor.Views
 
 		private void OnTitleBarPointerReleased(object? sender, PointerReleasedEventArgs e)
 		{
-			if (_isDragging && DataContext is FloatingSpriteLoaderViewModel vm)
+			if (_isDragging && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				_isDragging = false;
 				_activePointer = null;
@@ -171,20 +157,20 @@ namespace NyxAssetsEditor.Views
 
 		public async void OnEmptyStateClick(object? sender, PointerPressedEventArgs e)
 		{
-			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingSpriteLoaderViewModel vm)
+			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				var topLevel = TopLevel.GetTopLevel(this);
 				if (topLevel == null) return;
 
 				var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
 				{
-					Title = "Open Nyx Sprite or Asset Archive",
+					Title = "Open Nyx Things or Dat Archive",
 					AllowMultiple = false,
 					FileTypeFilter = new[]
 					{
-						new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } },
-						new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } },
-						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.spr", "*.assets" } }
+						new FilePickerFileType("Nyx Things Archive") { Patterns = new[] { "*.things" } },
+						new FilePickerFileType("Nyx Dat Archive") { Patterns = new[] { "*.dat" } },
+						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.things", "*.dat" } }
 					}
 				});
 
@@ -225,7 +211,7 @@ namespace NyxAssetsEditor.Views
 
 		private void StartResizing(object? sender, PointerPressedEventArgs e, int direction)
 		{
-			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingSpriteLoaderViewModel vm && vm.IsFloating)
+			if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && DataContext is FloatingThingsLoaderViewModel vm && vm.IsFloating)
 			{
 				_isResizing = true;
 				_resizeDirection = direction;
@@ -270,7 +256,7 @@ namespace NyxAssetsEditor.Views
 
 		private void PerformResizing(PointerEventArgs e)
 		{
-			if (_isResizing && DataContext is FloatingSpriteLoaderViewModel vm)
+			if (_isResizing && DataContext is FloatingThingsLoaderViewModel vm)
 			{
 				var canvasVisual = GetParentCanvas();
 				if (canvasVisual != null)
@@ -319,42 +305,6 @@ namespace NyxAssetsEditor.Views
 				canvasVisual = canvasVisual.GetVisualParent();
 			}
 			return canvasVisual;
-		}
-
-		private async void OnSaveAsRequested(object? sender, EventArgs e)
-		{
-			if (DataContext is FloatingSpriteLoaderViewModel vm)
-			{
-				var topLevel = TopLevel.GetTopLevel(this);
-				if (topLevel != null)
-				{
-					var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-					{
-						Title = "Save Archive As",
-						DefaultExtension = System.IO.Path.GetExtension(vm.FilePath),
-						SuggestedFileName = System.IO.Path.GetFileName(vm.FilePath),
-						FileTypeChoices = new[]
-						{
-							new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } },
-							new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } },
-							new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.spr", "*.assets" } }
-						}
-					});
-
-					if (file != null)
-					{
-						try
-						{
-							System.IO.File.Copy(vm.FilePath, file.Path.LocalPath, true);
-							vm.FilePath = file.Path.LocalPath;
-						}
-						catch (Exception ex)
-						{
-							System.Diagnostics.Debug.WriteLine($"Failed to save as: {ex.Message}");
-						}
-					}
-				}
-			}
 		}
 	}
 }

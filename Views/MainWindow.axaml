@@ -31,7 +31,7 @@
 				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="30,0,0,0" VerticalAlignment="Center">
 					<Button Content="Home" Command="{Binding NavigateToHomeCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 					<Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Content="Load assets" Command="{Binding SpawnSpritePanelCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
+					<Button Content="Assets" Command="{Binding NavigateToAssetsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 				</StackPanel>
 			</Grid>
 		</Border>
@@ -40,27 +40,6 @@
 		<Grid Grid.Row="1">
 			<!-- Body View Outlet -->
 			<ContentControl Content="{Binding CurrentPage}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-
-			<!-- Floating Panels Overlay Layer -->
-			<ItemsControl Classes="overlay" ItemsSource="{Binding ActivePanels}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-				<ItemsControl.ItemsPanel>
-					<ItemsPanelTemplate>
-						<Canvas />
-					</ItemsPanelTemplate>
-				</ItemsControl.ItemsPanel>
-				<ItemsControl.Styles>
-					<Style Selector="ItemsControl.overlay > ContentPresenter" x:DataType="vm:FloatingSpriteLoaderViewModel">
-						<Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
-						<Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
-						<Setter Property="IsVisible" Value="{Binding IsVisible}"/>
-					</Style>
-				</ItemsControl.Styles>
-				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-						<views:FloatingSpriteLoaderControl />
-					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-			</ItemsControl>
 		</Grid>
 	</Grid>
 </Window>

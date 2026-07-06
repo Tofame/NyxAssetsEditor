@@ -6,24 +6,17 @@ using NyxAssetsEditor.Services;
 
 namespace NyxAssetsEditor.ViewModels
 {
-	public partial class FloatingSpriteLoaderViewModel : ViewModelBase, IDisposable
+	public partial class FloatingSpriteLoaderViewModel : PanelViewModelBase, IDisposable
 	{
 		private readonly SpriteRenderer _renderer;
 		private string _filePath = "No archive loaded";
 		private uint _totalSprites;
 		private int _currentPage = 1;
 		private int _pageSize = 100;
-		private bool _isVisible;
-		private bool _isMinimized;
-		private double _positionX = 100;
-		private double _positionY = 100;
 		private bool _useTransparentPixels = true;
 		private bool _useExtendedSpriteIds = true;
-		private double _panelWidth = 380;
-		private double _contentHeight = 400;
 		private bool _showSaveConfirmation;
 
-		public event Action<FloatingSpriteLoaderViewModel>? RequestClose;
 		public event EventHandler? RequestSaveAs;
 
 		public SpriteLoader Loader { get; } = new SpriteLoader();
@@ -67,17 +60,6 @@ namespace NyxAssetsEditor.ViewModels
 			}
 		}
 
-		public double PanelWidth
-		{
-			get => _panelWidth;
-			set => SetProperty(ref _panelWidth, value);
-		}
-
-		public double ContentHeight
-		{
-			get => _contentHeight;
-			set => SetProperty(ref _contentHeight, value);
-		}
 
 		public int[] AvailablePageSizes { get; } = { 50, 100, 200, 300 };
 
@@ -141,29 +123,6 @@ namespace NyxAssetsEditor.ViewModels
 		public bool HasPreviousPage => CurrentPage > 1;
 		public bool HasNextPage => CurrentPage < TotalPages;
 
-		public bool IsVisible
-		{
-			get => _isVisible;
-			set => SetProperty(ref _isVisible, value);
-		}
-
-		public bool IsMinimized
-		{
-			get => _isMinimized;
-			set => SetProperty(ref _isMinimized, value);
-		}
-
-		public double PositionX
-		{
-			get => _positionX;
-			set => SetProperty(ref _positionX, value);
-		}
-
-		public double PositionY
-		{
-			get => _positionY;
-			set => SetProperty(ref _positionY, value);
-		}
 
 		public FloatingSpriteLoaderViewModel(SpriteRenderer renderer)
 		{
@@ -223,18 +182,6 @@ namespace NyxAssetsEditor.ViewModels
 			CurrentPage = TotalPages;
 		}
 
-		[RelayCommand]
-		private void ToggleMinimize()
-		{
-			IsMinimized = !IsMinimized;
-		}
-
-		[RelayCommand]
-		private void ClosePanel()
-		{
-			IsVisible = false;
-			RequestClose?.Invoke(this);
-		}
 
 		[RelayCommand]
 		private void RequestSaveConfirmation()

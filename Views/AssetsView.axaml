@@ -1,0 +1,180 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels"
+			 xmlns:views="using:NyxAssetsEditor.Views"
+			 x:Class="NyxAssetsEditor.Views.AssetsView"
+			 x:DataType="vm:AssetsViewModel"
+			 Background="#141414"
+			 Tag="{Binding DragOverZone}">
+
+	<UserControl.DataTemplates>
+		<DataTemplate DataType="{x:Type vm:FloatingSpriteLoaderViewModel}">
+			<views:FloatingSpriteLoaderControl />
+		</DataTemplate>
+		<DataTemplate DataType="{x:Type vm:FloatingThingsLoaderViewModel}">
+			<views:FloatingThingsLoaderControl />
+		</DataTemplate>
+	</UserControl.DataTemplates>
+
+	<UserControl.Styles>
+		<Style Selector="Border.dock-highlight">
+			<Setter Property="Opacity" Value="0"/>
+		</Style>
+		<Style Selector="Border.dock-highlight.active">
+			<Setter Property="Opacity" Value="0.22"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid RowDefinitions="Auto, *">
+		<!-- Secondary Topbar -->
+		<Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Height="45" Padding="15,0">
+			<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+				<Button Content="Load Assets" Command="{Binding LoadAssetsCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Button Content="Load Things (.dat/.things)" Command="{Binding LoadThingsCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+			</StackPanel>
+		</Border>
+
+		<!-- Main Workspace Area -->
+		<Grid Grid.Row="1">
+			<!-- Columns Grid (Docked Panels) -->
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="0.25*" MinWidth="100"/>
+					<ColumnDefinition Width="6"/>
+					<ColumnDefinition Width="0.5*" MinWidth="150"/>
+					<ColumnDefinition Width="6"/>
+					<ColumnDefinition Width="0.25*" MinWidth="100"/>
+				</Grid.ColumnDefinitions>
+
+				<!-- Left Dock Column -->
+				<Grid Grid.Column="0">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsLeftEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Left Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding LeftDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Hover Highlight Overlay -->
+					<Border Name="LeftHighlight" Classes="dock-highlight" Classes.active="{Binding IsDragOverLeft}" Background="#3A7BD5" Margin="4" CornerRadius="8" IsHitTestVisible="False">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+							</Transitions>
+						</Border.Transitions>
+					</Border>
+				</Grid>
+
+				<!-- GridSplitter between Left and Center -->
+				<GridSplitter Grid.Column="1" Background="#222222" ResizeBehavior="PreviousAndNext"/>
+
+				<!-- Center Dock Column -->
+				<Grid Grid.Column="2">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsCenterEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Center Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding CenterDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Hover Highlight Overlay -->
+					<Border Name="CenterHighlight" Classes="dock-highlight" Classes.active="{Binding IsDragOverCenter}" Background="#3A7BD5" Margin="4" CornerRadius="8" IsHitTestVisible="False">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+							</Transitions>
+						</Border.Transitions>
+					</Border>
+				</Grid>
+
+				<!-- GridSplitter between Center and Right -->
+				<GridSplitter Grid.Column="3" Background="#222222" ResizeBehavior="PreviousAndNext"/>
+
+				<!-- Right Dock Column -->
+				<Grid Grid.Column="4">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsRightEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Right Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding RightDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Hover Highlight Overlay -->
+					<Border Name="RightHighlight" Classes="dock-highlight" Classes.active="{Binding IsDragOverRight}" Background="#3A7BD5" Margin="4" CornerRadius="8" IsHitTestVisible="False">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+							</Transitions>
+						</Border.Transitions>
+					</Border>
+				</Grid>
+			</Grid>
+
+			<!-- Floating Panels Overlay Canvas Layer -->
+			<ItemsControl Classes="overlay" ItemsSource="{Binding FloatingPanels}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<Canvas />
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+				<ItemsControl.Styles>
+					<Style Selector="ItemsControl.overlay > ContentPresenter" x:DataType="vm:PanelViewModelBase">
+						<Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
+						<Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
+						<Setter Property="IsVisible" Value="{Binding IsVisible}"/>
+					</Style>
+				</ItemsControl.Styles>
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<ContentControl Content="{Binding}" />
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</Grid>
+	</Grid>
+</UserControl>
