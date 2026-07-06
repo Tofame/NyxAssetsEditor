@@ -25,6 +25,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useTransparentPixels = true;
 		private bool _useExtendedSpriteIds = true;
 		private bool _showSaveConfirmation;
+		private string _jumpToIdText = string.Empty;
 
 		public event EventHandler? RequestSaveAs;
 		public event EventHandler<SpriteFileRequestEventArgs>? RequestSpriteFileDialog;
@@ -95,6 +96,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					OnPropertyChanged(nameof(HasNextPage));
 					OnPropertyChanged(nameof(HasPreviousPage));
 					OnPropertyChanged(nameof(IsArchiveLoaded));
+					GoToIdCommand.NotifyCanExecuteChanged();
 				}
 			}
 		}
@@ -161,6 +163,21 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool HasPreviousPage => CurrentPage > 1;
 		public bool HasNextPage => CurrentPage < TotalPages;
 
+		public string JumpToIdText
+		{
+			get => _jumpToIdText;
+			set
+			{
+				if (SetProperty(ref _jumpToIdText, value))
+					GoToIdCommand.NotifyCanExecuteChanged();
+			}
+		}
+
+		private bool CanGoToId() =>
+			TotalSprites > 0
+			&& uint.TryParse(_jumpToIdText.Trim(), out var id)
+			&& id >= 1
+			&& id <= TotalSprites;
 
 		public AssetsViewModel? ParentViewModel { get; set; }
 
@@ -452,6 +469,23 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			CurrentPage = TotalPages;
 		}
+
+		[RelayCommand(CanExecute = nameof(CanGoToId))]
+		private void GoToId()
+		{
+			if (!uint.TryParse(JumpToIdText.Trim(), out var id) || id < 1 || id > TotalSprites)
+				return;
+
+			CurrentPage = (int)((id - 1) / PageSize + 1);
+			var sprite = PagedSprites.FirstOrDefault(s => s.Id == id);
+			if (sprite == null)
+				return;
+
+			SelectSprite(sprite);
+			ScrollToItemRequested?.Invoke(sprite);
+		}
+
+		public event Action<object>? ScrollToItemRequested;
 
 
 		[RelayCommand]

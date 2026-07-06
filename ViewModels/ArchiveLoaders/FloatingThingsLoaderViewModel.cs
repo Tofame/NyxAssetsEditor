@@ -143,6 +143,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useExtendedThingIds = true;
 		private bool _useFrameAnimations = true;
 		private bool _useFrameGroups = true;
+		private string _jumpToIdText = string.Empty;
 
 		private ThingKind _selectedSection = ThingKind.Item;
 
@@ -157,6 +158,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				{
 					NotifySectionProperties();
 					ReloadThingsForSection();
+					GoToIdCommand.NotifyCanExecuteChanged();
 				}
 			}
 		}
@@ -286,6 +288,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					OnPropertyChanged(nameof(ShowListViewContent));
 					OnPropertyChanged(nameof(ShowGridViewContent));
 					ImportThingCommand.NotifyCanExecuteChanged();
+					GoToIdCommand.NotifyCanExecuteChanged();
 				}
 			}
 		}
@@ -350,6 +353,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool HasPreviousPage => CurrentPage > 1;
 		public bool HasNextPage => CurrentPage < TotalPages;
+
+		public string JumpToIdText
+		{
+			get => _jumpToIdText;
+			set
+			{
+				if (SetProperty(ref _jumpToIdText, value))
+					GoToIdCommand.NotifyCanExecuteChanged();
+			}
+		}
 
 		public int[] AvailablePageSizes { get; } = { 25, 50, 100, 200 };
 
@@ -873,5 +886,45 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		[RelayCommand]
 		private void LastPage() => CurrentPage = TotalPages;
+
+		private bool CanGoToId() =>
+			IsArchiveLoaded
+			&& TotalThings > 0
+			&& uint.TryParse(_jumpToIdText.Trim(), out _);
+
+		[RelayCommand(CanExecute = nameof(CanGoToId))]
+		private void GoToId()
+		{
+			if (!uint.TryParse(JumpToIdText.Trim(), out var enteredId))
+				return;
+
+			var internalId = ResolveInternalThingId(enteredId);
+			var index = _allThings.FindIndex(t => t.Id == internalId);
+			if (index < 0)
+				return;
+
+			CurrentPage = index / PageSize + 1;
+			var thing = PagedThings.FirstOrDefault(t => t.Id == internalId);
+			if (thing == null)
+				return;
+
+			SelectThing(thing);
+			ScrollToItemRequested?.Invoke(thing);
+		}
+
+		public event Action<object>? ScrollToItemRequested;
+
+		private uint ResolveInternalThingId(uint enteredId)
+		{
+			if (SelectedSection != ThingKind.Item)
+				return enteredId;
+
+			var offset = SettingsViewModel.ThingIdOffset;
+			var asDisplayed = enteredId >= offset ? enteredId - offset : enteredId;
+			if (_allThings.Any(t => t.Id == asDisplayed))
+				return asDisplayed;
+
+			return enteredId;
+		}
 	}
 }

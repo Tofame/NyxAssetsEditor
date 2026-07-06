@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Platform.Storage;
 using System;
@@ -50,14 +51,25 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					_viewModel.RequestSaveAs -= OnSaveAsRequested;
 					_viewModel.RequestSpriteFileDialog -= OnSpriteFileDialogRequested;
+					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
 				}
 				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
 				if (_viewModel != null)
 				{
 					_viewModel.RequestSaveAs += OnSaveAsRequested;
 					_viewModel.RequestSpriteFileDialog += OnSpriteFileDialogRequested;
+					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
 				}
 			};
+		}
+
+		private void OnScrollToItemRequested(object item)
+		{
+			var listBox = _viewModel?.IsGridView == true ? SpriteGridListBox : SpriteListListBox;
+			if (listBox == null || !listBox.IsVisible)
+				return;
+
+			Dispatcher.UIThread.Post(() => listBox.ScrollIntoView(item), DispatcherPriority.Loaded);
 		}
 
 		private void OnSpritePointerPressed(object? sender, PointerPressedEventArgs e)

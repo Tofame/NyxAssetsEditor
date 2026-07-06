@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Sprites;
@@ -40,10 +41,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private int _frameCount = 1;
 	private int _animationLoopCount = 1;
 	private int _animationStartFrame;
+	private bool _isAnimationPlaying;
+	private int _animationDirection = 1;
+	private int _frameBeforePreview;
+	private DispatcherTimer? _animationTimer;
 
 	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing)
 	{
 		SourcePanel = source;
+		RequestClose += _ => StopAnimationPreview(restoreFrame: false);
 		LoadThing(thing);
 		PanelWidth = 540;
 		ContentHeight = 680;
@@ -55,6 +61,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	public void LoadThing(ThingType thing)
 	{
+		StopAnimationPreview(restoreFrame: false);
 		_thing = SourcePanel.GetThingType(thing.Id) ?? thing;
 		_selectedFrameGroupIndex = 0;
 		_selectedFrame = 0;
@@ -96,6 +103,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowMissileDirections => IsMissile;
 	public bool ShowLayerSlider => CurrentFrameGroup.Layers > 1;
 	public bool ShowFrameSlider => CurrentFrameGroup.Frames > 1;
+	public bool IsAnimationPlaying
+	{
+		get => _isAnimationPlaying;
+		private set => SetProperty(ref _isAnimationPlaying, value);
+	}
 	public bool ShowPatternGrid => !IsOutfit && !IsMissile;
 	public bool ShowPatternXSlider => false;
 	public bool ShowPatternYSlider => false;
@@ -465,6 +477,108 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		ApplyToCatalog();
 		OnPropertyChanged(nameof(MinimumDuration));
 		OnPropertyChanged(nameof(MaximumDuration));
+	}
+
+	[RelayCommand]
+	private void ToggleAnimationPreview()
+	{
+		if (IsAnimationPlaying)
+			StopAnimationPreview();
+		else
+			StartAnimationPreview();
+	}
+
+	private void StartAnimationPreview()
+	{
+		if (!ShowFrameSlider)
+			return;
+
+		_frameBeforePreview = SelectedFrame;
+		_animationDirection = 1;
+		IsAnimationPlaying = true;
+		ArmAnimationTimer(SelectedFrame);
+	}
+
+	private void StopAnimationPreview(bool restoreFrame = true)
+	{
+		if (_animationTimer != null)
+		{
+			_animationTimer.Tick -= OnAnimationTimerTick;
+			_animationTimer.Stop();
+			_animationTimer = null;
+		}
+
+		if (!IsAnimationPlaying)
+			return;
+
+		IsAnimationPlaying = false;
+		if (restoreFrame)
+			SelectedFrame = Math.Clamp(_frameBeforePreview, 0, FrameMaximum);
+	}
+
+	private void ArmAnimationTimer(int frameIndex)
+	{
+		_animationTimer?.Stop();
+		if (!IsAnimationPlaying)
+			return;
+
+		var delayMs = Math.Max(16, GetFrameDelayMs(frameIndex));
+		_animationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(delayMs) };
+		_animationTimer.Tick += OnAnimationTimerTick;
+		_animationTimer.Start();
+	}
+
+	private void OnAnimationTimerTick(object? sender, EventArgs e)
+	{
+		_animationTimer?.Stop();
+		if (!IsAnimationPlaying)
+			return;
+
+		var start = Math.Clamp(AnimationStartFrame, 0, FrameMaximum);
+		var end = FrameMaximum;
+		var next = SelectedFrame + _animationDirection;
+
+		if (IsPingPongStrategy)
+		{
+			if (next > end)
+			{
+				_animationDirection = -1;
+				next = Math.Max(start, end - 1);
+			}
+			else if (next < start)
+			{
+				_animationDirection = 1;
+				next = Math.Min(end, start + 1);
+			}
+		}
+		else if (next > end)
+		{
+			next = start;
+		}
+		else if (next < start)
+		{
+			next = end;
+		}
+
+		SelectedFrame = next;
+		ArmAnimationTimer(next);
+	}
+
+	private uint GetFrameDelayMs(int frameIndex)
+	{
+		var timing = GetFrameTiming(frameIndex);
+		if (timing != null)
+			return (timing.Value.MinimumMilliseconds + timing.Value.MaximumMilliseconds) / 2;
+
+		return ThingFrameGroupEditor.GetDefaultDurationMs(Kind);
+	}
+
+	private AnimationFrameTiming? GetFrameTiming(int frameIndex)
+	{
+		if (CurrentFrameGroup.FrameTimings == null || frameIndex < 0 || frameIndex >= CurrentFrameGroup.FrameTimings.Length)
+			return null;
+
+		return CurrentFrameGroup.FrameTimings[frameIndex];
 	}
 
 	private void SetOutfitDirection(Direction4 direction)

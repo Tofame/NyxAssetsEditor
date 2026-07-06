@@ -10,6 +10,15 @@
 			<Setter Property="Background" Value="#335E94FF"/>
 			<Setter Property="BorderBrush" Value="#5E94FF"/>
 		</Style>
+		<Style Selector="Button.icon-btn">
+			<Setter Property="Width" Value="22"/>
+			<Setter Property="Height" Value="22"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Background" Value="#2A2A2A"/>
+			<Setter Property="BorderBrush" Value="#444444"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="3"/>
+		</Style>
 	</UserControl.Styles>
 
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
@@ -43,7 +52,7 @@
 
 							<!-- Appearance -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
-								<StackPanel Spacing="10">
+								<StackPanel Spacing="8">
 									<TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
 
 									<!-- Outfit directions -->
@@ -66,77 +75,73 @@
 										<Button Command="{Binding SetMissileDirectionCommand}" CommandParameter="SouthEast" Content="SE" Margin="2" Padding="6,4" FontSize="10"/>
 									</WrapPanel>
 
-									<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-										<!-- Preview: full pattern grid for items/effects (OB updateView) -->
-										<ScrollViewer Grid.Row="0" Grid.Column="0" Grid.RowSpan="2"
-													  HorizontalScrollBarVisibility="Auto"
-													  VerticalScrollBarVisibility="Auto"
-													  MaxHeight="360"
-													  Margin="0,0,12,0">
-											<Border Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
-													HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
-												<Image Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
-													   HorizontalAlignment="Left" VerticalAlignment="Top"/>
-											</Border>
-										</ScrollViewer>
+									<!-- Preview (centered) -->
+									<ScrollViewer HorizontalAlignment="Center"
+												  HorizontalScrollBarVisibility="Auto"
+												  VerticalScrollBarVisibility="Auto"
+												  MaxHeight="360"
+												  MaxWidth="480">
+										<Border Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
+												HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
+											<Image Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
+												   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										</Border>
+									</ScrollViewer>
 
-										<!-- Layer slider (Object Builder: right of preview) -->
-										<StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" VerticalAlignment="Top" MinWidth="140"
-													IsVisible="{Binding ShowLayerSlider}">
-											<TextBlock Text="Layer:" Foreground="#888" FontSize="11"/>
-											<Grid ColumnDefinitions="*,Auto">
-												<Slider Grid.Column="0" Minimum="0" Maximum="{Binding LayerMaximum}" Value="{Binding SelectedLayer}" VerticalAlignment="Center"/>
-												<TextBlock Grid.Column="1" Text="{Binding LayerDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="28"/>
-											</Grid>
+									<!-- Controls (right-aligned, OB-style) -->
+									<StackPanel Spacing="6" HorizontalAlignment="Right" Margin="0,4,0,0">
+
+										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowFrameGroupSlider}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Frame group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center"/>
+										</Grid>
+
+										<Grid ColumnDefinitions="Auto,168,Auto,Auto" IsVisible="{Binding ShowFrameSlider}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Animation:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding FrameMaximum}" Value="{Binding SelectedFrame}" VerticalAlignment="Center"/>
+											<Button Grid.Column="2" Classes="icon-btn" Classes.selected="{Binding IsAnimationPlaying}" Command="{Binding ToggleAnimationPreviewCommand}" ToolTip.Tip="Play animation loop" Margin="8,0,0,0">
+												<Path Data="M8,5 L8,19 L19,12 Z" Fill="#CCCCCC" Width="10" Height="10" Stretch="Uniform"/>
+											</Button>
+											<TextBlock Grid.Column="3" Text="{Binding FrameDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										</Grid>
+
+										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowLayerSlider}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Layer:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding LayerMaximum}" Value="{Binding SelectedLayer}" VerticalAlignment="Center"/>
+											<TextBlock Grid.Column="2" Text="{Binding LayerDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										</Grid>
+
+										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowAddonSlider}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Addon:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding AddonMaximum}" Value="{Binding ViewPatternYIndex}" VerticalAlignment="Center"/>
+											<TextBlock Grid.Column="2" Text="{Binding PatternYDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="32"/>
+										</Grid>
+
+										<Grid ColumnDefinitions="Auto,168,Auto" IsVisible="{Binding ShowPatternZSlider}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Mount:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<Slider Grid.Column="1" Minimum="0" Maximum="{Binding PatternZMaximum}" Value="{Binding ViewPatternZIndex}" VerticalAlignment="Center"/>
+										</Grid>
+
+										<StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right" Margin="0,2,0,0">
+											<ToggleSwitch Content="Show crop size" IsChecked="{Binding ShowCropSize}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Show grid" IsChecked="{Binding ShowGrid}" OnContent="" OffContent="" FontSize="11"/>
 										</StackPanel>
 
-										<!-- Other appearance sliders -->
-										<StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="6" Margin="0,10,0,0">
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowFrameGroupSlider}">
-												<TextBlock Text="Frame group" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" Width="180"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowFrameSlider}">
-												<TextBlock Text="Animation" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding FrameMaximum}" Value="{Binding SelectedFrame}" Width="140"/>
-												<TextBlock Text="{Binding FrameDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" MinWidth="28"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowPatternXSlider}">
-												<TextBlock Text="Pattern X" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding PatternXMaximum}" Value="{Binding ViewPatternXIndex}" Width="140"/>
-												<TextBlock Text="{Binding PatternXDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" MinWidth="28"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowPatternYSlider}">
-												<TextBlock Text="Pattern Y" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding PatternYMaximum}" Value="{Binding ViewPatternYIndex}" Width="140"/>
-												<TextBlock Text="{Binding PatternYDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" MinWidth="28"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowAddonSlider}">
-												<TextBlock Text="Addon" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding AddonMaximum}" Value="{Binding ViewPatternYIndex}" Width="140"/>
-												<TextBlock Text="{Binding PatternYDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" MinWidth="28"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowPatternZSlider}">
-												<TextBlock Text="Mount" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-												<Slider Minimum="0" Maximum="{Binding PatternZMaximum}" Value="{Binding ViewPatternZIndex}" Width="140"/>
-											</StackPanel>
-										</StackPanel>
-									</Grid>
+										<Grid ColumnDefinitions="Auto,120,Auto" IsVisible="{Binding ShowDurationEditors}" HorizontalAlignment="Right" Margin="0,4,0,0">
+											<TextBlock Grid.Column="0" Text="Min:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<NumericUpDown Grid.Column="1" Value="{Binding MinimumDuration}" Minimum="0" Maximum="60000" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
+											<Button Grid.Column="2" Classes="icon-btn" Command="{Binding ApplyDefaultDurationsCommand}" ToolTip.Tip="Default durations" Margin="6,0,0,0">
+												<Path Data="M12,4 L12,2 M12,22 L12,20 M4.93,4.93 L6.34,6.34 M17.66,17.66 L19.07,19.07 M4,12 L2,12 M22,12 L20,12 M4.93,19.07 L6.34,17.66 M17.66,6.34 L19.07,4.93 M12,8 A4,4 0 1,1 12,16 A4,4 0 1,1 12,8"
+													  Stroke="#CCCCCC" StrokeThickness="1.3" Width="14" Height="14" Stretch="Uniform"/>
+											</Button>
+										</Grid>
 
-									<StackPanel Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
-										<ToggleSwitch Content="Show Crop Size" IsChecked="{Binding ShowCropSize}" OnContent="" OffContent="" FontSize="11"/>
-										<ToggleSwitch Content="Show Grid" IsChecked="{Binding ShowGrid}" OnContent="" OffContent="" FontSize="11"/>
-									</StackPanel>
-
-									<StackPanel IsVisible="{Binding ShowDurationEditors}" Spacing="8">
-										<TextBlock Text="Frame duration (ms)" FontSize="11" Foreground="#888"/>
-										<Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto">
-											<TextBlock Grid.Row="0" Grid.Column="0" Text="Min" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-											<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MinimumDuration}" Minimum="0" Maximum="60000" Width="100" FontSize="11"/>
-											<TextBlock Grid.Row="0" Grid.Column="2" Text="Max" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="12,0,8,0"/>
-											<NumericUpDown Grid.Row="0" Grid.Column="3" Value="{Binding MaximumDuration}" Minimum="0" Maximum="60000" Width="100" FontSize="11"/>
-											<Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Default durations" Command="{Binding ApplyDefaultDurationsCommand}" Margin="0,8,4,0" FontSize="11" HorizontalAlignment="Stretch"/>
-											<Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="Set for all frames" Command="{Binding ApplyDurationForAllFramesCommand}" Margin="4,8,0,0" FontSize="11" HorizontalAlignment="Stretch"/>
+										<Grid ColumnDefinitions="Auto,120,Auto" IsVisible="{Binding ShowDurationEditors}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Max:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<NumericUpDown Grid.Column="1" Value="{Binding MaximumDuration}" Minimum="0" Maximum="60000" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
+											<Button Grid.Column="2" Classes="icon-btn" Command="{Binding ApplyDurationForAllFramesCommand}" ToolTip.Tip="Set for all frames" Margin="6,0,0,0">
+												<Path Data="M4,6 H16 M4,10 H16 M4,14 H16 M4,18 H10" Stroke="#CCCCCC" StrokeThickness="1.3" Width="14" Height="14" Stretch="Uniform"/>
+											</Button>
 										</Grid>
 									</StackPanel>
 								</StackPanel>
@@ -146,23 +151,23 @@
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding HasPatterns}">
 								<StackPanel Spacing="8" x:CompileBindings="False">
 									<TextBlock Text="Patterns" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
-									<Grid ColumnDefinitions="90,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" HorizontalAlignment="Left">
-										<TextBlock Grid.Row="0" Grid.Column="0" Text="Width:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternTileWidthNud" Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="1" Grid.Column="0" Text="Height:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternTileHeightNud" Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="2" Grid.Column="0" Text="Crop Size:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternCropSizeNud" Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="64" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="3" Grid.Column="0" Text="Layers:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternLayerCountNud" Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="16" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="4" Grid.Column="0" Text="Pattern X:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternXCountNud" Grid.Row="4" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="5" Grid.Column="0" Text="Pattern Y:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternYCountNud" Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="6" Grid.Column="0" Text="Pattern Z:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternZCountNud" Grid.Row="6" Grid.Column="1" Minimum="1" Maximum="16" Increment="1" Width="100" FontSize="11" Margin="0,0,0,4"/>
-										<TextBlock Grid.Row="7" Grid.Column="0" Text="Animations:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-										<NumericUpDown x:Name="PatternFrameCountNud" Grid.Row="7" Grid.Column="1" Minimum="1" Maximum="60" Increment="1" Width="100" FontSize="11"/>
+									<Grid ColumnDefinitions="Auto,120" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" HorizontalAlignment="Right">
+										<TextBlock Grid.Row="0" Grid.Column="0" Text="Width:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternTileWidthNud" Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="1" Grid.Column="0" Text="Height:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternTileHeightNud" Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="2" Grid.Column="0" Text="Crop Size:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternCropSizeNud" Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="64" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="3" Grid.Column="0" Text="Layers:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternLayerCountNud" Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="16" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="4" Grid.Column="0" Text="Pattern X:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternXCountNud" Grid.Row="4" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="5" Grid.Column="0" Text="Pattern Y:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternYCountNud" Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="6" Grid.Column="0" Text="Pattern Z:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
+										<NumericUpDown x:Name="PatternZCountNud" Grid.Row="6" Grid.Column="1" Minimum="1" Maximum="16" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<TextBlock Grid.Row="7" Grid.Column="0" Text="Animations:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+										<NumericUpDown x:Name="PatternFrameCountNud" Grid.Row="7" Grid.Column="1" Minimum="1" Maximum="60" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
 									</Grid>
 								</StackPanel>
 							</Border>
@@ -171,21 +176,23 @@
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding ShowAnimationSection}">
 								<StackPanel Spacing="8">
 									<TextBlock Text="Animation" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
-									<StackPanel Orientation="Horizontal" Spacing="8">
-										<TextBlock Text="Mode" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-										<ComboBox ItemsSource="{Binding AnimationModes, Mode=OneWay}" SelectedIndex="{Binding SelectedAnimationMode}" Width="160" FontSize="11"/>
-									</StackPanel>
-									<StackPanel Orientation="Horizontal" Spacing="8">
-										<TextBlock Text="Frame strategy" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-										<ComboBox ItemsSource="{Binding FrameStrategies, Mode=OneWay}" SelectedIndex="{Binding FrameStrategyIndex}" Width="160" FontSize="11"/>
-									</StackPanel>
-									<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowLoopCountEditor}">
-										<TextBlock Text="Loop count" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-										<NumericUpDown Value="{Binding AnimationLoopCount}" Minimum="0" Maximum="{Binding LoopCountMaximum}" Width="100" FontSize="11"/>
-									</StackPanel>
-									<StackPanel Orientation="Horizontal" Spacing="8">
-										<TextBlock Text="Start frame" Width="90" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-										<NumericUpDown Value="{Binding AnimationStartFrame}" Minimum="-1" Maximum="{Binding StartFrameMaximum}" Width="100" FontSize="11"/>
+									<StackPanel Spacing="6" HorizontalAlignment="Right">
+										<Grid ColumnDefinitions="Auto,170" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Mode:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<ComboBox Grid.Column="1" ItemsSource="{Binding AnimationModes, Mode=OneWay}" SelectedIndex="{Binding SelectedAnimationMode}" FontSize="11"/>
+										</Grid>
+										<Grid ColumnDefinitions="Auto,170" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Frame strategy:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<ComboBox Grid.Column="1" ItemsSource="{Binding FrameStrategies, Mode=OneWay}" SelectedIndex="{Binding FrameStrategyIndex}" FontSize="11"/>
+										</Grid>
+										<Grid ColumnDefinitions="Auto,120" IsVisible="{Binding ShowLoopCountEditor}" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Loop count:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<NumericUpDown Grid.Column="1" Value="{Binding AnimationLoopCount}" Minimum="0" Maximum="{Binding LoopCountMaximum}" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
+										</Grid>
+										<Grid ColumnDefinitions="Auto,120" HorizontalAlignment="Right">
+											<TextBlock Grid.Column="0" Text="Start frame:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+											<NumericUpDown Grid.Column="1" Value="{Binding AnimationStartFrame}" Minimum="-1" Maximum="{Binding StartFrameMaximum}" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
+										</Grid>
 									</StackPanel>
 								</StackPanel>
 							</Border>
