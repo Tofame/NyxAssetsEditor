@@ -44,13 +44,15 @@ public class SpriteLoader : IDisposable
 
         string extension = Path.GetExtension(filePath).ToLower();
 
+        var preload = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.PreloadGraphicalAssets;
+
         if (extension == ".spr")
         {
-            _archive_spr = SpriteArchive.OpenReadOnlyFile(filePath, extendedSpriteIds, transparentPixels);
+            _archive_spr = SpriteArchive.OpenReadOnlyFile(filePath, extendedSpriteIds, transparentPixels, preloadSprites: preload);
         }
         else if (extension == ".assets")
         {
-            _archive_assets = AssetArchive.OpenReadOnlyFile(filePath);
+            _archive_assets = AssetArchive.OpenReadOnlyFile(filePath, preloadPages: preload);
         }
         else
         {

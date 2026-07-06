@@ -40,6 +40,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _preloadGraphicalAssets = true;
+		public static bool PreloadGraphicalAssets
+		{
+			get => _preloadGraphicalAssets;
+			set
+			{
+				if (_preloadGraphicalAssets != value)
+				{
+					_preloadGraphicalAssets = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		public static uint ThingIdOffset { get; set; } = 0;
 		public static uint ClientVersion { get; set; } = 1098;
 
@@ -185,6 +199,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set => ThingEditorDragHighlightColor = value;
 		}
 
+		public bool PreloadGraphicalAssetsSetting
+		{
+			get => PreloadGraphicalAssets;
+			set => PreloadGraphicalAssets = value;
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -195,6 +215,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			bool useExtendedSpriteIds,
 			uint thingIdOffset,
 			uint clientVersion,
+			bool preloadGraphicalAssets = true,
 			uint itemAnimationDurationMs = 500,
 			uint outfitAnimationDurationMs = 300,
 			uint effectAnimationDurationMs = 100,
@@ -208,6 +229,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			DefaultPageSize = defaultPageSize;
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
+			_preloadGraphicalAssets = preloadGraphicalAssets;
 			ThingIdOffset = thingIdOffset;
 			ClientVersion = clientVersion;
 			ItemAnimationDurationMs = itemAnimationDurationMs;

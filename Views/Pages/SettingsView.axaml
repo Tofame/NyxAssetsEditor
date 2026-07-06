@@ -23,6 +23,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Preload Sprites:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<CheckBox IsChecked="{Binding PreloadGraphicalAssetsSetting}"/>
+						<TextBlock Text="Preload sprite pages into memory for zero lag spikes during editing/removal."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 
