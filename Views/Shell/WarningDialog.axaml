@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		x:Class="NyxAssetsEditor.Views.Shell.WarningDialog"
+		Title="Action Required"
+		Width="400"
+		SizeToContent="Height"
+		CanResize="False"
+		WindowStartupLocation="CenterOwner"
+		Background="#141414"
+		RequestedThemeVariant="Dark"
+		ShowInTaskbar="False">
+
+	<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1">
+		<StackPanel Spacing="0">
+
+			<!-- Header -->
+			<Border Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="20,16">
+				<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+					<Border Width="32" Height="32" CornerRadius="16" Background="#332B1A">
+						<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+							  Fill="#E8A923" Width="18" Height="18"
+							  HorizontalAlignment="Center" VerticalAlignment="Center"
+							  Stretch="Uniform"/>
+					</Border>
+					<TextBlock Name="TitleText" Text="Action Required" FontSize="15" FontWeight="SemiBold"
+							   Foreground="#F0F0F0" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Body -->
+			<Border Padding="20,20,20,10">
+				<TextBlock Name="MessageText" Text="Warning message goes here."
+						   Foreground="#CCCCCC" FontSize="13" TextWrapping="Wrap"/>
+			</Border>
+
+			<!-- Buttons -->
+			<Border Padding="20,10,20,20">
+				<Grid HorizontalAlignment="Right">
+					<Button Name="OkButton"
+							Content="OK"
+							Padding="20,6"
+							Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1"
+							Foreground="#E0E0E0" FontSize="12" CornerRadius="4"
+							Click="OnOkClick"/>
+				</Grid>
+			</Border>
+
+		</StackPanel>
+	</Border>
+</Window>

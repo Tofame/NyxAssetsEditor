@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace NyxAssetsEditor.ViewModels;
+namespace NyxAssetsEditor.ViewModels.Core;
 
 public abstract class ViewModelBase : ObservableObject
 {

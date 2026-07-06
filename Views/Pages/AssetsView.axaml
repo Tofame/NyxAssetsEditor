@@ -1,0 +1,224 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+			 xmlns:panels="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 xmlns:loaders="using:NyxAssetsEditor.Views.ArchiveLoaders"
+			 xmlns:core="using:NyxAssetsEditor.ViewModels.Core"
+			 x:Class="NyxAssetsEditor.Views.Pages.AssetsView"
+			 x:DataType="vm:AssetsViewModel"
+			 Background="#141414"
+			 Tag="{Binding DragOverZone}">
+
+	<UserControl.DataTemplates>
+		<DataTemplate DataType="{x:Type panels:FloatingSpriteLoaderViewModel}">
+			<loaders:FloatingSpriteLoaderControl />
+		</DataTemplate>
+		<DataTemplate DataType="{x:Type panels:FloatingThingsLoaderViewModel}">
+			<loaders:FloatingThingsLoaderControl />
+		</DataTemplate>
+		<DataTemplate DataType="{x:Type panels:FloatingThingEditorViewModel}">
+			<loaders:FloatingThingEditorControl />
+		</DataTemplate>
+	</UserControl.DataTemplates>
+
+	<UserControl.Styles>
+		<Style Selector="Border.dock-highlight">
+			<Setter Property="Opacity" Value="0"/>
+		</Style>
+		<Style Selector="Border.dock-highlight.active">
+			<Setter Property="Opacity" Value="0.22"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid RowDefinitions="Auto, *">
+		<!-- Secondary Topbar -->
+		<Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Height="45" Padding="15,0">
+			<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+				<Button Content="Load Assets" Command="{Binding LoadAssetsCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Button Content="Load Things (.dat/.things)" Command="{Binding LoadThingsCommand}" IsEnabled="{Binding IsSpriteArchiveLoaded}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Border Width="1" Height="24" Background="#3A3A3A" Margin="4,0"/>
+				<Button Content="Compile" Command="{Binding CompileCommand}" IsEnabled="{Binding CanCompile}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Button Content="Compile As" Command="{Binding CompileAsCommand}" IsEnabled="{Binding CanCompile}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+			</StackPanel>
+		</Border>
+
+		<!-- Main Workspace Area -->
+		<Grid Grid.Row="1">
+			<!-- Columns Grid (Docked Panels) -->
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="0.25*" MinWidth="100"/>
+					<ColumnDefinition Width="6"/>
+					<ColumnDefinition Width="0.5*" MinWidth="150"/>
+					<ColumnDefinition Width="6"/>
+					<ColumnDefinition Width="0.25*" MinWidth="100"/>
+				</Grid.ColumnDefinitions>
+
+				<!-- Left Dock Column -->
+				<Grid Grid.Column="0">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsLeftEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Left Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding LeftDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="core:PanelViewModelBase">
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Drop Target Indicator (visible only while dragging) -->
+					<Border Name="LeftDropTarget"
+							IsVisible="{Binding IsDraggingPanel}"
+							IsHitTestVisible="True"
+							Background="#22FFFFFF"
+							BorderBrush="#3A7BD5" BorderThickness="2"
+							CornerRadius="10"
+							Width="180" Height="180"
+							HorizontalAlignment="Center" VerticalAlignment="Center"
+							Classes.active="{Binding IsDragOverLeft}">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+							</Transitions>
+						</Border.Transitions>
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+							<Path Data="M15 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H15c.55 0 1-.45 1-1s-.45-1-1-1z" Fill="#3A7BD5" Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Dock Left" Foreground="#3A7BD5" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+				</Grid>
+
+				<!-- GridSplitter between Left and Center -->
+				<GridSplitter Grid.Column="1" Background="#222222" ResizeBehavior="PreviousAndNext"/>
+
+				<!-- Center Dock Column -->
+				<Grid Grid.Column="2">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsCenterEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Center Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding CenterDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="core:PanelViewModelBase">
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Drop Target Indicator (visible only while dragging) -->
+					<Border Name="CenterDropTarget"
+							IsVisible="{Binding IsDraggingPanel}"
+							IsHitTestVisible="True"
+							Background="#22FFFFFF"
+							BorderBrush="#3A7BD5" BorderThickness="2"
+							CornerRadius="10"
+							Width="180" Height="180"
+							HorizontalAlignment="Center" VerticalAlignment="Center"
+							Classes.active="{Binding IsDragOverCenter}">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+							</Transitions>
+						</Border.Transitions>
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#3A7BD5" Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Dock Center" Foreground="#3A7BD5" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+				</Grid>
+
+				<!-- GridSplitter between Center and Right -->
+				<GridSplitter Grid.Column="3" Background="#222222" ResizeBehavior="PreviousAndNext"/>
+
+				<!-- Right Dock Column -->
+				<Grid Grid.Column="4">
+					<!-- Empty State Guide -->
+					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsRightEmpty}">
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
+							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Right Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Items Control for docked panels -->
+					<ItemsControl ItemsSource="{Binding RightDockedPanels}" Margin="4">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="1"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="core:PanelViewModelBase">
+								<ContentControl Content="{Binding}"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					
+					<!-- Drag Drop Target Indicator (visible only while dragging) -->
+					<Border Name="RightDropTarget"
+							IsVisible="{Binding IsDraggingPanel}"
+							IsHitTestVisible="True"
+							Background="#22FFFFFF"
+							BorderBrush="#3A7BD5" BorderThickness="2"
+							CornerRadius="10"
+							Width="180" Height="180"
+							HorizontalAlignment="Center" VerticalAlignment="Center"
+							Classes.active="{Binding IsDragOverRight}">
+						<Border.Transitions>
+							<Transitions>
+								<DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+							</Transitions>
+						</Border.Transitions>
+						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+							<Path Data="M9 13h7.17l-4.88 4.88c-.39.39-.39 1.03 0 1.42.39.39 1.02.39 1.41 0l6.59-6.59c.39-.39.39-1.02 0-1.41L12.71 4.7c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41L16.17 11H9c-.55 0-1 .45-1 1s.45 1 1 1z" Fill="#3A7BD5" Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<TextBlock Text="Dock Right" Foreground="#3A7BD5" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+				</Grid>
+			</Grid>
+
+			<!-- Floating Panels Overlay Canvas Layer -->
+			<ItemsControl Classes="overlay" ItemsSource="{Binding FloatingPanels}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<Canvas />
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+				<ItemsControl.Styles>
+					<Style Selector="ItemsControl.overlay > ContentPresenter" x:DataType="core:PanelViewModelBase">
+						<Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
+						<Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
+						<Setter Property="IsVisible" Value="{Binding IsVisible}"/>
+					</Style>
+				</ItemsControl.Styles>
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="core:PanelViewModelBase">
+						<ContentControl Content="{Binding}" />
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</Grid>
+	</Grid>
+</UserControl>
