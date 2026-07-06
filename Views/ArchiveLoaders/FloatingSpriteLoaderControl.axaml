@@ -98,6 +98,11 @@
 							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
 						</ItemsPanelTemplate>
 					</ListBox.ItemsPanel>
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem" x:DataType="sprites:SpriteViewModel">
+							<Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+						</Style>
+					</ListBox.Styles>
 					<ListBox.ItemTemplate>
 						<DataTemplate x:DataType="sprites:SpriteViewModel">
 							<Border Classes="sprite-tile" Classes.selected="{Binding IsSelected, Mode=OneWay}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76"
@@ -134,10 +139,11 @@
 						</ItemsPanelTemplate>
 					</ListBox.ItemsPanel>
 					<ListBox.Styles>
-						<Style Selector="ListBoxItem">
+						<Style Selector="ListBoxItem" x:DataType="sprites:SpriteViewModel">
 							<Setter Property="Padding" Value="0"/>
 							<Setter Property="MinHeight" Value="42"/>
 							<Setter Property="Background" Value="Transparent"/>
+							<Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
 						</Style>
 					</ListBox.Styles>
 					<ListBox.ItemTemplate>

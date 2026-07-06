@@ -910,6 +910,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			SelectThing(thing);
 			ScrollToItemRequested?.Invoke(thing);
+			OpenThingEditor(thing);
 		}
 
 		public event Action<object>? ScrollToItemRequested;
