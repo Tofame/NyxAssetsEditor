@@ -1,0 +1,122 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels"
+			 x:Class="NyxAssetsEditor.Views.FloatingSpriteLoaderControl"
+			 x:DataType="vm:FloatingSpriteLoaderViewModel"
+			 Width="{Binding PanelWidth}">
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto, *, Auto">
+			<!-- Title Bar (Draggable) -->
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Grid ColumnDefinitions="*, Auto, Auto">
+					<!-- Panel Name -->
+					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
+						<TextBlock Text="Sprite Archive Viewer" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13"/>
+						<TextBlock Text="{Binding FileName}" FontSize="11" Foreground="#888888" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+					</StackPanel>
+					
+					<!-- Minimize Button -->
+					<Button Grid.Column="1" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
+						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Button>
+					
+					<!-- Close Button -->
+					<Button Grid.Column="2" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
+						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Button>
+				</Grid>
+			</Border>
+
+			<!-- Content Area (Scrollable Sprite Grid) -->
+			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#1E1E1E" Height="{Binding ContentHeight}">
+				<ListBox ItemsSource="{Binding PagedSprites}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8">
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<Border Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76" BorderBrush="#353535" BorderThickness="1">
+								<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+									<Image Source="{Binding Preview}" Width="32" Height="32" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									<TextBlock Text="{Binding Id}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+				
+				<StackPanel IsVisible="{Binding !TotalSprites}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+					<Border Name="EmptyStateDropzone"
+							Background="#22000000"
+							BorderBrush="#3A7BD5"
+							BorderThickness="1.5"
+							CornerRadius="8"
+							Padding="18"
+							Width="240"
+							Cursor="Hand"
+							PointerPressed="OnEmptyStateClick">
+						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+							<Path Data="M2 17L12 22L22 17M2 12L12 17L22 12M12 2L2 7L12 12L22 7L12 2Z" Fill="Transparent" Stroke="#3A7BD5" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<TextBlock Text="Click to Load Assets" FontWeight="SemiBold" Foreground="#3A7BD5" FontSize="13" HorizontalAlignment="Center"/>
+							<TextBlock Text="Supports .spr and .assets archives" Foreground="#666666" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					
+					<!-- Loading Settings Container -->
+					<Border Background="#252525" BorderBrush="#353535" BorderThickness="1" CornerRadius="6" Padding="12" Width="240">
+						<StackPanel Spacing="8">
+							<TextBlock Text="Loading Settings" FontSize="11" FontWeight="SemiBold" Foreground="#888888" Margin="0,0,0,4"/>
+							<CheckBox Content="Transparent Pixels" IsChecked="{Binding UseTransparentPixels}" FontSize="11" Height="20"/>
+							<CheckBox Content="Extended Sprite IDs" IsChecked="{Binding UseExtendedSpriteIds}" FontSize="11" Height="20"/>
+						</StackPanel>
+					</Border>
+				</StackPanel>
+			</Grid>
+
+			<!-- Pagination Footer -->
+			<Border Grid.Row="2" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8">
+				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
+					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>
+					
+					<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+						<TextBlock Text="Page" Foreground="#888888" FontSize="12"/>
+						<TextBlock Text="{Binding CurrentPage}" FontWeight="Bold" Foreground="#E0E0E0" FontSize="12"/>
+						<TextBlock Text="of" Foreground="#888888" FontSize="12"/>
+						<TextBlock Text="{Binding TotalPages}" FontWeight="Bold" Foreground="#E0E0E0" FontSize="12"/>
+						<TextBlock Text="(" Foreground="#666666" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+						<TextBlock Text="{Binding TotalSprites}" Foreground="#666666" FontSize="10" VerticalAlignment="Center"/>
+						<TextBlock Text="sprites)" Foreground="#666666" FontSize="10" VerticalAlignment="Center"/>
+					</StackPanel>
+					
+					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
+					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;&gt;" Padding="8,4" FontSize="11"/>
+				</Grid>
+			</Border>
+
+			<!-- Resize Handles (Overlay) -->
+			<!-- Right edge resize handle -->
+			<Border Grid.RowSpan="3" Width="5" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWestEast" 
+					IsVisible="{Binding !IsMinimized}"
+					PointerPressed="OnResizeRightPressed" 
+					PointerMoved="OnResizeRightMoved" 
+					PointerReleased="OnResizeReleased"/>
+			
+			<!-- Bottom edge resize handle -->
+			<Border Grid.Row="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNorthSouth" 
+					IsVisible="{Binding !IsMinimized}"
+					PointerPressed="OnResizeBottomPressed" 
+					PointerMoved="OnResizeBottomMoved" 
+					PointerReleased="OnResizeReleased"/>
+			
+			<!-- Bottom-right corner resize handle -->
+			<Border Grid.Row="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner" 
+					IsVisible="{Binding !IsMinimized}"
+					PointerPressed="OnResizeCornerPressed" 
+					PointerMoved="OnResizeCornerMoved" 
+					PointerReleased="OnResizeReleased"/>
+		</Grid>
+	</Border>
+</UserControl>
