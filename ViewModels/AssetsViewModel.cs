@@ -17,6 +17,8 @@ namespace NyxAssetsEditor.ViewModels
 		private FloatingSpriteLoaderViewModel? _lastLoadedSprPanel;
 		private FloatingSpriteLoaderViewModel? _lastLoadedAssetsPanel;
 		private FloatingSpriteLoaderViewModel? _lastLoadedSpritePanel;
+		private FloatingSpriteLoaderViewModel? _pendingSprForNextDat;
+		private FloatingSpriteLoaderViewModel? _pendingAssetsForNextThings;
 
 		public ObservableCollection<PanelViewModelBase> ActivePanels { get; } = new ObservableCollection<PanelViewModelBase>();
 		public ObservableCollection<PanelViewModelBase> FloatingPanels { get; } = new ObservableCollection<PanelViewModelBase>();
@@ -66,9 +68,11 @@ namespace NyxAssetsEditor.ViewModels
 			{
 				case ArchiveFormat.Spr:
 					_lastLoadedSprPanel = panel;
+					_pendingSprForNextDat = panel;
 					break;
 				case ArchiveFormat.Assets:
 					_lastLoadedAssetsPanel = panel;
+					_pendingAssetsForNextThings = panel;
 					break;
 			}
 
@@ -76,13 +80,24 @@ namespace NyxAssetsEditor.ViewModels
 
 			foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
 			{
-				if (thingsPanel.ArchiveFormat != ArchiveFormat.Unknown)
-					LinkThingsToSprite(thingsPanel, thingsPanel.ArchiveFormat);
-				thingsPanel.RefreshPreviews();
+				if (thingsPanel.LinkedSpritePanel == panel)
+					thingsPanel.NotifySpriteLinkChanged();
 			}
 
 			RefreshCompileCommands();
 		}
+
+		public bool HasAnyPendingSpriteForThings() =>
+			_pendingSprForNextDat is { IsArchiveLoaded: true }
+			|| _pendingAssetsForNextThings is { IsArchiveLoaded: true };
+
+		public bool HasPendingSpriteFor(ArchiveFormat thingsFormat) =>
+			thingsFormat switch
+			{
+				ArchiveFormat.Dat => _pendingSprForNextDat is { IsArchiveLoaded: true },
+				ArchiveFormat.Things => _pendingAssetsForNextThings is { IsArchiveLoaded: true },
+				_ => false,
+			};
 
 		public FloatingSpriteLoaderViewModel? ResolveSpritePanelFor(FloatingThingsLoaderViewModel thingsPanel)
 		{
@@ -96,54 +111,51 @@ namespace NyxAssetsEditor.ViewModels
 				return linked;
 			}
 
-			var candidate = thingsFormat switch
-			{
-				ArchiveFormat.Dat => _lastLoadedSprPanel,
-				ArchiveFormat.Things => _lastLoadedAssetsPanel,
-				ArchiveFormat.Unknown => _lastLoadedSpritePanel,
-				_ => null
-			};
-
-			if (candidate is { IsArchiveLoaded: true }
-				&& (thingsFormat == ArchiveFormat.Unknown
-					|| ArchiveFormatHelper.AreCompatible(candidate.ArchiveFormat, thingsFormat)))
-			{
-				return candidate;
-			}
-
-			return FindLoadedSpritePanel(thingsFormat);
+			return null;
 		}
 
-		private FloatingSpriteLoaderViewModel? FindLoadedSpritePanel(ArchiveFormat thingsFormat)
+		/// <summary>
+		/// Pairs a things panel with the most recently loaded, unconsumed sprite archive of the matching format.
+		/// Each sprite load is consumed by at most one new dat/things load.
+		/// </summary>
+		public bool TryAssignPendingSpriteLink(FloatingThingsLoaderViewModel thingsPanel, ArchiveFormat thingsFormat)
 		{
-			var loaded = ActivePanels.OfType<FloatingSpriteLoaderViewModel>()
-				.Where(p => p.IsArchiveLoaded)
-				.ToList();
-
-			return thingsFormat switch
+			var pending = thingsFormat switch
 			{
-				ArchiveFormat.Dat => loaded.LastOrDefault(p => p.ArchiveFormat == ArchiveFormat.Spr),
-				ArchiveFormat.Things => loaded.LastOrDefault(p => p.ArchiveFormat == ArchiveFormat.Assets),
-				ArchiveFormat.Unknown => loaded.LastOrDefault(),
-				_ => null
+				ArchiveFormat.Dat => _pendingSprForNextDat,
+				ArchiveFormat.Things => _pendingAssetsForNextThings,
+				_ => null,
 			};
+
+			if (pending == null
+				|| !pending.IsArchiveLoaded
+				|| !ArchiveFormatHelper.AreCompatible(pending.ArchiveFormat, thingsFormat))
+			{
+				return false;
+			}
+
+			thingsPanel.LinkedSpritePanel = pending;
+
+			switch (thingsFormat)
+			{
+				case ArchiveFormat.Dat:
+					if (_pendingSprForNextDat == pending)
+						_pendingSprForNextDat = null;
+					break;
+				case ArchiveFormat.Things:
+					if (_pendingAssetsForNextThings == pending)
+						_pendingAssetsForNextThings = null;
+					break;
+			}
+
+			NotifyThingsPanelsSpriteAvailabilityChanged();
+			return true;
 		}
 
-		public void LinkThingsToSprite(FloatingThingsLoaderViewModel thingsPanel, ArchiveFormat thingsFormat)
+		private void NotifyThingsPanelsSpriteAvailabilityChanged()
 		{
-			var spritePanel = thingsFormat switch
-			{
-				ArchiveFormat.Dat => _lastLoadedSprPanel,
-				ArchiveFormat.Things => _lastLoadedAssetsPanel,
-				_ => null
-			};
-
-			if (spritePanel != null
-				&& spritePanel.IsArchiveLoaded
-				&& ArchiveFormatHelper.AreCompatible(spritePanel.ArchiveFormat, thingsFormat))
-			{
-				thingsPanel.LinkedSpritePanel = spritePanel;
-			}
+			foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
+				thingsPanel.NotifySpriteLinkChanged();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -172,13 +184,17 @@ namespace NyxAssetsEditor.ViewModels
 				_lastLoadedAssetsPanel = null;
 			if (_lastLoadedSpritePanel == spritePanel)
 				_lastLoadedSpritePanel = null;
+			if (_pendingSprForNextDat == spritePanel)
+				_pendingSprForNextDat = null;
+			if (_pendingAssetsForNextThings == spritePanel)
+				_pendingAssetsForNextThings = null;
 
 			foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
 			{
 				if (thingsPanel.LinkedSpritePanel == spritePanel)
 				{
 					thingsPanel.LinkedSpritePanel = null;
-					thingsPanel.RefreshPreviews();
+					thingsPanel.NotifySpriteLinkChanged();
 				}
 			}
 		}
@@ -207,7 +223,7 @@ namespace NyxAssetsEditor.ViewModels
 						pair.ThingsPanel.FilePath);
 
 					pair.SpritePanel.LoadArchive(pair.SpritePanel.FilePath);
-					pair.ThingsPanel.LoadArchive(pair.ThingsPanel.FilePath);
+					pair.ThingsPanel.LoadArchive(pair.ThingsPanel.FilePath, useLastLoadedSprite: false);
 				}
 				catch (Exception ex)
 				{
@@ -229,7 +245,7 @@ namespace NyxAssetsEditor.ViewModels
 			pair.SpritePanel.FilePath = spriteOutputPath;
 			pair.ThingsPanel.FilePath = thingsOutputPath;
 			pair.SpritePanel.LoadArchive(spriteOutputPath);
-			pair.ThingsPanel.LoadArchive(thingsOutputPath);
+			pair.ThingsPanel.LoadArchive(thingsOutputPath, useLastLoadedSprite: false);
 			TriggerSaveAppState();
 		}
 
@@ -254,6 +270,8 @@ namespace NyxAssetsEditor.ViewModels
 			_lastLoadedSprPanel = null;
 			_lastLoadedAssetsPanel = null;
 			_lastLoadedSpritePanel = null;
+			_pendingSprForNextDat = null;
+			_pendingAssetsForNextThings = null;
 			UpdateColumnWidths();
 			RefreshCompileCommands();
 		}
@@ -332,8 +350,6 @@ namespace NyxAssetsEditor.ViewModels
 		[RelayCommand]
 		private void LoadThings()
 		{
-			if (!IsSpriteArchiveLoaded) return;
-
 			var panel = new FloatingThingsLoaderViewModel(this)
 			{
 				PositionX = 100,
@@ -342,7 +358,7 @@ namespace NyxAssetsEditor.ViewModels
 			};
 
 			AddPanel(panel);
-			panel.RefreshPreviews();
+			panel.NotifySpriteLinkChanged();
 		}
 
 		private void AddPanel(PanelViewModelBase panel)
@@ -404,15 +420,14 @@ namespace NyxAssetsEditor.ViewModels
 
 		private void OnPanelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName == nameof(FloatingSpriteLoaderViewModel.IsArchiveLoaded))
+			if (e.PropertyName == nameof(FloatingSpriteLoaderViewModel.IsArchiveLoaded)
+				&& sender is FloatingSpriteLoaderViewModel spritePanel)
 			{
 				OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
-				foreach (var panel in ActivePanels)
+				foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
 				{
-					if (panel is FloatingThingsLoaderViewModel thingsPanel)
-					{
-						thingsPanel.RefreshPreviews();
-					}
+					if (thingsPanel.LinkedSpritePanel == spritePanel)
+						thingsPanel.NotifySpriteLinkChanged();
 				}
 				RefreshCompileCommands();
 			}

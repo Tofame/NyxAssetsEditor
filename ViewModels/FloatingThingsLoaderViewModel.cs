@@ -432,7 +432,15 @@ namespace NyxAssetsEditor.ViewModels
 			}
 		}
 
-		public bool IsSpriteLoaderLoaded => GetActiveSpriteLoader() != null;
+		public bool IsSpriteLoaderLoaded =>
+			GetActiveSpriteLoader() != null
+			|| _parentViewModel?.HasAnyPendingSpriteForThings() == true;
+
+		public void NotifySpriteLinkChanged()
+		{
+			OnPropertyChanged(nameof(IsSpriteLoaderLoaded));
+			RefreshPreviews();
+		}
 
 		public void RefreshPreviews()
 		{
@@ -481,10 +489,17 @@ namespace NyxAssetsEditor.ViewModels
 		public void LoadArchive(string path, bool useLastLoadedSprite = true)
 		{
 			var thingsFormat = ArchiveFormatHelper.FromPath(path);
-			if (useLastLoadedSprite)
-				_parentViewModel?.LinkThingsToSprite(this, thingsFormat);
+			var isNewArchive = !IsArchiveLoaded
+				|| string.IsNullOrEmpty(FilePath)
+				|| FilePath == "No things loaded"
+				|| !string.Equals(path, FilePath, StringComparison.OrdinalIgnoreCase);
 
-			if (_parentViewModel?.ResolveSpritePanelFor(this) is not { IsArchiveLoaded: true })
+			if (useLastLoadedSprite && isNewArchive)
+			{
+				if (_parentViewModel?.TryAssignPendingSpriteLink(this, thingsFormat) != true)
+					return;
+			}
+			else if (_parentViewModel?.ResolveSpritePanelFor(this) is not { IsArchiveLoaded: true })
 				return;
 
 			FilePath = path;

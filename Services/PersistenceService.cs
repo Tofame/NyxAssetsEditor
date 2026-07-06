@@ -247,8 +247,6 @@ namespace NyxAssetsEditor.Services
 				foreach (var (panelState, panel) in thingsPanels)
 				{
 					assetsVm.RestoreThingsLink(panel, panelState.LinkedSpriteFilePath);
-					if (panel.LinkedSpritePanel == null && !string.IsNullOrEmpty(panelState.FilePath))
-						assetsVm.LinkThingsToSprite(panel, ArchiveFormatHelper.FromPath(panelState.FilePath));
 
 					if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
 					{
