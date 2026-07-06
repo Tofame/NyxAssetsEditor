@@ -54,6 +54,21 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static int _assetDisplaySize = 32;
+		public static int AssetDisplaySize
+		{
+			get => _assetDisplaySize;
+			set
+			{
+				if (_assetDisplaySize != value)
+				{
+					_assetDisplaySize = value;
+					AssetDisplaySizeChanged?.Invoke(value);
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		public static uint ThingIdOffset { get; set; } = 0;
 		public static uint ClientVersion { get; set; } = 1098;
 
@@ -208,6 +223,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
+		public static event Action<int>? AssetDisplaySizeChanged;
 
 		public static void SetSettings(
 			int defaultPageSize,
@@ -216,6 +232,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			uint thingIdOffset,
 			uint clientVersion,
 			bool preloadGraphicalAssets = true,
+			int assetDisplaySize = 32,
 			uint itemAnimationDurationMs = 500,
 			uint outfitAnimationDurationMs = 300,
 			uint effectAnimationDurationMs = 100,
@@ -230,6 +247,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			_preloadGraphicalAssets = preloadGraphicalAssets;
+			_assetDisplaySize = assetDisplaySize;
 			ThingIdOffset = thingIdOffset;
 			ClientVersion = clientVersion;
 			ItemAnimationDurationMs = itemAnimationDurationMs;
@@ -313,6 +331,30 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private int _selectedDisplaySizeIndex = 0; // Index 0 maps to 32
+
+		public int SelectedDisplaySizeIndex
+		{
+			get => _selectedDisplaySizeIndex;
+			set
+			{
+				if (_selectedDisplaySizeIndex != value)
+				{
+					_selectedDisplaySizeIndex = value;
+					OnPropertyChanged(nameof(SelectedDisplaySizeIndex));
+
+					AssetDisplaySize = value switch
+					{
+						0 => 32,
+						1 => 64,
+						2 => 96,
+						3 => 128,
+						_ => 32
+					};
+				}
+			}
+		}
+
 		public int ItemAnimationDuration
 		{
 			get => (int)ItemAnimationDurationMs;
@@ -362,6 +404,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				1098 => 0,
 				860 => 1,
 				760 => 2,
+				_ => 0
+			};
+			_selectedDisplaySizeIndex = AssetDisplaySize switch
+			{
+				32 => 0,
+				64 => 1,
+				96 => 2,
+				128 => 3,
 				_ => 0
 			};
 		}

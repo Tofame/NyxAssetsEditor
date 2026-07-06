@@ -23,6 +23,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool UseTransparentPixels { get; set; } = true;
 			public bool UseExtendedSpriteIds { get; set; } = true;
 			public bool PreloadGraphicalAssets { get; set; } = true;
+			public int AssetDisplaySize { get; set; } = 32;
 			public uint ThingIdOffset { get; set; } = 0;
 			public uint ClientVersion { get; set; } = 1098;
 			public uint ItemAnimationDurationMs { get; set; } = 500;
@@ -91,6 +92,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ThingIdOffset,
 							model.ClientVersion,
 							model.PreloadGraphicalAssets,
+							model.AssetDisplaySize,
 							model.ItemAnimationDurationMs,
 							model.OutfitAnimationDurationMs,
 							model.EffectAnimationDurationMs,
@@ -120,6 +122,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					UseTransparentPixels = SettingsViewModel.UseTransparentPixels,
 					UseExtendedSpriteIds = SettingsViewModel.UseExtendedSpriteIds,
 					PreloadGraphicalAssets = SettingsViewModel.PreloadGraphicalAssets,
+					AssetDisplaySize = SettingsViewModel.AssetDisplaySize,
 					ThingIdOffset = SettingsViewModel.ThingIdOffset,
 					ClientVersion = SettingsViewModel.ClientVersion,
 					ItemAnimationDurationMs = SettingsViewModel.ItemAnimationDurationMs,

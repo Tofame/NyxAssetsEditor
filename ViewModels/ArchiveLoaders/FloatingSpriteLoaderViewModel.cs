@@ -194,9 +194,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public AssetsViewModel? ParentViewModel { get; set; }
 
+		public int AssetDisplaySize => SettingsViewModel.AssetDisplaySize;
+		public int ListBorderWidthHeight => AssetDisplaySize + 4;
+		public int GridTileWidth => AssetDisplaySize + 40;
+		public int GridTileHeight => AssetDisplaySize + 44;
+
 		public FloatingSpriteLoaderViewModel(SpriteRenderer renderer)
 		{
 			_renderer = renderer;
+			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;
 		}
 
 		public void LoadArchive(string path) => _ = LoadArchiveAsync(path);
@@ -551,7 +557,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void Dispose()
 		{
+			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
 			Loader.Dispose();
+		}
+
+		private void OnAssetDisplaySizeChanged(int newSize)
+		{
+			OnPropertyChanged(nameof(AssetDisplaySize));
+			OnPropertyChanged(nameof(ListBorderWidthHeight));
+			OnPropertyChanged(nameof(GridTileWidth));
+			OnPropertyChanged(nameof(GridTileHeight));
 		}
 	}
 }

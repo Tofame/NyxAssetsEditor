@@ -369,11 +369,17 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool HasThingSelection => GetSelectedThings().Count > 0;
 		public int SelectedThingCount => GetSelectedThings().Count;
 
+		public int AssetDisplaySize => SettingsViewModel.AssetDisplaySize;
+		public int ListBorderWidthHeight => AssetDisplaySize + 4;
+		public int GridTileWidth => AssetDisplaySize + 40;
+		public int GridTileHeight => AssetDisplaySize + 44;
+
 		public FloatingThingsLoaderViewModel(AssetsViewModel? parentViewModel = null)
 		{
 			_parentViewModel = parentViewModel;
 			SettingsViewModel.ThingIdOffsetChanged += OnThingIdOffsetChanged;
 			SettingsViewModel.ClientVersionChanged += OnClientVersionChanged;
+			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;
 			ResetSettingsToDefaults();
 		}
 
@@ -397,6 +403,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			SettingsViewModel.ThingIdOffsetChanged -= OnThingIdOffsetChanged;
 			SettingsViewModel.ClientVersionChanged -= OnClientVersionChanged;
+			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
+		}
+
+		private void OnAssetDisplaySizeChanged(int newSize)
+		{
+			OnPropertyChanged(nameof(AssetDisplaySize));
+			OnPropertyChanged(nameof(ListBorderWidthHeight));
+			OnPropertyChanged(nameof(GridTileWidth));
+			OnPropertyChanged(nameof(GridTileHeight));
 		}
 
 		public SpriteLoader? GetActiveSpriteLoader()

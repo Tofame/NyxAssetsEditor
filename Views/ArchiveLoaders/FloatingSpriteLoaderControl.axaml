@@ -105,8 +105,8 @@
 						</Style>
 					</ListBox.Styles>
 					<ListBox.ItemTemplate>
-						<DataTemplate x:DataType="sprites:SpriteViewModel">
-							<Border Classes="sprite-tile" Classes.selected="{Binding IsSelected, Mode=OneWay}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76"
+						<DataTemplate x:DataType="sprites:SpriteViewModel" x:CompileBindings="False">
+							<Border Classes="sprite-tile" Classes.selected="{Binding IsSelected, Mode=OneWay}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="{Binding $parent[UserControl].DataContext.GridTileWidth}" Height="{Binding $parent[UserControl].DataContext.GridTileHeight}"
 									PointerPressed="OnSpritePointerPressed">
 								<Border.ContextMenu>
 									<ContextMenu>
@@ -124,7 +124,7 @@
 									</ContextMenu>
 								</Border.ContextMenu>
 								<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-									<Image Source="{Binding Preview, Mode=OneWay}" Width="32" Height="32" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									<Image Source="{Binding Preview, Mode=OneWay}" Width="{Binding $parent[UserControl].DataContext.AssetDisplaySize}" Height="{Binding $parent[UserControl].DataContext.AssetDisplaySize}" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 									<TextBlock Text="{Binding Id, Mode=OneWay}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
 								</StackPanel>
 							</Border>
@@ -148,7 +148,7 @@
 						</Style>
 					</ListBox.Styles>
 					<ListBox.ItemTemplate>
-						<DataTemplate x:DataType="sprites:SpriteViewModel">
+						<DataTemplate x:DataType="sprites:SpriteViewModel" x:CompileBindings="False">
 							<Border Classes="sprite-list-row" Classes.selected="{Binding IsSelected, Mode=OneWay}" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3" PointerPressed="OnSpritePointerPressed">
 								<Border.ContextMenu>
 									<ContextMenu>
@@ -167,8 +167,8 @@
 								</Border.ContextMenu>
 								<Grid ColumnDefinitions="Auto, *">
 									<!-- Square Image Container -->
-									<Border Grid.Column="0" Width="36" Height="36" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
-										<Image Source="{Binding Preview, Mode=OneWay}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None"/>
+									<Border Grid.Column="0" Width="{Binding $parent[UserControl].DataContext.ListBorderWidthHeight}" Height="{Binding $parent[UserControl].DataContext.ListBorderWidthHeight}" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
+										<Image Source="{Binding Preview, Mode=OneWay}" Width="{Binding $parent[UserControl].DataContext.AssetDisplaySize}" Height="{Binding $parent[UserControl].DataContext.AssetDisplaySize}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None"/>
 									</Border>
 									
 									<!-- ID Text -->
