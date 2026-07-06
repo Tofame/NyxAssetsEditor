@@ -64,6 +64,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		StopAnimationPreview(restoreFrame: false);
 		_thing = SourcePanel.GetThingType(thing.Id) ?? thing;
+		_selectedFrameGroupIndex = 0;
 		_selectedFrame = 0;
 		_selectedLayer = 0;
 		_viewPatternX = 0;
@@ -74,8 +75,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		NotifyThingProperties();
 		NotifyAppearanceControls();
-
-		_selectedFrameGroupIndex = 0;
 		OnPropertyChanged(nameof(SelectedFrameGroupIndex));
 		OnPropertyChanged(nameof(FrameGroupDisplay));
 
