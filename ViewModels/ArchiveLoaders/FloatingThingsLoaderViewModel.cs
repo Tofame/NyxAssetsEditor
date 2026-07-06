@@ -880,54 +880,45 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			if (_catalog == null) return;
 
-			var idsToRemove = new HashSet<uint>(things.Select(t => t.Id));
-			if (idsToRemove.Count == 0) return;
+			var itemsList = things.ToList();
+			if (itemsList.Count == 0) return;
+
+			var idsToRemove = new HashSet<uint>(itemsList.Select(t => t.Id));
 
 			// Remove from local list
 			_allThings.RemoveAll(t => idsToRemove.Contains(t.Id));
 
-			// Rebuild the catalog — NyxAssets has no delete; we re-insert survivors with new sequential ids
-			var rebuilt = new ThingCatalog
-			{
-				DatSignature = _catalog.DatSignature,
-				DatFormat    = _catalog.DatFormat,
-			};
+			var itemsByKind = itemsList.GroupBy(t => t.Kind).ToDictionary(g => g.Key, g => g.ToList());
 
-			// Items (start at FirstItemId)
-			uint nextId = ThingCatalog.FirstItemId;
-			foreach (var t in _catalog.EnumerateItems().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
+			foreach (var kvp in itemsByKind)
 			{
-				var clone = ThingCloner.Clone(t, nextId++);
-				rebuilt.PutItem(clone);
+				var kind = kvp.Key;
+				var list = kvp.Value;
+
+				for (int i = 0; i < list.Count; i++)
+				{
+					var id = list[i].Id;
+					bool rebuild = (i == list.Count - 1);
+
+					switch (kind)
+					{
+						case ThingKind.Item:
+							_catalog.RemoveItem(id, rebuild);
+							break;
+						case ThingKind.Outfit:
+							_catalog.RemoveOutfit(id, rebuild);
+							break;
+						case ThingKind.Effect:
+							_catalog.RemoveEffect(id, rebuild);
+							break;
+						case ThingKind.Missile:
+							_catalog.RemoveMissile(id, rebuild);
+							break;
+					}
+				}
 			}
 
-			// Outfits
-			nextId = ThingCatalog.FirstOutfitId;
-			foreach (var t in _catalog.EnumerateOutfits().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
-			{
-				var clone = ThingCloner.Clone(t, nextId++);
-				rebuilt.PutOutfit(clone);
-			}
-
-			// Effects
-			nextId = ThingCatalog.FirstEffectId;
-			foreach (var t in _catalog.EnumerateEffects().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
-			{
-				var clone = ThingCloner.Clone(t, nextId++);
-				rebuilt.PutEffect(clone);
-			}
-
-			// Missiles
-			nextId = ThingCatalog.FirstMissileId;
-			foreach (var t in _catalog.EnumerateMissiles().Where(t => !idsToRemove.Contains(t.Id)).OrderBy(t => t.Id))
-			{
-				var clone = ThingCloner.Clone(t, nextId++);
-				rebuilt.PutMissile(clone);
-			}
-
-			_catalog = rebuilt;
-
-			// Refresh _allThings IDs to match the rebuilt catalog
+			// Reload the section list and refresh the UI state
 			ReloadThingsForSection();
 			TotalThings = (uint)_allThings.Count;
 

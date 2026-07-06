@@ -11,8 +11,7 @@ public class SpriteLoader : IDisposable
     private AssetArchive? _archive_assets;
     private bool _extendedSpriteIds = true;
     private bool _transparentPixels = true;
-    private readonly Dictionary<uint, byte[]> _overrides = new();
-    private uint? _spriteCountOverride;
+
 
     public SpriteArchiveKind ArchiveKind =>
         _archive_spr != null ? SpriteArchiveKind.Spr :
@@ -25,9 +24,6 @@ public class SpriteLoader : IDisposable
     {
         get
         {
-            if (_spriteCountOverride.HasValue)
-                return _spriteCountOverride.Value;
-
             if (_archive_spr != null) return _archive_spr.SpriteCount;
             if (_archive_assets != null) return _archive_assets.SpriteCount;
             return 0;
@@ -44,8 +40,7 @@ public class SpriteLoader : IDisposable
 
         _extendedSpriteIds = extendedSpriteIds;
         _transparentPixels = transparentPixels;
-        _overrides.Clear();
-        _spriteCountOverride = null;
+
 
         string extension = Path.GetExtension(filePath).ToLower();
 
@@ -68,13 +63,6 @@ public class SpriteLoader : IDisposable
     /// </summary>
     public byte[] LoadSpritePixels(uint spriteId)
     {
-        if (_overrides.TryGetValue(spriteId, out var edited))
-        {
-            var copy = new byte[edited.Length];
-            edited.CopyTo(copy, 0);
-            return copy;
-        }
-
         byte[] rgbaBuffer = new byte[SpritePixelCodec.RgbaBufferLength];
 
         if (_archive_spr != null)
@@ -94,9 +82,6 @@ public class SpriteLoader : IDisposable
 
     public bool IsEmptySprite(uint spriteId)
     {
-        if (_overrides.TryGetValue(spriteId, out var edited))
-            return IsAllTransparent(edited);
-
         if (_archive_spr != null)
             return _archive_spr.IsEmptySprite(spriteId);
         if (_archive_assets != null)
@@ -109,9 +94,18 @@ public class SpriteLoader : IDisposable
         if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
             throw new ArgumentException($"Expected {SpritePixelCodec.RgbaBufferLength} RGBA bytes.");
 
-        var copy = new byte[rgba.Length];
-        rgba.CopyTo(copy, 0);
-        _overrides[spriteId] = copy;
+        if (_archive_spr != null)
+        {
+            _archive_spr.PutSprite(spriteId, rgba);
+        }
+        else if (_archive_assets != null)
+        {
+            _archive_assets.PutSprite(spriteId, rgba);
+        }
+        else
+        {
+            throw new InvalidOperationException("No sprite archive is open.");
+        }
     }
 
     public void ClearSprite(uint spriteId) =>
@@ -123,28 +117,23 @@ public class SpriteLoader : IDisposable
         if (count == 0)
             return false;
 
-        _overrides.Remove(count);
-        _spriteCountOverride = count - 1;
-        return true;
+        if (_archive_spr != null)
+        {
+            return _archive_spr.RemoveSprite(count);
+        }
+        else if (_archive_assets != null)
+        {
+            return _archive_assets.RemoveSprite(count);
+        }
+        return false;
     }
 
     public uint AddNewSprite()
     {
         var newId = SpriteCount + 1;
-        _spriteCountOverride = newId;
-        _overrides[newId] = new byte[SpritePixelCodec.RgbaBufferLength];
+        var emptyRgba = new byte[SpritePixelCodec.RgbaBufferLength];
+        SetSpritePixels(newId, emptyRgba);
         return newId;
-    }
-
-    private static bool IsAllTransparent(byte[] rgba)
-    {
-        for (var i = 0; i < rgba.Length; i++)
-        {
-            if (rgba[i] != 0)
-                return false;
-        }
-
-        return true;
     }
 
     public void WriteSprTo(string path)
@@ -152,56 +141,33 @@ public class SpriteLoader : IDisposable
         if (_archive_spr == null)
             throw new InvalidOperationException("No .spr archive is open.");
 
-        // Read all pixels into memory first
-        var rgbaList = new byte[]?[SpriteCount + 1];
-        var sig = SprSignature;
-        for (uint id = 1; id <= SpriteCount; id++)
-            rgbaList[id] = IsEmptySprite(id) ? null : LoadSpritePixels(id);
+        using var ms = new MemoryStream();
+        _archive_spr.WriteToStream(ms);
 
         // Release the file lock before writing to the same path
         _archive_spr.Dispose();
         _archive_spr = null;
 
         using var output = File.Create(path);
-        SpriteSheetCompiler.WriteToStream(
-            output,
-            sig,
-            _extendedSpriteIds,
-            _transparentPixels,
-            rgbaList);
+        ms.Position = 0;
+        ms.CopyTo(output);
     }
 
     public void WriteAssetsTo(string path, int compressionLevel = 3, uint spritesPerPage = 2048)
     {
-        if (ArchiveKind == SpriteArchiveKind.None)
-            throw new InvalidOperationException("No sprite archive is open.");
+        if (_archive_assets == null)
+            throw new InvalidOperationException("No .assets archive is open.");
 
-        var writer = new AssetArchiveWriter();
-        var spritesArray = new byte[SpriteCount][];
-
-        for (uint id = 1; id <= SpriteCount; id++)
-        {
-            if (IsEmptySprite(id))
-            {
-                spritesArray[id - 1] = new byte[] { 0, 0, 0, 0 };
-                continue;
-            }
-
-            var rgba = LoadSpritePixels(id);
-            byte[] entry = new byte[4 + SpritePixelCodec.RgbaBufferLength];
-            entry[0] = SpritePixelCodec.SpriteEdgeLength;
-            entry[1] = 0;
-            entry[2] = SpritePixelCodec.SpriteEdgeLength;
-            entry[3] = 0;
-            rgba.CopyTo(entry.AsSpan(4));
-            spritesArray[id - 1] = entry;
-        }
+        using var ms = new MemoryStream();
+        _archive_assets.WriteToStream(ms);
 
         // Release the file lock before writing to the same path
-        ClearArchives();
+        _archive_assets.Dispose();
+        _archive_assets = null;
 
-        writer.AddRange(spritesArray);
-        writer.Save(path, compressionLevel, spritesPerPage);
+        using var output = File.Create(path);
+        ms.Position = 0;
+        ms.CopyTo(output);
     }
 
     private void ClearArchives()
