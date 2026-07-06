@@ -347,6 +347,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			var newId = linkedPanel.Loader.AddNewSprite();
 			linkedPanel.Loader.SetSpritePixels(newId, pixels);
 			linkedPanel.NotifyExternalArchiveMutation();
+			linkedPanel.HasSavedChanges = true;
 			AssignSpriteToDropTarget(newId, _pendingDropX, _pendingDropY);
 		}
 		catch (Exception ex)

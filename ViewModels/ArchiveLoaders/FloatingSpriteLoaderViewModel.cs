@@ -27,7 +27,18 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
 
-		public bool HasSavedChanges => false;
+		private bool _hasSavedChanges;
+		public bool HasSavedChanges
+		{
+			get => _hasSavedChanges;
+			set
+			{
+				if (SetProperty(ref _hasSavedChanges, value))
+				{
+					ParentViewModel?.RefreshCompileCommands();
+				}
+			}
+		}
 
 		public event EventHandler? RequestSaveAs;
 		public event EventHandler<SpriteFileRequestEventArgs>? RequestSpriteFileDialog;
@@ -392,6 +403,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			Loader.AddNewSprite();
 			TotalSprites = Loader.SpriteCount;
+			HasSavedChanges = true;
 
 			var lastPage = TotalPages;
 			if (CurrentPage != lastPage)

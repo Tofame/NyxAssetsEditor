@@ -440,6 +440,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void RefreshAfterCatalogMutation(bool goToLastPage = false)
 		{
+			HasSavedChanges = true;
+
 			if (goToLastPage)
 			{
 				var lastPage = TotalPages;
@@ -929,6 +931,75 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		[RelayCommand]
 		private void LastPage() => CurrentPage = TotalPages;
+
+		[RelayCommand(CanExecute = nameof(IsArchiveLoaded))]
+		private void NewThing()
+		{
+			if (_catalog == null) return;
+			
+			try
+			{
+				var kind = SelectedSection;
+				var newId = ThingExchangeHelper.GetNextAppendId(_catalog, kind);
+				
+				var newThing = new ThingType
+				{
+					Id = newId,
+					Kind = kind
+				};
+				
+				var fg = new ThingFrameGroup
+				{
+					GroupTypeId = 0,
+					Width = 1,
+					Height = 1,
+					ExactSize = 32,
+					Layers = 1,
+					PatternX = 1,
+					PatternY = 1,
+					PatternZ = 1,
+					Frames = 1,
+					SpriteIds = new uint[1]
+				};
+				newThing.FrameGroups.Add(fg);
+
+				switch (kind)
+				{
+					case ThingKind.Item:
+						_catalog.PutItem(newThing);
+						break;
+					case ThingKind.Outfit:
+						_catalog.PutOutfit(newThing);
+						break;
+					case ThingKind.Effect:
+						_catalog.PutEffect(newThing);
+						break;
+					case ThingKind.Missile:
+						_catalog.PutMissile(newThing);
+						break;
+				}
+				
+				_allThings.Add(newThing);
+				_allThings.Sort((a, b) => a.Id.CompareTo(b.Id));
+				TotalThings = (uint)_allThings.Count;
+				
+				HasSavedChanges = true;
+				
+				RefreshAfterCatalogMutation(goToLastPage: true);
+
+				var newItem = PagedThings.LastOrDefault();
+				if (newItem != null)
+				{
+					SelectThing(newItem);
+					ScrollToItemRequested?.Invoke(newItem);
+					_ = OpenThingEditor(newItem);
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"[ThingsLoader] Failed to create new thing: {ex.Message}");
+			}
+		}
 
 		private bool CanGoToId() =>
 			IsArchiveLoaded
