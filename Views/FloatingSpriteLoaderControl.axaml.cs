@@ -4,6 +4,9 @@ using Avalonia.Input;
 using Avalonia.VisualTree;
 using Avalonia.Platform.Storage;
 using System;
+using System.IO;
+using NyxAssets.Utils;
+using NyxAssetsEditor.Services;
 using NyxAssetsEditor.ViewModels;
 
 namespace NyxAssetsEditor.Views
@@ -42,13 +45,31 @@ namespace NyxAssetsEditor.Views
 				if (_viewModel != null)
 				{
 					_viewModel.RequestSaveAs -= OnSaveAsRequested;
+					_viewModel.RequestSpriteFileDialog -= OnSpriteFileDialogRequested;
 				}
 				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
 				if (_viewModel != null)
 				{
 					_viewModel.RequestSaveAs += OnSaveAsRequested;
+					_viewModel.RequestSpriteFileDialog += OnSpriteFileDialogRequested;
 				}
 			};
+		}
+
+		private void OnSpritePointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			if (sender is not Control control || control.DataContext is not SpriteViewModel sprite)
+				return;
+
+			if (DataContext is FloatingSpriteLoaderViewModel vm)
+			{
+				var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+				var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+				vm.SelectSprite(sprite, shift, ctrl);
+			}
+
+			if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)
+				e.Handled = true;
 		}
 
 		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -418,6 +439,124 @@ namespace NyxAssetsEditor.Views
 						}
 					}
 				}
+			}
+		}
+
+		private async void OnSpriteFileDialogRequested(object? sender, SpriteFileRequestEventArgs e)
+		{
+			if (DataContext is not FloatingSpriteLoaderViewModel vm)
+				return;
+
+			var topLevel = TopLevel.GetTopLevel(this);
+			if (topLevel == null)
+				return;
+
+			if (string.IsNullOrEmpty(e.Format))
+			{
+				var title = e.Sprites.Count == 1
+					? $"Import Sprite #{e.Sprite.Id}"
+					: $"Import Image to {e.Sprites.Count} Sprites";
+
+				var file = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+				{
+					Title = title,
+					AllowMultiple = false,
+					FileTypeFilter = new[]
+					{
+						new FilePickerFileType("Image Files") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp", "*.tga" } }
+					}
+				});
+
+				if (file == null || file.Count == 0)
+					return;
+
+				try
+				{
+					var path = file[0].Path.LocalPath;
+					var rgba = SpriteImageImporter.Load32x32Rgba(path);
+					vm.ReplaceSpritePixels(e.Sprites, rgba);
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Failed to import sprite image: {ex.Message}");
+				}
+
+				return;
+			}
+
+			var format = e.Format.ToLowerInvariant();
+			var extension = format is "jpg" or "jpeg" ? ".jpg" : format == "bmp" ? ".bmp" : ".png";
+
+			if (e.Sprites.Count == 1)
+			{
+				var (fileTypeChoices, title) = format switch
+				{
+					"jpg" or "jpeg" => (new[] { new FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } } }, "Export Sprite as JPEG"),
+					"bmp" => (new[] { new FilePickerFileType("BMP Image") { Patterns = new[] { "*.bmp" } } }, "Export Sprite as BMP"),
+					_ => (new[] { new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } } }, "Export Sprite as PNG"),
+				};
+
+				var saveFile = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+				{
+					Title = title,
+					DefaultExtension = extension,
+					SuggestedFileName = $"sprite_{e.Sprite.Id}{extension}",
+					FileTypeChoices = fileTypeChoices
+				});
+
+				if (saveFile == null)
+					return;
+
+				try
+				{
+					WriteSpriteExport(e.Sprite.GetPixels(), saveFile.Path.LocalPath, format);
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Failed to export sprite: {ex.Message}");
+				}
+
+				return;
+			}
+
+			var folder = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+			{
+				Title = $"Export {e.Sprites.Count} Sprites as {extension.ToUpperInvariant().TrimStart('.')}",
+				AllowMultiple = false
+			});
+
+			if (folder == null || folder.Count == 0)
+				return;
+
+			var folderPath = folder[0].Path.LocalPath;
+			try
+			{
+				foreach (var sprite in e.Sprites)
+				{
+					var outputPath = Path.Combine(folderPath, $"sprite_{sprite.Id}{extension}");
+					WriteSpriteExport(sprite.GetPixels(), outputPath, format);
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to export sprites: {ex.Message}");
+			}
+		}
+
+		private static void WriteSpriteExport(byte[] pixels, string outputPath, string format)
+		{
+			switch (format)
+			{
+				case "jpg":
+				case "jpeg":
+					SpriteImageExporter.WriteJpeg(pixels, outputPath);
+					break;
+				case "bmp":
+					SpriteImageExporter.WriteBmp(pixels, outputPath);
+					break;
+				default:
+					SpriteImageExporter.WritePng(pixels, outputPath);
+					break;
 			}
 		}
 	}

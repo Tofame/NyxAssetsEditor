@@ -3,7 +3,30 @@
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels"
 			 x:Class="NyxAssetsEditor.Views.FloatingSpriteLoaderControl"
 			 x:DataType="vm:FloatingSpriteLoaderViewModel"
-			 Width="{Binding DisplayWidth}">
+			 Width="{Binding DisplayWidth}"
+			 Focusable="True">
+
+	<UserControl.KeyBindings>
+		<KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedSpriteCommand}"/>
+		<KeyBinding Gesture="Ctrl+V" Command="{Binding PasteSelectedSpriteCommand}"/>
+	</UserControl.KeyBindings>
+
+	<UserControl.Styles>
+		<Style Selector="Border.sprite-tile">
+			<Setter Property="BorderBrush" Value="#353535"/>
+			<Setter Property="BorderThickness" Value="1"/>
+		</Style>
+		<Style Selector="Border.sprite-tile.selected">
+			<Setter Property="BorderBrush" Value="#3A7BD5"/>
+			<Setter Property="BorderThickness" Value="2"/>
+		</Style>
+		<Style Selector="Border.sprite-list-row">
+			<Setter Property="Background" Value="Transparent"/>
+		</Style>
+		<Style Selector="Border.sprite-list-row.selected">
+			<Setter Property="Background" Value="#223A7BD5"/>
+		</Style>
+	</UserControl.Styles>
 
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
 		<Grid RowDefinitions="Auto, *, Auto">
@@ -75,8 +98,24 @@
 						</ItemsPanelTemplate>
 					</ListBox.ItemsPanel>
 					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<Border Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76" BorderBrush="#353535" BorderThickness="1">
+						<DataTemplate x:DataType="vm:SpriteViewModel">
+							<Border Classes="sprite-tile" Classes.selected="{Binding IsSelected}" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4" Width="72" Height="76"
+									PointerPressed="OnSpritePointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
+										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
+										<Separator/>
+										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+											<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+											<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
 								<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 									<Image Source="{Binding Preview}" Width="32" Height="32" RenderOptions.BitmapInterpolationMode="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 									<TextBlock Text="{Binding Id}" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
@@ -96,8 +135,23 @@
 						</Style>
 					</ListBox.Styles>
 					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3">
+						<DataTemplate x:DataType="vm:SpriteViewModel">
+							<Border Classes="sprite-list-row" Classes.selected="{Binding IsSelected}" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3" PointerPressed="OnSpritePointerPressed">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
+										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
+										<Separator/>
+										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Export">
+											<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
+											<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
+											<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
+										</MenuItem>
+										<Separator/>
+										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
 								<Grid ColumnDefinitions="Auto, *">
 									<!-- Square Image Container -->
 									<Border Grid.Column="0" Width="36" Height="36" Background="#1D1D1D" BorderBrush="#4A4A4A" BorderThickness="1" CornerRadius="4">
@@ -140,9 +194,29 @@
 				</StackPanel>
 			</Grid>
 
-			<!-- Pagination Footer (also Draggable) -->
-			<Border Grid.Row="2" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8">
-				<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+			<!-- Footer: sprite actions + pagination -->
+			<Border Grid.Row="2" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8,6">
+				<StackPanel Spacing="6">
+					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsArchiveLoaded}">
+						<Button Content="New Sprite" Command="{Binding NewSpriteCommand}" Padding="10,4" FontSize="11"/>
+						<Border Width="1" Height="20" Background="#444444" Margin="2,0"/>
+						<Button Content="Copy" Command="{Binding CopySelectedSpriteCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Paste" Command="{Binding PasteSelectedSpriteCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Import" Command="{Binding ImportSelectedSpritesCommand}" Padding="10,4" FontSize="11"/>
+						<Button Content="Export" Padding="10,4" FontSize="11">
+							<Button.Flyout>
+								<MenuFlyout Placement="Top">
+									<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
+									<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
+									<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
+								</MenuFlyout>
+							</Button.Flyout>
+						</Button>
+						<Button Content="Remove" Command="{Binding RemoveSelectedSpritesCommand}" Padding="10,4" FontSize="11"/>
+						<TextBlock Text="{Binding SelectedSpriteCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasSpriteSelection}"/>
+					</StackPanel>
+
+					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
 					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
 					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>
 					
@@ -158,7 +232,8 @@
 					
 					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
 					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;&gt;" Padding="8,4" FontSize="11"/>
-				</Grid>
+					</Grid>
+				</StackPanel>
 			</Border>
 
 			<!-- Resize Handles (Overlay) -->

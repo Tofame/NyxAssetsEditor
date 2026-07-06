@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Services;
@@ -18,6 +20,10 @@ namespace NyxAssetsEditor.ViewModels
 		private bool _showSaveConfirmation;
 
 		public event EventHandler? RequestSaveAs;
+		public event EventHandler<SpriteFileRequestEventArgs>? RequestSpriteFileDialog;
+
+		public SpriteViewModel? SelectedSprite { get; private set; }
+		private SpriteViewModel? _selectionAnchor;
 
 		public SpriteLoader Loader { get; } = new SpriteLoader();
 		public ObservableCollection<SpriteViewModel> PagedSprites { get; } = new ObservableCollection<SpriteViewModel>();
@@ -121,6 +127,7 @@ namespace NyxAssetsEditor.ViewModels
 
 				if (SetProperty(ref _currentPage, value))
 				{
+					ClearSelection();
 					UpdatePage();
 					OnPropertyChanged(nameof(HasNextPage));
 					OnPropertyChanged(nameof(HasPreviousPage));
@@ -175,8 +182,234 @@ namespace NyxAssetsEditor.ViewModels
 
 			for (uint id = startId; id <= endId; id++)
 			{
-				PagedSprites.Add(new SpriteViewModel(id, Loader, _renderer));
+				PagedSprites.Add(new SpriteViewModel(id, this, Loader, _renderer));
 			}
+		}
+
+		public void SelectSprite(SpriteViewModel sprite, bool shift = false, bool ctrl = false)
+		{
+			if (shift)
+			{
+				if (_selectionAnchor != null)
+				{
+					ClearSelection();
+					var sprites = PagedSprites.OrderBy(s => s.Id).ToList();
+					var anchorIdx = sprites.FindIndex(s => s.Id == _selectionAnchor.Id);
+					var clickIdx = sprites.FindIndex(s => s.Id == sprite.Id);
+					if (anchorIdx < 0)
+						anchorIdx = clickIdx;
+					if (clickIdx >= 0)
+					{
+						var start = Math.Min(anchorIdx, clickIdx);
+						var end = Math.Max(anchorIdx, clickIdx);
+						for (var i = start; i <= end; i++)
+							SetSpriteSelected(sprites[i], true);
+					}
+				}
+				else
+				{
+					ClearSelection();
+					SetSpriteSelected(sprite, true);
+					_selectionAnchor = sprite;
+				}
+			}
+			else if (ctrl)
+			{
+				SetSpriteSelected(sprite, !sprite.IsSelected);
+				_selectionAnchor = sprite;
+			}
+			else
+			{
+				ClearSelection();
+				SetSpriteSelected(sprite, true);
+				_selectionAnchor = sprite;
+			}
+
+			SelectedSprite = sprite;
+			NotifySelectionChanged();
+		}
+
+		public IReadOnlyList<SpriteViewModel> GetSelectedSprites() =>
+			PagedSprites.Where(s => s.IsSelected).OrderBy(s => s.Id).ToList();
+
+		private void ClearSelection()
+		{
+			foreach (var sprite in PagedSprites)
+				sprite.IsSelected = false;
+		}
+
+		private static void SetSpriteSelected(SpriteViewModel sprite, bool selected) =>
+			sprite.IsSelected = selected;
+
+		private void NotifySelectionChanged()
+		{
+			OnPropertyChanged(nameof(HasSpriteSelection));
+			OnPropertyChanged(nameof(SelectedSpriteCount));
+			OnPropertyChanged(nameof(CanPasteSelected));
+			CopySelectedSpriteCommand.NotifyCanExecuteChanged();
+			PasteSelectedSpriteCommand.NotifyCanExecuteChanged();
+			RemoveSelectedSpritesCommand.NotifyCanExecuteChanged();
+			ImportSelectedSpritesCommand.NotifyCanExecuteChanged();
+			ExportSelectedPngCommand.NotifyCanExecuteChanged();
+			ExportSelectedJpegCommand.NotifyCanExecuteChanged();
+			ExportSelectedBmpCommand.NotifyCanExecuteChanged();
+			PasteSelectedSpriteCommand.NotifyCanExecuteChanged();
+		}
+
+		public bool HasSpriteSelection => GetSelectedSprites().Count > 0;
+		public int SelectedSpriteCount => GetSelectedSprites().Count;
+
+		public void CopySprite(SpriteViewModel sprite) => CopySprites(new[] { sprite });
+
+		public void CopySprites(IEnumerable<SpriteViewModel> sprites)
+		{
+			var list = sprites.ToList();
+			if (list.Count == 0)
+				return;
+
+			SpriteClipboard.CopyMany(list.Select(s => s.GetPixels()));
+			NotifyPasteAvailability();
+		}
+
+		public void PasteSprite(SpriteViewModel? sprite) => PasteSprites(sprite != null ? new[] { sprite } : GetSelectedSprites());
+
+		public void PasteSprites(IEnumerable<SpriteViewModel> sprites)
+		{
+			var targets = sprites.OrderBy(s => s.Id).ToList();
+			var clipboard = SpriteClipboard.GetAll();
+			if (targets.Count == 0 || clipboard.Count == 0)
+				return;
+
+			for (var i = 0; i < targets.Count; i++)
+			{
+				var pixels = clipboard[Math.Min(i, clipboard.Count - 1)];
+				Loader.SetSpritePixels(targets[i].Id, pixels);
+				targets[i].InvalidatePreview();
+			}
+		}
+
+		public void RequestImportSprites(IEnumerable<SpriteViewModel> sprites)
+		{
+			var list = sprites.ToList();
+			if (list.Count == 0)
+				return;
+
+			RequestSpriteFileDialog?.Invoke(this, new SpriteFileRequestEventArgs(list, ""));
+		}
+
+		public void RequestExportSprites(IEnumerable<SpriteViewModel> sprites, string format)
+		{
+			var list = sprites.ToList();
+			if (list.Count == 0)
+				return;
+
+			RequestSpriteFileDialog?.Invoke(this, new SpriteFileRequestEventArgs(list, format));
+		}
+
+		public void RequestReplaceSprite(SpriteViewModel sprite) =>
+			RequestImportSprites(new[] { sprite });
+
+		public void RequestExportSprite(SpriteViewModel sprite, string format) =>
+			RequestExportSprites(new[] { sprite }, format);
+
+		public void ReplaceSpritePixels(IEnumerable<SpriteViewModel> sprites, byte[] rgba)
+		{
+			foreach (var sprite in sprites)
+			{
+				Loader.SetSpritePixels(sprite.Id, rgba);
+				sprite.InvalidatePreview();
+			}
+		}
+
+		public void RemoveSprite(SpriteViewModel sprite) => RemoveSprites(new[] { sprite });
+
+		public void RemoveSprites(IEnumerable<SpriteViewModel> sprites)
+		{
+			var ids = sprites.Select(s => s.Id).Distinct().OrderByDescending(id => id).ToList();
+			if (ids.Count == 0)
+				return;
+
+			foreach (var id in ids)
+			{
+				if (id == Loader.SpriteCount)
+					Loader.RemoveLastSprite();
+				else
+					Loader.ClearSprite(id);
+			}
+
+			TotalSprites = Loader.SpriteCount;
+			_selectionAnchor = null;
+			SelectedSprite = null;
+			if (CurrentPage > TotalPages && TotalPages > 0)
+				CurrentPage = TotalPages;
+			else
+				UpdatePage();
+
+			NotifySelectionChanged();
+		}
+
+		[RelayCommand(CanExecute = nameof(IsArchiveLoaded))]
+		private void NewSprite()
+		{
+			Loader.AddNewSprite();
+			TotalSprites = Loader.SpriteCount;
+
+			var lastPage = TotalPages;
+			if (CurrentPage != lastPage)
+				CurrentPage = lastPage;
+			else
+				UpdatePage();
+
+			var newSprite = PagedSprites.LastOrDefault();
+			if (newSprite != null)
+				SelectSprite(newSprite);
+		}
+
+		public void NotifyPasteAvailability()
+		{
+			OnPropertyChanged(nameof(CanPasteSelected));
+			PasteSelectedSpriteCommand.NotifyCanExecuteChanged();
+			foreach (var item in PagedSprites)
+				item.NotifyPasteAvailabilityChanged();
+		}
+
+		public bool CanPasteSelected => HasSpriteSelection && SpriteClipboard.HasData;
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void CopySelectedSprite() => CopySprites(GetSelectedSprites());
+
+		[RelayCommand(CanExecute = nameof(CanPasteSelected))]
+		private void PasteSelectedSprite() => PasteSprites(GetSelectedSprites());
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void RemoveSelectedSprites() => RemoveSprites(GetSelectedSprites());
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void ImportSelectedSprites() => RequestImportSprites(GetSelectedSprites());
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void ExportSelectedPng() => RequestExportSprites(GetSelectedSprites(), "png");
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void ExportSelectedJpeg() => RequestExportSprites(GetSelectedSprites(), "jpg");
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void ExportSelectedBmp() => RequestExportSprites(GetSelectedSprites(), "bmp");
+
+		public void HandleCopyShortcut()
+		{
+			if (HasSpriteSelection)
+				CopySprites(GetSelectedSprites());
+			else if (SelectedSprite != null)
+				CopySprite(SelectedSprite);
+		}
+
+		public void HandlePasteShortcut()
+		{
+			if (HasSpriteSelection)
+				PasteSprites(GetSelectedSprites());
+			else if (SelectedSprite != null)
+				PasteSprite(SelectedSprite);
 		}
 
 		[RelayCommand]
