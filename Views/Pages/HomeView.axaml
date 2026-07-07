@@ -3,15 +3,69 @@
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
 			 x:Class="NyxAssetsEditor.Views.Pages.HomeView"
 			 x:DataType="vm:HomeViewModel">
-	<StackPanel Margin="30" Spacing="15">
-		<TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="#5E94FF"/>
-		<TextBlock Text="{Binding Description, Mode=OneWay}" FontSize="16" Foreground="#CCCCCC" TextWrapping="Wrap"/>
-		
-		<Border Background="#1E1E1E" CornerRadius="8" Padding="20" Margin="0,20,0,0">
-			<StackPanel Spacing="10">
-				<TextBlock Text="Quick Actions" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
-				<TextBlock Text="Use the top navigation bar to open and load Nyx Sprite Archives (.spr) or Asset Archives (.assets)." Foreground="#999999" TextWrapping="Wrap"/>
+	<ScrollViewer>
+		<StackPanel Margin="30" Spacing="25">
+			<!-- Header -->
+			<StackPanel Spacing="5">
+				<TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="#5E94FF"/>
+				<TextBlock Text="{Binding Description, Mode=OneWay}" FontSize="14" Foreground="#888888" TextWrapping="Wrap"/>
 			</StackPanel>
-		</Border>
-	</StackPanel>
+
+			<!-- Recent Archives Section -->
+			<StackPanel Spacing="10">
+				<TextBlock Text="Recent Archives" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+				
+				<!-- Placeholder if no recents -->
+				<Border IsVisible="{Binding !RecentCombinations.Count}" Background="#1E1E1E" CornerRadius="8" Padding="20">
+					<TextBlock Text="No recently opened archives. Open an archive from the Assets workspace to get started!" Foreground="#666666" FontStyle="Italic"/>
+				</Border>
+
+				<!-- List of Recents -->
+				<ItemsControl ItemsSource="{Binding RecentCombinations}" IsVisible="{Binding RecentCombinations.Count}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:RecentCombinationItemViewModel">
+							<Button Command="{Binding LoadCommand}" Background="#1E1E1E" BorderThickness="1" BorderBrush="#2D2D2D" CornerRadius="8" Margin="0,0,12,12" Padding="14,12" HorizontalAlignment="Left" VerticalAlignment="Top" Width="280">
+								<Button.Styles>
+									<Style Selector="Button:pointerover">
+										<Setter Property="Background" Value="#252525"/>
+										<Setter Property="BorderBrush" Value="#5E94FF"/>
+									</Style>
+								</Button.Styles>
+								<Grid ColumnDefinitions="48,*">
+									<!-- Icon based on type -->
+									<Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
+										<!-- Icon for Both (DAT + SPR) -->
+										<Path IsVisible="{Binding HasBoth}" Data="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z" Fill="#5E94FF" Width="20" Height="20" Stretch="Uniform"/>
+										<!-- Icon for Sprite only -->
+										<Path IsVisible="{Binding HasSpriteOnly}" Data="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z" Fill="#4CAF50" Width="20" Height="20" Stretch="Uniform"/>
+										<!-- Icon for Things only -->
+										<Path IsVisible="{Binding HasThingsOnly}" Data="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-4-4h-4v-2h4v2zm0-4h-4V9h4v2z" Fill="#FF9800" Width="20" Height="20" Stretch="Uniform"/>
+									</Grid>
+									
+									<!-- Texts -->
+									<StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+										<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+										<TextBlock Text="{Binding DetailsText}" FontSize="11" Foreground="#666666" TextTrimming="CharacterEllipsis"/>
+									</StackPanel>
+								</Grid>
+							</Button>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</StackPanel>
+
+			<!-- Quick Actions Card -->
+			<Border Background="#1E1E1E" CornerRadius="8" Padding="20">
+				<StackPanel Spacing="10">
+					<TextBlock Text="Quick Actions" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+					<TextBlock Text="Use the top navigation bar to switch to the Assets page and load archives (.spr / .dat or .assets / .things)." Foreground="#999999" TextWrapping="Wrap"/>
+				</StackPanel>
+			</Border>
+		</StackPanel>
+	</ScrollViewer>
 </UserControl>

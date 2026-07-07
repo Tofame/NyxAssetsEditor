@@ -15,13 +15,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
 	public MainWindowViewModel()
 	{
-		_currentPage = new HomeViewModel();
+		_currentPage = new HomeViewModel(this);
 	}
 
 	[RelayCommand]
 	private void NavigateToHome()
 	{
-		CurrentPage = new HomeViewModel();
+		CurrentPage = new HomeViewModel(this);
 	}
 
 	[RelayCommand]
@@ -34,5 +34,16 @@ public partial class MainWindowViewModel : ViewModelBase
 	private void NavigateToAssets()
 	{
 		CurrentPage = _assetsViewModel ??= new AssetsViewModel();
+	}
+
+	public void LoadCombination(string spritePath, string thingsPath)
+	{
+		if (_assetsViewModel == null)
+		{
+			_assetsViewModel = new AssetsViewModel();
+		}
+
+		CurrentPage = _assetsViewModel;
+		_assetsViewModel.LoadCombination(spritePath, thingsPath);
 	}
 }

@@ -40,6 +40,14 @@ namespace NyxAssetsEditor.Services.Persistence
 		public class AppStateTomlModel
 		{
 			public AssetsStateModel Assets { get; set; } = new AssetsStateModel();
+			public List<RecentCombinationModel> RecentCombinations { get; set; } = new List<RecentCombinationModel>();
+		}
+
+		public class RecentCombinationModel
+		{
+			public string SpritePath { get; set; } = "";
+			public string ThingsPath { get; set; } = "";
+			public string LastUsed { get; set; } = "";
 		}
 
 		public class AssetsStateModel
@@ -312,6 +320,86 @@ namespace NyxAssetsEditor.Services.Persistence
 			{
 				_isRestoring = false;
 			}
+		}
+
+		public static void AddRecentCombination(string spritePath, string thingsPath)
+		{
+			try
+			{
+				var model = new AppStateTomlModel();
+				if (File.Exists(AppStatePath))
+				{
+					try
+					{
+						string toml = File.ReadAllText(AppStatePath);
+						var existing = TomlSerializer.Deserialize<AppStateTomlModel>(toml);
+						if (existing != null)
+							model = existing;
+					}
+					catch
+					{
+						// Ignore
+					}
+				}
+
+				if (model.RecentCombinations == null)
+					model.RecentCombinations = new List<RecentCombinationModel>();
+
+				// Normalize paths for comparison
+				string normSprite = string.IsNullOrEmpty(spritePath) ? "" : Path.GetFullPath(spritePath);
+				string normThings = string.IsNullOrEmpty(thingsPath) ? "" : Path.GetFullPath(thingsPath);
+
+				// Remove duplicates (case-insensitive comparison)
+				model.RecentCombinations.RemoveAll(rc =>
+				{
+					string s = string.IsNullOrEmpty(rc.SpritePath) ? "" : Path.GetFullPath(rc.SpritePath);
+					string t = string.IsNullOrEmpty(rc.ThingsPath) ? "" : Path.GetFullPath(rc.ThingsPath);
+					return string.Equals(s, normSprite, StringComparison.OrdinalIgnoreCase) &&
+						   string.Equals(t, normThings, StringComparison.OrdinalIgnoreCase);
+				});
+
+				// Insert at beginning
+				model.RecentCombinations.Insert(0, new RecentCombinationModel
+				{
+					SpritePath = spritePath ?? "",
+					ThingsPath = thingsPath ?? "",
+					LastUsed = DateTime.Now.ToString("o")
+				});
+
+				// Keep last 10 entries
+				if (model.RecentCombinations.Count > 10)
+				{
+					model.RecentCombinations.RemoveRange(10, model.RecentCombinations.Count - 10);
+				}
+
+				string serialized = TomlSerializer.Serialize(model);
+				File.WriteAllText(AppStatePath, serialized);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to save recent combination: {ex.Message}");
+			}
+		}
+
+		public static List<RecentCombinationModel> GetRecentCombinations()
+		{
+			try
+			{
+				if (File.Exists(AppStatePath))
+				{
+					string toml = File.ReadAllText(AppStatePath);
+					var model = TomlSerializer.Deserialize<AppStateTomlModel>(toml);
+					if (model != null && model.RecentCombinations != null)
+					{
+						return model.RecentCombinations;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to load recent combinations: {ex.Message}");
+			}
+			return new List<RecentCombinationModel>();
 		}
 	}
 }

@@ -270,6 +270,17 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			UpdatePage();
 			OnPropertyChanged(nameof(IsArchiveLoaded));
 			ParentViewModel?.OnSpriteArchiveLoaded(this);
+
+			if (Loader.SpriteCount > 0)
+			{
+				string spritePath = FilePath ?? "";
+				if (spritePath == "No archive loaded") spritePath = "";
+
+				if (!string.IsNullOrEmpty(spritePath))
+				{
+					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(spritePath, "");
+				}
+			}
 		}
 
 		public async Task CreateNewArchiveAsync(string format, uint clientVersion, bool extendedSpriteIds = true, bool transparentPixels = true)

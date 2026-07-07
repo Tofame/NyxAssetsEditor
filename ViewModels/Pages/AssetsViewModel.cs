@@ -751,5 +751,56 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			CenterDockedPanels.Remove(panel);
 			RightDockedPanels.Remove(panel);
 		}
+
+		public async void LoadCombination(string spritePath, string thingsPath)
+		{
+			FloatingSpriteLoaderViewModel? spritePanel = null;
+			FloatingThingsLoaderViewModel? thingsPanel = null;
+
+			if (!string.IsNullOrEmpty(spritePath))
+			{
+				spritePanel = new FloatingSpriteLoaderViewModel(_renderer)
+				{
+					PageSize = SettingsViewModel.DefaultPageSize,
+					UseTransparentPixels = SettingsViewModel.UseTransparentPixels,
+					UseExtendedSpriteIds = SettingsViewModel.UseExtendedSpriteIds,
+					PositionX = 100,
+					PositionY = 100,
+					IsVisible = true
+				};
+				AddPanel(spritePanel);
+			}
+
+			if (!string.IsNullOrEmpty(thingsPath))
+			{
+				thingsPanel = new FloatingThingsLoaderViewModel(this)
+				{
+					PositionX = 100,
+					PositionY = 100,
+					IsVisible = true
+				};
+				AddPanel(thingsPanel);
+			}
+
+			if (spritePanel != null)
+			{
+				await spritePanel.LoadArchiveAsync(spritePath);
+			}
+
+			if (thingsPanel != null)
+			{
+				if (spritePanel != null)
+				{
+					var thingsFormat = ArchiveFormatHelper.FromPath(thingsPath);
+					if (ArchiveFormatHelper.AreCompatible(spritePanel.ArchiveFormat, thingsFormat))
+					{
+						thingsPanel.LinkedSpritePanel = spritePanel;
+						thingsPanel.NotifySpriteLinkChanged();
+					}
+				}
+
+				await thingsPanel.LoadArchiveAsync(thingsPath, useLastLoadedSprite: spritePanel == null);
+			}
+		}
 	}
 }

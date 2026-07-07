@@ -760,6 +760,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				CurrentPage = 1;
 			else
 				UpdatePage();
+
+			if (_catalog != null)
+			{
+				string spritePath = LinkedSpritePanel?.FilePath ?? "";
+				if (spritePath == "No archive loaded") spritePath = "";
+				string thingsPath = FilePath ?? "";
+				if (thingsPath == "No things loaded") thingsPath = "";
+
+				if (!string.IsNullOrEmpty(thingsPath) || !string.IsNullOrEmpty(spritePath))
+				{
+					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(spritePath, thingsPath);
+				}
+			}
 		}
 
 		private static ThingCatalog ReadCatalogFromFile(string path, ClientDataReadOptions options)
