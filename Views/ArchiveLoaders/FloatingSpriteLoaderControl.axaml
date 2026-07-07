@@ -124,6 +124,8 @@
 									PointerPressed="OnSpritePointerPressed">
 								<Border.ContextMenu>
 									<ContextMenu>
+										<MenuItem Header="Edit in Paint" Command="{Binding EditInPaintCommand}"/>
+										<Separator/>
 										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>
@@ -166,6 +168,8 @@
 							<Border Classes="sprite-list-row" Classes.selected="{Binding IsSelected, Mode=OneWay}" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3" PointerPressed="OnSpritePointerPressed">
 								<Border.ContextMenu>
 									<ContextMenu>
+										<MenuItem Header="Edit in Paint" Command="{Binding EditInPaintCommand}"/>
+										<Separator/>
 										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>

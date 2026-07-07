@@ -32,6 +32,7 @@
 					<Button Content="Home" Command="{Binding NavigateToHomeCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 					<Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 					<Button Content="Assets" Command="{Binding NavigateToAssetsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
+					<Button Content="Paint" Command="{Binding NavigateToPaintCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 				</StackPanel>
 			</Grid>
 		</Border>

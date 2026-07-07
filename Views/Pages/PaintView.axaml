@@ -1,0 +1,232 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+			xmlns:common="using:NyxAssetsEditor.Views.Common"
+			mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
+			x:Class="NyxAssetsEditor.Views.Pages.PaintView"
+			x:DataType="vm:PaintViewModel"
+			Background="#141414">
+
+	<Grid ColumnDefinitions="220, *" Margin="10">
+		<!-- Left Toolbar -->
+		<Border Grid.Column="0" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="15" Margin="0,0,10,0">
+			<Grid RowDefinitions="Auto, Auto, Auto, Auto, *">
+				<!-- Title -->
+				<TextBlock Grid.Row="0" Text="Tools" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,15"/>
+
+				<!-- Tool Selection -->
+				<StackPanel Grid.Row="1" Spacing="8">
+					<RadioButton Content="Brush (Pencil)" IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<RadioButton Content="Eraser" IsChecked="{Binding IsEraserActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<RadioButton Content="Color Picker" IsChecked="{Binding IsPickerActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<RadioButton Content="Fill Bucket" IsChecked="{Binding IsBucketActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<RadioButton Content="Magic Wand" IsChecked="{Binding IsWandActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+				</StackPanel>
+
+				<Separator Grid.Row="2" Margin="0,20" Background="#2D2D2D"/>
+
+				<!-- Brush Size & Settings -->
+				<StackPanel Grid.Row="3" Spacing="10">
+					<TextBlock Text="Brush Size" Foreground="#A0A0A0" FontSize="12"/>
+					<Grid ColumnDefinitions="*, Auto">
+						<Slider Grid.Column="0" Minimum="1" Maximum="8" Value="{Binding BrushSize}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+						<TextBlock Grid.Column="1" Text="{Binding BrushSize}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
+					</Grid>
+
+					<TextBlock Text="Brush Shape" Foreground="#A0A0A0" FontSize="12" Margin="0,5,0,0"/>
+					<StackPanel Spacing="5" Orientation="Horizontal">
+						<RadioButton Content="Square" IsChecked="{Binding IsSquareBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Width="90" HorizontalContentAlignment="Center"/>
+						<RadioButton Content="Circle" IsChecked="{Binding IsCircleBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Width="90" HorizontalContentAlignment="Center"/>
+					</StackPanel>
+
+					<Separator Margin="0,5" Background="#2D2D2D"/>
+					<TextBlock Text="Symmetry drawing" Foreground="#A0A0A0" FontSize="12"/>
+					<CheckBox Content="Copy on Axis X" IsChecked="{Binding CopyOnAxisX}" Foreground="#FFFFFF"/>
+					<CheckBox Content="Copy on Axis Y" IsChecked="{Binding CopyOnAxisY}" Foreground="#FFFFFF"/>
+
+					<Button Content="Clear Selection" Command="{Binding ClearSelection}" IsEnabled="{Binding HasSelection}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,15,0,0"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- Right Canvas Panel -->
+		<Grid Grid.Column="1" RowDefinitions="Auto, *">
+			<!-- Canvas Actions Header -->
+			<Border Grid.Row="0" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+				<Grid ColumnDefinitions="*, Auto">
+					<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+						<Button Content="Mirror Horizontal" Command="{Binding MirrorHorizontalCommand}"/>
+						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
+						<Button Content="Sharpen" Command="{Binding ApplySharpenCommand}"/>
+					</StackPanel>
+					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+						<Button Content="Save to Archive" Command="{Binding SaveCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
+						<Button Content="Cancel" Command="{Binding CancelCommand}"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- Canvas Workspace Layout with Centered Drawing and Absolute Overlays -->
+			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True">
+				<Panel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+					<!-- Transparent checkerboard background simulation -->
+					<Image Source="/Assets/avalonia-logo.ico" Opacity="0.03" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+					<!-- Centered Sprite Canvas Drawing Area -->
+					<Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+						<Border BorderBrush="#444444" BorderThickness="1" Background="#141414">
+							<Viewbox Stretch="Uniform" Height="{Binding ZoomDimension}" Width="{Binding ZoomDimension}">
+								<Image x:Name="CanvasImage"
+									   Source="{Binding CanvasPreview}"
+									   Width="32" Height="32"
+									   RenderOptions.BitmapInterpolationMode="None"
+									   PointerPressed="OnCanvasPointerPressed"
+									   PointerMoved="OnCanvasPointerMoved"
+									   PointerReleased="OnCanvasPointerReleased"
+									   PointerEntered="OnCanvasPointerEntered"
+									   PointerExited="OnCanvasPointerExited"/>
+							</Viewbox>
+						</Border>
+					</Grid>
+
+					<!-- Overlay Canvas for Draggable Controls (Null background allows clicks to pass through) -->
+					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+						<!-- Floating Layers Panel (Top Left) -->
+						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Width="220" Height="220" Padding="12"
+								Canvas.Left="15" Canvas.Top="15"
+								BoxShadow="0 4 12 0 #A0000000">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<Grid RowDefinitions="Auto, Auto, *">
+								<TextBlock Grid.Row="0" Text="Layers" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
+										   Cursor="SizeAll"
+										   PointerPressed="OnPanelHeaderPointerPressed"
+										   PointerMoved="OnPanelHeaderPointerMoved"
+										   PointerReleased="OnPanelHeaderPointerReleased"/>
+								<StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+									<Button Content="+" Command="{Binding AddLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="-" Command="{Binding DeleteLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="▲" Command="{Binding MoveLayerUpCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="▼" Command="{Binding MoveLayerDownCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+								</StackPanel>
+								<ListBox Grid.Row="2" ItemsSource="{Binding Layers}" SelectedItem="{Binding ActiveLayer}" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4">
+									<ListBox.ItemTemplate>
+										<DataTemplate DataType="{x:Type vm:LayerViewModel}">
+											<Grid ColumnDefinitions="Auto, *, Auto">
+												<CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}" Margin="0,0,4,0"/>
+												<TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"/>
+												<Slider Grid.Column="2" Minimum="0" Maximum="1" Value="{Binding Opacity}" Width="50" VerticalAlignment="Center" Margin="4,0,0,0"/>
+											</Grid>
+										</DataTemplate>
+									</ListBox.ItemTemplate>
+								</ListBox>
+							</Grid>
+						</Border>
+
+						<!-- Floating Palette & Colors Panel (Top Right) -->
+						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Width="260" Height="580" Padding="12"
+								Canvas.Left="520" Canvas.Top="15"
+								BoxShadow="0 4 12 0 #A0000000">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<Grid RowDefinitions="Auto, Auto, Auto, Auto, *, Auto, Auto">
+								<TextBlock Grid.Row="0" Text="Palette &amp; Colors" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
+										   Cursor="SizeAll"
+										   PointerPressed="OnPanelHeaderPointerPressed"
+										   PointerMoved="OnPanelHeaderPointerMoved"
+										   PointerReleased="OnPanelHeaderPointerReleased"/>
+								<Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+									<ComboBox ItemsSource="{Binding CustomPalettes}" SelectedItem="{Binding SelectedPalette}" HorizontalAlignment="Stretch" Height="26" FontSize="11">
+										<ComboBox.ItemTemplate>
+											<DataTemplate DataType="{x:Type vm:PaletteViewModel}">
+												<TextBlock Text="{Binding Name}"/>
+											</DataTemplate>
+										</ComboBox.ItemTemplate>
+									</ComboBox>
+									<Button Grid.Column="1" Content="Apply" Command="{Binding ApplySelectedPaletteCommand}" Margin="5,0,0,0" Height="26" FontSize="11" Padding="6,0"/>
+								</Grid>
+								<!-- Palette Creation -->
+								<Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto, Auto" Margin="0,0,0,8">
+									<TextBox Text="{Binding NewPaletteName, Mode=TwoWay}" PlaceholderText="Palette Name" Height="26" FontSize="11" Padding="5,2"/>
+									<Button Grid.Column="1" Content="+" Command="{Binding CreatePaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Create palette"/>
+									<Button Grid.Column="2" Content="R" Command="{Binding RenameSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Rename palette"/>
+									<Button Grid.Column="3" Content="D" Command="{Binding DeleteSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Delete palette"/>
+								</Grid>
+								<!-- Color Picker -->
+								<Border Grid.Row="3" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,8">
+									<StackPanel Spacing="6">
+										<ColorPicker Color="{Binding ActiveColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" HorizontalAlignment="Stretch"/>
+										<Button Content="Add to Palette" Command="{Binding AddColorToPaletteCommand}" HorizontalAlignment="Stretch" Height="22" FontSize="10" Padding="0"/>
+									</StackPanel>
+								</Border>
+								<!-- Colors Grid (Aseprite Style) -->
+								<ScrollViewer Grid.Row="4" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="3">
+									<ItemsControl ItemsSource="{Binding PaletteColors}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<WrapPanel Orientation="Horizontal" MaxWidth="230"/>
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate DataType="{x:Type Color}">
+												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand" BorderBrush="#444444" BorderThickness="1" Tapped="OnPaletteColorTapped">
+													<Border.ContextMenu>
+														<ContextMenu>
+															<MenuItem Header="Set Active" Tapped="OnPaletteColorTapped"/>
+															<MenuItem Header="Delete Color" Command="{Binding $parent[UserControl].DataContext.DeleteColorCommand}" CommandParameter="{Binding}"/>
+														</ContextMenu>
+													</Border.ContextMenu>
+													<Border.Background>
+														<SolidColorBrush Color="{Binding}"/>
+													</Border.Background>
+													<Border.Styles>
+														<Style Selector="Border:pointerover">
+															<Setter Property="BorderBrush" Value="#FFFFFF"/>
+														</Style>
+													</Border.Styles>
+												</Border>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</ScrollViewer>
+								<!-- Color Gradient Tool -->
+								<Border Grid.Row="5" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,8,0,0">
+									<Grid RowDefinitions="Auto, Auto">
+										<TextBlock Grid.Row="0" Text="Gradient Tool (Active ➔ Target)" FontSize="10" Foreground="#A0A0A0" Margin="0,0,0,4"/>
+										<Grid Grid.Row="1" ColumnDefinitions="*, Auto">
+											<ColorPicker Color="{Binding GradientEndColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" Width="140" Height="22"/>
+											<Button Grid.Column="1" Content="Gen (8 steps)" Command="{Binding GenerateGradientCommand}" Margin="4,0,0,0" Height="22" FontSize="9" Padding="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+										</Grid>
+									</Grid>
+								</Border>
+								<!-- Extract Colors -->
+								<Button Grid.Row="6" Content="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}" HorizontalAlignment="Stretch" Height="24" FontSize="10" Padding="0" Margin="0,8,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+							</Grid>
+						</Border>
+
+						<!-- Floating Zoom HUD Panel (Bottom Left, below Layers) -->
+						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Height="38" Padding="6"
+								Canvas.Left="15" Canvas.Top="250"
+								BoxShadow="0 4 12 0 #A0000000">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+								<Button Content="-" Command="{Binding ZoomOutCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+								<TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0}x'}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="4,0" FontSize="10" FontWeight="Bold"/>
+								<Button Content="+" Command="{Binding ZoomInCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+							</StackPanel>
+						</Border>
+					</Canvas>
+				</Panel>
+			</Border>
+		</Grid>
+	</Grid>
+</UserControl>
