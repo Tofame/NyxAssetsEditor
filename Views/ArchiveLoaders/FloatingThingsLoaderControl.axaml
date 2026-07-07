@@ -203,8 +203,26 @@
 				</StackPanel>
 				
 				<StackPanel IsVisible="{Binding !IsArchiveLoaded}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+					<!-- Unsupported Version Error State -->
+					<Border IsVisible="{Binding HasError}"
+							Background="#331A1A"
+							BorderBrush="#FF5E5E"
+							BorderThickness="1.5"
+							CornerRadius="8"
+							Padding="18"
+							Width="340"
+							Cursor="Hand"
+							PointerPressed="OnEmptyStateClick">
+						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<TextBlock Text="Unsupported version" FontWeight="Bold" Foreground="#FF5E5E" FontSize="14" HorizontalAlignment="Center"/>
+							<TextBlock Text="{Binding ErrorMessage}" Foreground="#FF8888" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+							<TextBlock Text="Click to try another file" Foreground="#888888" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+						</StackPanel>
+					</Border>
+
 					<!-- Warning state when Sprites are not loaded -->
-					<Border IsVisible="{Binding !IsSpriteLoaderLoaded}"
+					<Border IsVisible="{Binding ShowSpritesNotLoadedWarning}"
 							Background="#331A1A"
 							BorderBrush="#FF5E5E"
 							BorderThickness="1.5"
@@ -220,7 +238,7 @@
 
 					<!-- Click to Load Dropzone (Visible only when Sprites are loaded) -->
 					<Border Name="EmptyStateDropzone"
-							IsVisible="{Binding IsSpriteLoaderLoaded}"
+							IsVisible="{Binding ShowLoadThingsDropzone}"
 							Background="#22000000"
 							BorderBrush="#5E94FF"
 							BorderThickness="1.5"

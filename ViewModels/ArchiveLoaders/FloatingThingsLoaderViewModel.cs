@@ -302,6 +302,23 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool IsArchiveLoaded => _catalog != null;
 
+		private string? _errorMessage;
+		public string? ErrorMessage
+		{
+			get => _errorMessage;
+			set
+			{
+				if (SetProperty(ref _errorMessage, value))
+				{
+					OnPropertyChanged(nameof(HasError));
+					OnPropertyChanged(nameof(ShowSpritesNotLoadedWarning));
+					OnPropertyChanged(nameof(ShowLoadThingsDropzone));
+				}
+			}
+		}
+
+		public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
 		private bool _isGridView = true;
 
 		public bool IsGridView
@@ -518,15 +535,22 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			GetActiveSpriteLoader() != null
 			|| _parentViewModel?.HasAnyPendingSpriteForThings() == true;
 
+		public bool ShowSpritesNotLoadedWarning => !IsSpriteLoaderLoaded && !HasError;
+		public bool ShowLoadThingsDropzone => IsSpriteLoaderLoaded && !HasError;
+
 		public void NotifySpriteLinkChanged()
 		{
 			OnPropertyChanged(nameof(IsSpriteLoaderLoaded));
+			OnPropertyChanged(nameof(ShowSpritesNotLoadedWarning));
+			OnPropertyChanged(nameof(ShowLoadThingsDropzone));
 			RefreshPreviews();
 		}
 
 		public void RefreshPreviews()
 		{
 			OnPropertyChanged(nameof(IsSpriteLoaderLoaded));
+			OnPropertyChanged(nameof(ShowSpritesNotLoadedWarning));
+			OnPropertyChanged(nameof(ShowLoadThingsDropzone));
 			foreach (var item in PagedThings)
 				item.InvalidatePreview();
 		}
@@ -678,7 +702,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true)
 		{
-			if (UseSuggestedSettings && path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
+			ErrorMessage = null;
+
+			if (path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
 			{
 				uint signature = 0;
 				try
@@ -698,7 +724,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (signature != 0)
 				{
 					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.DatSignature == signature);
-					if (versionEntry != null)
+					if (versionEntry == null)
+					{
+						ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
+						_catalog = null;
+						OnPropertyChanged(nameof(IsArchiveLoaded));
+						return;
+					}
+					else if (UseSuggestedSettings)
 					{
 						var version = new ClientDataVersion { Value = versionEntry.Version };
 						UseExtendedThingIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);

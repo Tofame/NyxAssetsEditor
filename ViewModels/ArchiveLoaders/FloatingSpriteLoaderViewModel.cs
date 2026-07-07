@@ -123,6 +123,21 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool IsArchiveLoaded => Loader.ArchiveKind != SpriteArchiveKind.None;
 
+		private string? _errorMessage;
+		public string? ErrorMessage
+		{
+			get => _errorMessage;
+			set
+			{
+				if (SetProperty(ref _errorMessage, value))
+				{
+					OnPropertyChanged(nameof(HasError));
+				}
+			}
+		}
+
+		public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
 		private bool _isGridView = true;
 
 		public bool IsGridView
@@ -229,7 +244,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path)
 		{
-			if (UseSuggestedSettings && path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
+			ErrorMessage = null;
+
+			if (path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
 			{
 				uint signature = 0;
 				try
@@ -249,7 +266,13 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (signature != 0)
 				{
 					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.SprSignature == signature);
-					if (versionEntry != null)
+					if (versionEntry == null)
+					{
+						ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
+						OnPropertyChanged(nameof(IsArchiveLoaded));
+						return;
+					}
+					else if (UseSuggestedSettings)
 					{
 						var version = new NyxAssets.Things.ClientDataVersion { Value = versionEntry.Version };
 						UseExtendedSpriteIds = NyxAssets.Things.DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);
