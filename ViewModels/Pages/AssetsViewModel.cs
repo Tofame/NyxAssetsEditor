@@ -395,7 +395,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				AddPanel(spritePanel);
 
 				string sprFormat = dialog.Result.Format == "dat" ? "spr" : "assets";
-				await spritePanel.CreateNewArchiveAsync(sprFormat, dialog.Result.UseExtendedSpriteIds, dialog.Result.UseTransparentPixels);
+				await spritePanel.CreateNewArchiveAsync(sprFormat, dialog.Result.ClientVersion, dialog.Result.UseExtendedSpriteIds, dialog.Result.UseTransparentPixels);
 
 				var thingsPanel = new FloatingThingsLoaderViewModel(this)
 				{

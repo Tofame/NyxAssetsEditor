@@ -23,11 +23,15 @@ namespace NyxAssetsEditor.ViewModels.Common
 	{
 		public string DisplayName { get; }
 		public uint Version { get; }
+		public uint DatSignature { get; }
+		public uint SprSignature { get; }
 
-		public ClientVersion(string displayName, uint version)
+		public ClientVersion(string displayName, uint version, uint datSignature, uint sprSignature)
 		{
 			DisplayName = displayName;
 			Version = version;
+			DatSignature = datSignature;
+			SprSignature = sprSignature;
 		}
 
 		private static List<ClientVersion>? _availableVersions;
@@ -58,7 +62,14 @@ namespace NyxAssetsEditor.ViewModels.Common
 					{
 						foreach (var entry in model.versions)
 						{
-							list.Add(new ClientVersion(entry.@string, entry.value));
+							uint datSig = 0;
+							uint sprSig = 0;
+							if (!string.IsNullOrEmpty(entry.dat))
+								uint.TryParse(entry.dat, System.Globalization.NumberStyles.HexNumber, null, out datSig);
+							if (!string.IsNullOrEmpty(entry.spr))
+								uint.TryParse(entry.spr, System.Globalization.NumberStyles.HexNumber, null, out sprSig);
+
+							list.Add(new ClientVersion(entry.@string, entry.value, datSig, sprSig));
 						}
 					}
 					return list;
@@ -69,9 +80,9 @@ namespace NyxAssetsEditor.ViewModels.Common
 				System.Diagnostics.Debug.WriteLine($"Failed to load signatures.toml: {ex.Message}");
 				return new List<ClientVersion>
 				{
-					new ClientVersion("10.98", 1098),
-					new ClientVersion("8.60", 860),
-					new ClientVersion("7.60", 760)
+					new ClientVersion("10.98", 1098, 0, 0),
+					new ClientVersion("8.60", 860, 0, 0),
+					new ClientVersion("7.60", 760, 0, 0)
 				};
 			}
 		}

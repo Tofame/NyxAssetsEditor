@@ -200,8 +200,9 @@
 					<Border Background="#252525" BorderBrush="#353535" BorderThickness="1" CornerRadius="6" Padding="12" Width="340">
 						<StackPanel Spacing="8">
 							<TextBlock Text="Loading Settings" FontSize="11" FontWeight="SemiBold" Foreground="#888888" Margin="0,0,0,4"/>
+							<CheckBox Content="Use Suggested Settings" IsChecked="{Binding UseSuggestedSettings}" FontSize="11" Height="20"/>
 							<CheckBox Content="Transparent Pixels" IsChecked="{Binding UseTransparentPixels}" FontSize="11" Height="20"/>
-							<CheckBox Content="Extended Sprite IDs" IsChecked="{Binding UseExtendedSpriteIds}" FontSize="11" Height="20"/>
+							<CheckBox Content="Extended Sprite IDs" IsChecked="{Binding UseExtendedSpriteIds}" IsEnabled="{Binding !UseSuggestedSettings}" FontSize="11" Height="20"/>
 						</StackPanel>
 					</Border>
 				</StackPanel>

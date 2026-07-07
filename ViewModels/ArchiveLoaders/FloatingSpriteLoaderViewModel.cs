@@ -24,6 +24,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private int _pageSize = 100;
 		private bool _useTransparentPixels = true;
 		private bool _useExtendedSpriteIds = true;
+		private bool _useSuggestedSettings = true;
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
 
@@ -75,6 +76,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					SettingsViewModel.UseTransparentPixels = value;
 				}
 			}
+		}
+
+		public bool UseSuggestedSettings
+		{
+			get => _useSuggestedSettings;
+			set => SetProperty(ref _useSuggestedSettings, value);
 		}
 
 		public bool UseExtendedSpriteIds
@@ -222,6 +229,34 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path)
 		{
+			if (UseSuggestedSettings && path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
+			{
+				uint signature = 0;
+				try
+				{
+					using (var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+					using (var br = new System.IO.BinaryReader(fs))
+					{
+						if (fs.Length >= 4)
+							signature = br.ReadUInt32();
+					}
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Failed to read spr signature: {ex.Message}");
+				}
+
+				if (signature != 0)
+				{
+					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.SprSignature == signature);
+					if (versionEntry != null)
+					{
+						var version = new NyxAssets.Things.ClientDataVersion { Value = versionEntry.Version };
+						UseExtendedSpriteIds = NyxAssets.Things.DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);
+					}
+				}
+			}
+
 			AddedSpriteIds.Clear();
 			RemovedSpriteIds.Clear();
 			ModifiedSpriteIds.Clear();
@@ -237,7 +272,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ParentViewModel?.OnSpriteArchiveLoaded(this);
 		}
 
-		public async Task CreateNewArchiveAsync(string format, bool extendedSpriteIds = true, bool transparentPixels = true)
+		public async Task CreateNewArchiveAsync(string format, uint clientVersion, bool extendedSpriteIds = true, bool transparentPixels = true)
 		{
 			AddedSpriteIds.Clear();
 			RemovedSpriteIds.Clear();
@@ -248,7 +283,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			FilePath = format.ToLower() == "spr" ? "Untitled.spr" : "Untitled.assets";
 
-			await Task.Run(() => Loader.OpenEmptyArchive(format, extendedSpriteIds, transparentPixels)).ConfigureAwait(true);
+			var versionEntry = ClientVersion.AvailableVersions.Find(v => v.Version == clientVersion);
+			uint sprSig = versionEntry?.SprSignature ?? 0U;
+
+			await Task.Run(() => Loader.OpenEmptyArchive(format, sprSig, extendedSpriteIds, transparentPixels)).ConfigureAwait(true);
 
 			TotalSprites = Loader.SpriteCount;
 			CurrentPage = 1;

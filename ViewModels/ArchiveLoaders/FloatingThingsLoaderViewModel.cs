@@ -142,6 +142,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useExtendedThingIds = true;
 		private bool _useFrameAnimations = true;
 		private bool _useFrameGroups = true;
+		private bool _useSuggestedSettings = true;
 		private string _jumpToIdText = string.Empty;
 
 		private ThingKind _selectedSection = ThingKind.Item;
@@ -253,6 +254,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		};
 
 		public FloatingSpriteLoaderViewModel? LinkedSpritePanel { get; set; }
+
+		public bool UseSuggestedSettings
+		{
+			get => _useSuggestedSettings;
+			set => SetProperty(ref _useSuggestedSettings, value);
+		}
 
 		public bool UseExtendedThingIds
 		{
@@ -653,8 +660,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				_ => NyxAssets.Things.DatThingFormat.V6_10_10__10_56
 			};
 
+			var versionEntry = ClientVersion.AvailableVersions.Find(v => v.Version == clientVersion);
 			var catalog = new ThingCatalog();
-			catalog.DatSignature = 0U;
+			catalog.DatSignature = versionEntry?.DatSignature ?? 0U;
 			catalog.DatFormat = datFormat;
 			_catalog = catalog;
 
@@ -670,6 +678,36 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true)
 		{
+			if (UseSuggestedSettings && path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
+			{
+				uint signature = 0;
+				try
+				{
+					using (var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+					using (var br = new System.IO.BinaryReader(fs))
+					{
+						if (fs.Length >= 4)
+							signature = br.ReadUInt32();
+					}
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Failed to read dat signature: {ex.Message}");
+				}
+
+				if (signature != 0)
+				{
+					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.DatSignature == signature);
+					if (versionEntry != null)
+					{
+						var version = new ClientDataVersion { Value = versionEntry.Version };
+						UseExtendedThingIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);
+						UseFrameAnimations = DatThingFormatRules.UsesImprovedAnimationsByDefault(version);
+						UseFrameGroups = DatThingFormatRules.UsesOutfitFrameGroupsByDefault(version);
+					}
+				}
+			}
+
 			AddedThingIds.Clear();
 			RemovedThingIds.Clear();
 			ModifiedThingIds.Clear();

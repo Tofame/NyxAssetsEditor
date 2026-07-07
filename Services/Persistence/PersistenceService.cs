@@ -63,6 +63,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool IsGridView { get; set; } = true;
 			public int PageSize { get; set; } = 100;
 			public int CurrentPage { get; set; } = 1;
+			public bool UseSuggestedSettings { get; set; } = true;
 
 			// Sprite-specific
 			public bool UseTransparentPixels { get; set; } = true;
@@ -175,6 +176,7 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.CurrentPage = spritePanel.CurrentPage;
 						state.UseTransparentPixels = spritePanel.UseTransparentPixels;
 						state.UseExtendedSpriteIds = spritePanel.UseExtendedSpriteIds;
+						state.UseSuggestedSettings = spritePanel.UseSuggestedSettings;
 					}
 					else if (panel is FloatingThingsLoaderViewModel thingsPanel)
 					{
@@ -187,6 +189,7 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.UseFrameAnimations = thingsPanel.UseFrameAnimations;
 						state.UseFrameGroups = thingsPanel.UseFrameGroups;
 						state.LinkedSpriteFilePath = thingsPanel.LinkedSpritePanel?.FilePath ?? "";
+						state.UseSuggestedSettings = thingsPanel.UseSuggestedSettings;
 					}
 
 					model.Assets.Panels.Add(state);
@@ -236,7 +239,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							PageSize = panelState.PageSize,
 							UseTransparentPixels = panelState.UseTransparentPixels,
 							UseExtendedSpriteIds = panelState.UseExtendedSpriteIds,
-							IsDefaultPosition = false
+							IsDefaultPosition = false,
+							UseSuggestedSettings = panelState.UseSuggestedSettings
 						};
 
 						assetsVm.RestorePanel(panel);
@@ -257,7 +261,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							UseExtendedThingIds = panelState.UseExtendedThingIds,
 							UseFrameAnimations = panelState.UseFrameAnimations,
 							UseFrameGroups = panelState.UseFrameGroups,
-							IsDefaultPosition = false
+							IsDefaultPosition = false,
+							UseSuggestedSettings = panelState.UseSuggestedSettings
 						};
 
 						assetsVm.RestorePanel(panel);

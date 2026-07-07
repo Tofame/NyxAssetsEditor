@@ -60,7 +60,7 @@ public class SpriteLoader : IDisposable
         }
     }
 
-    public void OpenEmptyArchive(string format, bool extendedSpriteIds = true, bool transparentPixels = true)
+    public void OpenEmptyArchive(string format, uint sprSignature, bool extendedSpriteIds = true, bool transparentPixels = true)
     {
         ClearArchives();
 
@@ -70,6 +70,7 @@ public class SpriteLoader : IDisposable
         if (format.ToLower() == "spr")
         {
             byte[] header = new byte[8];
+            BitConverter.GetBytes(sprSignature).CopyTo(header, 0);
             _archive_spr = SpriteArchive.Load(header, extendedSpriteIds, transparentPixels, preloadSprites: false);
         }
         else if (format.ToLower() == "assets")
