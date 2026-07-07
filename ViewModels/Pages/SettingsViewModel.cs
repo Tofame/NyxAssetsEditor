@@ -11,6 +11,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public string Description => "This is the dynamically loaded Settings View. Configure your editor options here.";
 
 		public static int DefaultPageSize { get; private set; } = 100;
+		public static int MaxRecentCombinations { get; private set; } = 10;
 
 		private static bool _useTransparentPixels = true;
 		public static bool UseTransparentPixels
@@ -241,9 +242,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int thingEditorGridLineWidth = 1,
 			string? thingEditorDragGridColor = null,
 			int thingEditorDragGridLineWidth = 1,
-			string? thingEditorDragHighlightColor = null)
+			string? thingEditorDragHighlightColor = null,
+			int maxRecentCombinations = 10)
 		{
 			DefaultPageSize = defaultPageSize;
+			MaxRecentCombinations = maxRecentCombinations;
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			_preloadGraphicalAssets = preloadGraphicalAssets;
@@ -329,6 +332,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						ClientVersionChanged?.Invoke(ClientVersion);
 						NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
 					}
+				}
+			}
+		}
+
+		private int _selectedMaxRecentCombinationsIndex = 3; // Index 3 maps to 10
+
+		public int SelectedMaxRecentCombinationsIndex
+		{
+			get => _selectedMaxRecentCombinationsIndex;
+			set
+			{
+				if (_selectedMaxRecentCombinationsIndex != value)
+				{
+					_selectedMaxRecentCombinationsIndex = value;
+					OnPropertyChanged(nameof(SelectedMaxRecentCombinationsIndex));
+
+					int newMax = value switch
+					{
+						0 => 4,
+						1 => 6,
+						2 => 8,
+						3 => 10,
+						4 => 16,
+						5 => 20,
+						_ => 10
+					};
+					MaxRecentCombinations = newMax;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
 				}
 			}
 		}
@@ -445,6 +476,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				96 => 2,
 				128 => 3,
 				_ => 0
+			};
+			_selectedMaxRecentCombinationsIndex = MaxRecentCombinations switch
+			{
+				4 => 0,
+				6 => 1,
+				8 => 2,
+				10 => 3,
+				16 => 4,
+				20 => 5,
+				_ => 3
 			};
 		}
 	}

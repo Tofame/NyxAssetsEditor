@@ -35,6 +35,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string ThingEditorDragGridColor { get; set; } = "#B4FF69B4";
 			public int ThingEditorDragGridLineWidth { get; set; } = 1;
 			public string ThingEditorDragHighlightColor { get; set; } = "#803A7BD5";
+			public int MaxRecentCombinations { get; set; } = 10;
 		}
 
 		public class AppStateTomlModel
@@ -110,7 +111,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ThingEditorGridLineWidth,
 							model.ThingEditorDragGridColor,
 							model.ThingEditorDragGridLineWidth,
-							model.ThingEditorDragHighlightColor);
+							model.ThingEditorDragHighlightColor,
+							model.MaxRecentCombinations);
 					}
 				}
 			}
@@ -142,7 +144,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					ThingEditorGridLineWidth = SettingsViewModel.ThingEditorGridLineWidth,
 					ThingEditorDragGridColor = SettingsViewModel.ThingEditorDragGridColor,
 					ThingEditorDragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
-					ThingEditorDragHighlightColor = SettingsViewModel.ThingEditorDragHighlightColor
+					ThingEditorDragHighlightColor = SettingsViewModel.ThingEditorDragHighlightColor,
+					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);
@@ -383,10 +386,16 @@ namespace NyxAssetsEditor.Services.Persistence
 					LastUsed = DateTime.Now.ToString("o")
 				});
 
-				// Keep last 10 entries
-				if (model.RecentCombinations.Count > 10)
+				// Keep configured entries count
+				int maxCombinations = SettingsViewModel.MaxRecentCombinations;
+				if (maxCombinations < 4 || maxCombinations > 20)
 				{
-					model.RecentCombinations.RemoveRange(10, model.RecentCombinations.Count - 10);
+					maxCombinations = 10;
+				}
+
+				if (model.RecentCombinations.Count > maxCombinations)
+				{
+					model.RecentCombinations.RemoveRange(maxCombinations, model.RecentCombinations.Count - maxCombinations);
 				}
 
 				string serialized = TomlSerializer.Serialize(model);
