@@ -39,6 +39,19 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Undo/Redo Buffer Size:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<ComboBox SelectedIndex="{Binding SelectedUndoLimitIndex}" Width="120" Height="28">
+							<ComboBoxItem Content="5"/>
+							<ComboBoxItem Content="10"/>
+							<ComboBoxItem Content="15"/>
+							<ComboBoxItem Content="20"/>
+						</ComboBox>
+						<TextBlock Text="Maximum number of undo actions remembered in editing panels."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 

@@ -17,6 +17,22 @@ namespace NyxAssetsEditor.Services.Persistence
 
 		private static bool _isRestoring;
 
+		static PersistenceService()
+		{
+			try
+			{
+				string tempUndoDir = Path.Combine(AppContext.BaseDirectory, "temp_undo");
+				if (Directory.Exists(tempUndoDir))
+				{
+					Directory.Delete(tempUndoDir, true);
+				}
+			}
+			catch
+			{
+				// Ignore
+			}
+		}
+
 		public class SettingsTomlModel
 		{
 			public int DefaultPageSize { get; set; } = 100;
@@ -36,6 +52,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int ThingEditorDragGridLineWidth { get; set; } = 1;
 			public string ThingEditorDragHighlightColor { get; set; } = "#803A7BD5";
 			public int MaxRecentCombinations { get; set; } = 10;
+			public int UndoLimit { get; set; } = 10;
 		}
 
 		public class AppStateTomlModel
@@ -112,7 +129,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ThingEditorDragGridColor,
 							model.ThingEditorDragGridLineWidth,
 							model.ThingEditorDragHighlightColor,
-							model.MaxRecentCombinations);
+							model.MaxRecentCombinations,
+							model.UndoLimit);
 					}
 				}
 			}
@@ -145,7 +163,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					ThingEditorDragGridColor = SettingsViewModel.ThingEditorDragGridColor,
 					ThingEditorDragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
 					ThingEditorDragHighlightColor = SettingsViewModel.ThingEditorDragHighlightColor,
-					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations
+					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations,
+					UndoLimit = SettingsViewModel.UndoLimit
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);

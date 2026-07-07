@@ -12,6 +12,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public static int DefaultPageSize { get; private set; } = 100;
 		public static int MaxRecentCombinations { get; private set; } = 10;
+		public static int UndoLimit { get; private set; } = 10;
 
 		private static bool _useTransparentPixels = true;
 		public static bool UseTransparentPixels
@@ -243,10 +244,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			string? thingEditorDragGridColor = null,
 			int thingEditorDragGridLineWidth = 1,
 			string? thingEditorDragHighlightColor = null,
-			int maxRecentCombinations = 10)
+			int maxRecentCombinations = 10,
+			int undoLimit = 10)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
+			UndoLimit = undoLimit;
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			_preloadGraphicalAssets = preloadGraphicalAssets;
@@ -359,6 +362,32 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						_ => 10
 					};
 					MaxRecentCombinations = newMax;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private int _selectedUndoLimitIndex = 1; // Index 1 maps to 10
+
+		public int SelectedUndoLimitIndex
+		{
+			get => _selectedUndoLimitIndex;
+			set
+			{
+				if (_selectedUndoLimitIndex != value)
+				{
+					_selectedUndoLimitIndex = value;
+					OnPropertyChanged(nameof(SelectedUndoLimitIndex));
+
+					int newLimit = value switch
+					{
+						0 => 5,
+						1 => 10,
+						2 => 15,
+						3 => 20,
+						_ => 10
+					};
+					UndoLimit = newLimit;
 					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
 				}
 			}
@@ -486,6 +515,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				16 => 4,
 				20 => 5,
 				_ => 3
+			};
+			_selectedUndoLimitIndex = UndoLimit switch
+			{
+				5 => 0,
+				10 => 1,
+				15 => 2,
+				20 => 3,
+				_ => 1
 			};
 		}
 	}

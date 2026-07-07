@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -144,6 +145,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useFrameGroups = true;
 		private bool _useSuggestedSettings = true;
 		private string _jumpToIdText = string.Empty;
+		private Services.Archive.UndoRedoStack<string>? _undoRedoStack;
 
 		private ThingKind _selectedSection = ThingKind.Item;
 
@@ -418,6 +420,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			SettingsViewModel.ClientVersionChanged += OnClientVersionChanged;
 			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;
 			ResetSettingsToDefaults();
+			_undoRedoStack = new Services.Archive.UndoRedoStack<string>(SettingsViewModel.UndoLimit);
 		}
 
 		private void OnThingIdOffsetChanged(uint newOffset)
@@ -441,6 +444,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			SettingsViewModel.ThingIdOffsetChanged -= OnThingIdOffsetChanged;
 			SettingsViewModel.ClientVersionChanged -= OnClientVersionChanged;
 			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
+			_undoRedoStack?.Clear();
 		}
 
 		private void OnAssetDisplaySizeChanged(int newSize)
@@ -559,6 +563,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			if (_catalog == null)
 				return;
+
+			PushUndoState();
 
 			switch (thing.Kind)
 			{
@@ -702,6 +708,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true)
 		{
+			_undoRedoStack?.Clear();
+			RefreshUndoRedoCommands();
+
 			ErrorMessage = null;
 
 			if (path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
@@ -952,6 +961,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (_catalog == null)
 				return;
 
+			PushUndoState();
+
 			var loader = GetActiveSpriteLoader();
 			try
 			{
@@ -990,6 +1001,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			if (_catalog == null)
 				return;
+
+			PushUndoState();
 
 			var loader = GetActiveSpriteLoader();
 			if (loader == null)
@@ -1044,6 +1057,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public void RemoveThings(IEnumerable<ThingItemViewModel> things)
 		{
 			if (_catalog == null) return;
+
+			PushUndoState();
 
 			var itemsList = things.ToList();
 			if (itemsList.Count == 0) return;
@@ -1214,9 +1229,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private void NewThing()
 		{
 			if (_catalog == null) return;
-			
+
 			try
 			{
+				PushUndoState();
+
 				var kind = SelectedSection;
 				var newId = ThingExchangeHelper.GetNextAppendId(_catalog, kind);
 				
@@ -1321,6 +1338,109 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				return asDisplayed;
 
 			return enteredId;
+		}
+
+		private string SaveSnapshot()
+		{
+			if (_catalog == null)
+				throw new InvalidOperationException("No catalog is loaded.");
+
+			string tempDir = Path.Combine(AppContext.BaseDirectory, "temp_undo", Guid.NewGuid().ToString());
+			Directory.CreateDirectory(tempDir);
+			string ext = FilePath.EndsWith(".things", StringComparison.OrdinalIgnoreCase) ? ".things" : ".dat";
+			string path = Path.Combine(tempDir, "snapshot" + ext);
+
+			var options = GetWriteOptions();
+			if (ext == ".things")
+			{
+				_catalog.ExportJson(path, options);
+			}
+			else
+			{
+				using var datStream = File.Create(path);
+				_catalog.WriteDatTo(datStream, options);
+			}
+			return path;
+		}
+
+		private async Task RestoreSnapshot(string snapshotPath)
+		{
+			var options = GetWriteOptions();
+			_catalog = await Task.Run(() => ReadCatalogFromFile(snapshotPath, options)).ConfigureAwait(true);
+			ReloadThingsForSection();
+			OnPropertyChanged(nameof(IsArchiveLoaded));
+			HasSavedChanges = true;
+		}
+
+		private void PushUndoState()
+		{
+			if (_catalog == null)
+				return;
+
+			if (_undoRedoStack == null)
+			{
+				_undoRedoStack = new Services.Archive.UndoRedoStack<string>(SettingsViewModel.UndoLimit);
+			}
+
+			try
+			{
+				string snapshot = SaveSnapshot();
+				_undoRedoStack.Push(snapshot);
+				RefreshUndoRedoCommands();
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to save undo snapshot: {ex.Message}");
+			}
+		}
+
+		[RelayCommand(CanExecute = nameof(CanUndo))]
+		private async Task UndoAsync()
+		{
+			if (_undoRedoStack == null || _catalog == null)
+				return;
+
+			string currentSnapshot = SaveSnapshot();
+			string? prevSnapshot = _undoRedoStack.Undo(currentSnapshot);
+			if (prevSnapshot != null)
+			{
+				await RestoreSnapshot(prevSnapshot);
+				try { File.Delete(prevSnapshot); Directory.Delete(Path.GetDirectoryName(prevSnapshot)!, true); } catch {}
+			}
+			else
+			{
+				try { File.Delete(currentSnapshot); Directory.Delete(Path.GetDirectoryName(currentSnapshot)!, true); } catch {}
+			}
+			RefreshUndoRedoCommands();
+		}
+
+		[RelayCommand(CanExecute = nameof(CanRedo))]
+		private async Task RedoAsync()
+		{
+			if (_undoRedoStack == null || _catalog == null)
+				return;
+
+			string currentSnapshot = SaveSnapshot();
+			string? nextSnapshot = _undoRedoStack.Redo(currentSnapshot);
+			if (nextSnapshot != null)
+			{
+				await RestoreSnapshot(nextSnapshot);
+				try { File.Delete(nextSnapshot); Directory.Delete(Path.GetDirectoryName(nextSnapshot)!, true); } catch {}
+			}
+			else
+			{
+				try { File.Delete(currentSnapshot); Directory.Delete(Path.GetDirectoryName(currentSnapshot)!, true); } catch {}
+			}
+			RefreshUndoRedoCommands();
+		}
+
+		private bool CanUndo() => _undoRedoStack?.UndoCount > 0;
+		private bool CanRedo() => _undoRedoStack?.RedoCount > 0;
+
+		public void RefreshUndoRedoCommands()
+		{
+			UndoCommand.NotifyCanExecuteChanged();
+			RedoCommand.NotifyCanExecuteChanged();
 		}
 	}
 }

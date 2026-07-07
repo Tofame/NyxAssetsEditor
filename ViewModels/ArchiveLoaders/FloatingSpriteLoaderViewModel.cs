@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -27,6 +28,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useSuggestedSettings = true;
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
+		private Services.Archive.UndoRedoStack<string>? _undoRedoStack;
 
 		private bool _hasSavedChanges;
 		public bool HasSavedChanges
@@ -238,12 +240,23 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			_renderer = renderer;
 			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;
+			_undoRedoStack = new Services.Archive.UndoRedoStack<string>(SettingsViewModel.UndoLimit);
+		}
+
+		public void Dispose()
+		{
+			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
+			_undoRedoStack?.Clear();
+			Loader.Dispose();
 		}
 
 		public void LoadArchive(string path) => _ = LoadArchiveAsync(path);
 
 		public async Task LoadArchiveAsync(string path)
 		{
+			_undoRedoStack?.Clear();
+			RefreshUndoRedoCommands();
+
 			ErrorMessage = null;
 
 			if (path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
@@ -438,6 +451,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (targets.Count == 0 || clipboard.Count == 0)
 				return;
 
+			PushUndoState();
+
 			for (var i = 0; i < targets.Count; i++)
 			{
 				var pixels = clipboard[Math.Min(i, clipboard.Count - 1)];
@@ -475,6 +490,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void ReplaceSpritePixels(IEnumerable<SpriteViewModel> sprites, byte[] rgba)
 		{
+			PushUndoState();
+
 			foreach (var sprite in sprites)
 			{
 				Loader.SetSpritePixels(sprite.Id, rgba);
@@ -501,6 +518,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			var ids = sprites.Select(s => s.Id).Distinct().OrderByDescending(id => id).ToList();
 			if (ids.Count == 0)
 				return;
+
+			PushUndoState();
 
 			foreach (var id in ids)
 			{
@@ -531,6 +550,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand(CanExecute = nameof(IsArchiveLoaded))]
 		private void NewSprite()
 		{
+			PushUndoState();
+
 			Loader.AddNewSprite();
 			TotalSprites = Loader.SpriteCount;
 			AddedSpriteIds.Add(TotalSprites);
@@ -679,11 +700,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			RequestSaveAs?.Invoke(this, EventArgs.Empty);
 		}
 
-		public void Dispose()
-		{
-			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
-			Loader.Dispose();
-		}
+
 
 		private void OnAssetDisplaySizeChanged(int newSize)
 		{
@@ -691,6 +708,106 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			OnPropertyChanged(nameof(ListBorderWidthHeight));
 			OnPropertyChanged(nameof(GridTileWidth));
 			OnPropertyChanged(nameof(GridTileHeight));
+		}
+
+		private string SaveSnapshot()
+		{
+			string tempDir = Path.Combine(AppContext.BaseDirectory, "temp_undo", Guid.NewGuid().ToString());
+			Directory.CreateDirectory(tempDir);
+			string ext = FilePath.EndsWith(".assets", StringComparison.OrdinalIgnoreCase) ? ".assets" : ".spr";
+			string path = Path.Combine(tempDir, "snapshot" + ext);
+
+			if (ext == ".spr")
+			{
+				Loader.WriteSprTo(path);
+			}
+			else
+			{
+				Loader.WriteAssetsTo(path);
+			}
+			return path;
+		}
+
+		private async Task RestoreSnapshot(string snapshotPath)
+		{
+			await Task.Run(() =>
+				Loader.OpenArchive(snapshotPath, extendedSpriteIds: UseExtendedSpriteIds, transparentPixels: UseTransparentPixels))
+				.ConfigureAwait(true);
+			TotalSprites = Loader.SpriteCount;
+			UpdatePage();
+			OnPropertyChanged(nameof(IsArchiveLoaded));
+			HasSavedChanges = true;
+		}
+
+		private void PushUndoState()
+		{
+			if (!IsArchiveLoaded)
+				return;
+
+			if (_undoRedoStack == null)
+			{
+				_undoRedoStack = new Services.Archive.UndoRedoStack<string>(SettingsViewModel.UndoLimit);
+			}
+
+			try
+			{
+				string snapshot = SaveSnapshot();
+				_undoRedoStack.Push(snapshot);
+				RefreshUndoRedoCommands();
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to save undo snapshot: {ex.Message}");
+			}
+		}
+
+		[RelayCommand(CanExecute = nameof(CanUndo))]
+		private async Task UndoAsync()
+		{
+			if (_undoRedoStack == null || !IsArchiveLoaded)
+				return;
+
+			string currentSnapshot = SaveSnapshot();
+			string? prevSnapshot = _undoRedoStack.Undo(currentSnapshot);
+			if (prevSnapshot != null)
+			{
+				await RestoreSnapshot(prevSnapshot);
+				try { File.Delete(prevSnapshot); Directory.Delete(Path.GetDirectoryName(prevSnapshot)!, true); } catch {}
+			}
+			else
+			{
+				try { File.Delete(currentSnapshot); Directory.Delete(Path.GetDirectoryName(currentSnapshot)!, true); } catch {}
+			}
+			RefreshUndoRedoCommands();
+		}
+
+		[RelayCommand(CanExecute = nameof(CanRedo))]
+		private async Task RedoAsync()
+		{
+			if (_undoRedoStack == null || !IsArchiveLoaded)
+				return;
+
+			string currentSnapshot = SaveSnapshot();
+			string? nextSnapshot = _undoRedoStack.Redo(currentSnapshot);
+			if (nextSnapshot != null)
+			{
+				await RestoreSnapshot(nextSnapshot);
+				try { File.Delete(nextSnapshot); Directory.Delete(Path.GetDirectoryName(nextSnapshot)!, true); } catch {}
+			}
+			else
+			{
+				try { File.Delete(currentSnapshot); Directory.Delete(Path.GetDirectoryName(currentSnapshot)!, true); } catch {}
+			}
+			RefreshUndoRedoCommands();
+		}
+
+		private bool CanUndo() => _undoRedoStack?.UndoCount > 0;
+		private bool CanRedo() => _undoRedoStack?.RedoCount > 0;
+
+		public void RefreshUndoRedoCommands()
+		{
+			UndoCommand.NotifyCanExecuteChanged();
+			RedoCommand.NotifyCanExecuteChanged();
 		}
 	}
 }
