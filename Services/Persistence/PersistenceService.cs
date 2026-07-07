@@ -160,6 +160,23 @@ namespace NyxAssetsEditor.Services.Persistence
 			{
 				var model = new AppStateTomlModel();
 
+				if (File.Exists(AppStatePath))
+				{
+					try
+					{
+						string existingToml = File.ReadAllText(AppStatePath);
+						var existing = TomlSerializer.Deserialize<AppStateTomlModel>(existingToml);
+						if (existing?.RecentCombinations != null)
+						{
+							model.RecentCombinations = existing.RecentCombinations;
+						}
+					}
+					catch
+					{
+						// Ignore
+					}
+				}
+
 				foreach (var panel in assetsVm.ActivePanels)
 				{
 					// Only persist docked panels

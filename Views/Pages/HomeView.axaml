@@ -29,7 +29,7 @@
 					</ItemsControl.ItemsPanel>
 					<ItemsControl.ItemTemplate>
 						<DataTemplate x:DataType="vm:RecentCombinationItemViewModel">
-							<Button Command="{Binding LoadCommand}" Background="#1E1E1E" BorderThickness="1" BorderBrush="#2D2D2D" CornerRadius="8" Margin="0,0,12,12" Padding="14,12" HorizontalAlignment="Left" VerticalAlignment="Top" Width="280">
+							<Button Command="{Binding LoadCommand}" ToolTip.Tip="{Binding ToolTipText}" Background="#1E1E1E" BorderThickness="1" BorderBrush="#2D2D2D" CornerRadius="8" Margin="0,0,12,12" Padding="14,12" HorizontalAlignment="Left" VerticalAlignment="Top" Width="280">
 								<Button.Styles>
 									<Style Selector="Button:pointerover">
 										<Setter Property="Background" Value="#252525"/>

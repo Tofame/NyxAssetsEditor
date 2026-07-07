@@ -13,6 +13,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public string DisplayName { get; }
 		public string DetailsText { get; }
+		public string ToolTipText { get; }
 		public bool HasBoth => !string.IsNullOrEmpty(SpritePath) && !string.IsNullOrEmpty(ThingsPath);
 		public bool HasSpriteOnly => !string.IsNullOrEmpty(SpritePath) && string.IsNullOrEmpty(ThingsPath);
 		public bool HasThingsOnly => string.IsNullOrEmpty(SpritePath) && !string.IsNullOrEmpty(ThingsPath);
@@ -29,23 +30,57 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (!string.IsNullOrEmpty(sprName) && !string.IsNullOrEmpty(datName))
 			{
 				DisplayName = $"{datName} + {sprName}";
-				DetailsText = Path.GetDirectoryName(thingsPath) ?? "";
+				string dir = Path.GetDirectoryName(thingsPath) ?? "";
+				DetailsText = CompactPath(dir);
+				ToolTipText = $"DAT: {thingsPath}\nSPR: {spritePath}";
 			}
 			else if (!string.IsNullOrEmpty(datName))
 			{
 				DisplayName = datName;
-				DetailsText = Path.GetDirectoryName(thingsPath) ?? "";
+				string dir = Path.GetDirectoryName(thingsPath) ?? "";
+				DetailsText = CompactPath(dir);
+				ToolTipText = $"DAT: {thingsPath}";
 			}
 			else if (!string.IsNullOrEmpty(sprName))
 			{
 				DisplayName = sprName;
-				DetailsText = Path.GetDirectoryName(spritePath) ?? "";
+				string dir = Path.GetDirectoryName(spritePath) ?? "";
+				DetailsText = CompactPath(dir);
+				ToolTipText = $"SPR: {spritePath}";
 			}
 			else
 			{
 				DisplayName = "Unknown Archive";
 				DetailsText = "";
+				ToolTipText = "";
 			}
+		}
+
+		private static string CompactPath(string path, int maxLength = 35)
+		{
+			if (string.IsNullOrEmpty(path))
+				return "";
+
+			if (path.Length <= maxLength)
+				return path;
+
+			var separator = Path.DirectorySeparatorChar;
+			var parts = path.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, System.StringSplitOptions.RemoveEmptyEntries);
+			if (parts.Length == 0)
+				return path;
+
+			string result = parts[parts.Length - 1];
+			for (int i = parts.Length - 2; i >= 0; i--)
+			{
+				string candidate = parts[i] + separator + result;
+				if (($"...{separator}{candidate}").Length > maxLength)
+				{
+					break;
+				}
+				result = candidate;
+			}
+
+			return $"...{separator}{result}";
 		}
 
 		[RelayCommand]
