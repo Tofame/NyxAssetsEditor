@@ -13,6 +13,7 @@ namespace NyxAssetsEditor.ViewModels.Core
 		private double _panelWidth = 430;
 		private double _contentHeight = 500;
 		private string _dockState = "Floating";
+		private bool _isDefaultPosition = true;
 
 		public event Action<PanelViewModelBase>? RequestClose;
 		public event Action<PanelViewModelBase>? RequestDockStateChanged;
@@ -45,6 +46,12 @@ namespace NyxAssetsEditor.ViewModels.Core
 		{
 			get => _positionY;
 			set => SetProperty(ref _positionY, value);
+		}
+
+		public bool IsDefaultPosition
+		{
+			get => _isDefaultPosition;
+			set => SetProperty(ref _isDefaultPosition, value);
 		}
 
 		public double PanelWidth

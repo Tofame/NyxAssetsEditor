@@ -350,6 +350,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						0 => 50,
 						1 => 100,
 						2 => 200,
+						3 => 500,
+						4 => 1000,
 						_ => 100
 					};
 					DefaultPageSize = newSize;
@@ -425,6 +427,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				50 => 0,
 				100 => 1,
 				200 => 2,
+				500 => 3,
+				1000 => 4,
 				_ => 1
 			};
 			_selectedVersionIndex = ClientVersion switch

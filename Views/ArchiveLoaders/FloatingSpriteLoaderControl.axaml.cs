@@ -151,24 +151,39 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			if (DataContext is FloatingSpriteLoaderViewModel vm)
 			{
-				if (vm.PositionX == 100)
+				if (vm.IsDefaultPosition)
 				{
 					var canvasVisual = GetParentCanvas();
 					if (canvasVisual != null)
 					{
-						double canvasWidth = canvasVisual.Bounds.Width;
-						if (canvasWidth > 0)
+						void CenterPanel()
 						{
-							vm.PositionX = canvasWidth - vm.PanelWidth - 20;
+							double canvasWidth = canvasVisual.Bounds.Width;
+							double canvasHeight = canvasVisual.Bounds.Height;
+							if (canvasWidth > 0 && canvasHeight > 0)
+							{
+								vm.PositionX = (canvasWidth - vm.PanelWidth) / 2;
+								vm.PositionY = (canvasHeight - vm.ContentHeight) / 2;
+								vm.IsDefaultPosition = false;
+							}
+						}
+
+						if (canvasVisual.Bounds.Width > 0 && canvasVisual.Bounds.Height > 0)
+						{
+							CenterPanel();
 						}
 						else
 						{
-							vm.PositionX = 600;
+							canvasVisual.SizeChanged += OnCanvasSizeChanged;
+							void OnCanvasSizeChanged(object? sender, SizeChangedEventArgs args)
+							{
+								if (args.NewSize.Width > 0 && args.NewSize.Height > 0)
+								{
+									canvasVisual.SizeChanged -= OnCanvasSizeChanged;
+									CenterPanel();
+								}
+							}
 						}
-					}
-					else
-					{
-						vm.PositionX = 600;
 					}
 				}
 
@@ -469,14 +484,14 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			}
 		}
 
-		private Visual? GetParentCanvas()
+		private Canvas? GetParentCanvas()
 		{
 			Visual? canvasVisual = this;
 			while (canvasVisual != null && canvasVisual is not Canvas)
 			{
 				canvasVisual = canvasVisual.GetVisualParent();
 			}
-			return canvasVisual;
+			return canvasVisual as Canvas;
 		}
 
 		private async void OnSaveAsRequested(object? sender, EventArgs e)

@@ -364,7 +364,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 		}
 
-		public int[] AvailablePageSizes { get; } = { 25, 50, 100, 200 };
+		public int[] AvailablePageSizes { get; } = { 25, 50, 100, 200, 500, 1000 };
 
 		public bool HasThingSelection => GetSelectedThings().Count > 0;
 		public int SelectedThingCount => GetSelectedThings().Count;

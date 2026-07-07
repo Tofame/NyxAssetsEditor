@@ -90,7 +90,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		}
 
 
-		public int[] AvailablePageSizes { get; } = { 50, 100, 200, 300 };
+		public int[] AvailablePageSizes { get; } = { 50, 100, 200, 300, 500, 1000 };
 
 		public bool ShowSaveConfirmation
 		{

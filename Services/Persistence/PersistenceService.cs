@@ -235,7 +235,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							IsGridView = panelState.IsGridView,
 							PageSize = panelState.PageSize,
 							UseTransparentPixels = panelState.UseTransparentPixels,
-							UseExtendedSpriteIds = panelState.UseExtendedSpriteIds
+							UseExtendedSpriteIds = panelState.UseExtendedSpriteIds,
+							IsDefaultPosition = false
 						};
 
 						assetsVm.RestorePanel(panel);
@@ -255,7 +256,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							PageSize = panelState.PageSize,
 							UseExtendedThingIds = panelState.UseExtendedThingIds,
 							UseFrameAnimations = panelState.UseFrameAnimations,
-							UseFrameGroups = panelState.UseFrameGroups
+							UseFrameGroups = panelState.UseFrameGroups,
+							IsDefaultPosition = false
 						};
 
 						assetsVm.RestorePanel(panel);

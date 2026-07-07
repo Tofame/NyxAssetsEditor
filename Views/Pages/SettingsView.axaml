@@ -37,6 +37,8 @@
 							<ComboBoxItem Content="50"/>
 							<ComboBoxItem Content="100"/>
 							<ComboBoxItem Content="200"/>
+							<ComboBoxItem Content="500"/>
+							<ComboBoxItem Content="1000"/>
 						</ComboBox>
 						<TextBlock Text="Number of sprites shown per page in the viewer."
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"

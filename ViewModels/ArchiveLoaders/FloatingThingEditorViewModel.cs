@@ -18,8 +18,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
 public partial class FloatingThingEditorViewModel : PanelViewModelBase
 {
-	public bool IsDefaultPosition { get; set; } = true;
-
 	private readonly SpriteRenderer _renderer = new();
 	private WriteableBitmap? _appearanceImage;
 	private int _selectedFrameGroupIndex;
