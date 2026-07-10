@@ -35,6 +35,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			get => _isSelected;
 			set => SetProperty(ref _isSelected, value);
 		}
+		public bool CanBatchEdit => IsSelected && _panel.GetSelectedThings().Count > 1;
+		public void NotifySelectionContextChanged() => OnPropertyChanged(nameof(CanBatchEdit));
 
 		public Avalonia.Media.Imaging.WriteableBitmap? PreviewImage
 		{
@@ -76,7 +78,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private void Replace() => WithSelection(_panel.RequestReplaceThings, _panel.RequestReplaceThing);
 
 		[RelayCommand]
-		private void Edit() => WithSelection(_panel.RequestEditThings, _panel.RequestEditThing);
+		private void Edit()
+		{
+			var selected = _panel.GetSelectedThings();
+			if (selected.Count > 1 && selected.Any(t => t.Id == Id))
+				_panel.OpenMultiThingEditor(selected);
+			else
+				_ = _panel.OpenThingEditor(this);
+		}
 
 		[RelayCommand]
 		private void OpenInNewWindow() => WithSelection(
@@ -395,6 +404,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool HasThingSelection => GetSelectedThings().Count > 0;
 		public int SelectedThingCount => GetSelectedThings().Count;
+		public bool HasMultipleThingSelection => SelectedThingCount > 1;
 
 		public int AssetDisplaySize => SettingsViewModel.AssetDisplaySize;
 		public int ListBorderWidthHeight => AssetDisplaySize + 4;
@@ -598,6 +608,32 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			EndThingTransaction(new[] { (thing.Kind, thing.Id) });
 		}
 
+		public void ApplyThingEdits(IEnumerable<ThingType> things)
+		{
+			if (_catalog == null) return;
+			var edits = things.ToList();
+			if (edits.Count == 0) return;
+			var affected = edits.Select(t => (t.Kind, t.Id)).ToList();
+			StartThingTransaction(affected);
+
+			foreach (var thing in edits)
+			{
+				switch (thing.Kind)
+				{
+					case ThingKind.Item: _catalog.PutItem(thing); break;
+					case ThingKind.Outfit: _catalog.PutOutfit(thing); break;
+					case ThingKind.Effect: _catalog.PutEffect(thing); break;
+					case ThingKind.Missile: _catalog.PutMissile(thing); break;
+				}
+				if (!AddedThingIds.Contains(thing.Id)) ModifiedThingIds.Add(thing.Id);
+				SyncThingInList(thing, replaceExisting: true);
+				PagedThings.FirstOrDefault(t => t.Id == thing.Id)?.InvalidatePreview();
+			}
+
+			HasSavedChanges = true;
+			EndThingTransaction(affected);
+		}
+
 		private bool _hasSavedChanges;
 		public bool HasSavedChanges
 		{
@@ -643,6 +679,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_parentViewModel != null
 				? _parentViewModel.OpenThingEditor(this, item.Id, newWindow)
 				: System.Threading.Tasks.Task.CompletedTask;
+
+		public void OpenMultiThingEditor(IEnumerable<ThingItemViewModel> items) =>
+			_parentViewModel?.OpenMultiThingEditor(this, items.Select(i => i.Id));
 
 		private IEnumerable<ThingType> EnumerateSelectedSection()
 		{
@@ -904,6 +943,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			OnPropertyChanged(nameof(HasThingSelection));
 			OnPropertyChanged(nameof(SelectedThingCount));
+			OnPropertyChanged(nameof(HasMultipleThingSelection));
+			foreach (var item in PagedThings)
+				item.NotifySelectionContextChanged();
 			ImportThingCommand.NotifyCanExecuteChanged();
 			ExportSelectedPngCommand.NotifyCanExecuteChanged();
 			ExportSelectedJpegCommand.NotifyCanExecuteChanged();
@@ -926,18 +968,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				return;
 
 			RequestThingFileDialog?.Invoke(this, new ThingFileRequestEventArgs(list, "replace"));
-		}
-
-		public void RequestEditThing(ThingItemViewModel thing) =>
-			RequestEditThings(new[] { thing });
-
-		public void RequestEditThings(IEnumerable<ThingItemViewModel> things)
-		{
-			var list = things.ToList();
-			if (list.Count == 0)
-				return;
-
-			RequestThingFileDialog?.Invoke(this, new ThingFileRequestEventArgs(list, "nyx-thing"));
 		}
 
 		public void RequestExportThing(ThingItemViewModel thing, string format) =>
@@ -1216,8 +1246,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand(CanExecute = nameof(HasThingSelection))]
 		private void RemoveSelectedThings() => RemoveThings(GetSelectedThings());
 
-		[RelayCommand(CanExecute = nameof(HasThingSelection))]
-		private void EditSelectedThings() => RequestEditThings(GetSelectedThings());
+		[RelayCommand(CanExecute = nameof(HasMultipleThingSelection))]
+		private void EditSelectedThings() => OpenMultiThingEditor(GetSelectedThings());
 
 		[RelayCommand(CanExecute = nameof(HasThingSelection))]
 		private void ReplaceSelectedThings() => RequestReplaceThings(GetSelectedThings());

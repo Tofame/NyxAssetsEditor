@@ -147,7 +147,8 @@
 										</MenuItem>
 										<Separator/>
 										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
-										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}" IsVisible="{Binding !CanBatchEdit}"/>
+										<MenuItem Header="Edit selected..." Command="{Binding EditCommand}" IsVisible="{Binding CanBatchEdit}"/>
 										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
 									</ContextMenu>
@@ -196,7 +197,8 @@
 										</MenuItem>
 										<Separator/>
 										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
-										<MenuItem Header="Edit" Command="{Binding EditCommand}"/>
+										<MenuItem Header="Edit" Command="{Binding EditCommand}" IsVisible="{Binding !CanBatchEdit}"/>
+										<MenuItem Header="Edit selected..." Command="{Binding EditCommand}" IsVisible="{Binding CanBatchEdit}"/>
 										<MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}"/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
 									</ContextMenu>

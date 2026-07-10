@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -524,6 +525,23 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				IsVisible = true,
 			};
 			AddPanel(panel);
+		}
+
+		public void OpenMultiThingEditor(FloatingThingsLoaderViewModel source, IEnumerable<uint> thingIds)
+		{
+			var things = thingIds.Distinct().Select(source.GetThingType).Where(t => t != null).Cast<NyxAssets.Things.ThingType>().ToList();
+			if (things.Count < 2) return;
+
+			var existing = ActivePanels.OfType<FloatingMultiThingEditorViewModel>()
+				.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, source));
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				return;
+			}
+
+			AddPanel(new FloatingMultiThingEditorViewModel(source, things));
 		}
 
 		private string? _dragOverZone;

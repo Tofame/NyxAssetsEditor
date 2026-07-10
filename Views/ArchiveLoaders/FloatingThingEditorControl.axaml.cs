@@ -1,11 +1,13 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
@@ -141,6 +143,8 @@ public partial class FloatingThingEditorControl : UserControl
 	{
 		if (_vm == null || string.IsNullOrEmpty(e.PropertyName))
 			return;
+		if (e.PropertyName == nameof(FloatingThingEditorViewModel.IsDirty) && _vm.IsBatchEditor && !_vm.IsDirty)
+			Dispatcher.UIThread.Post(ResetBatchApplyFields);
 
 		switch (e.PropertyName)
 		{
@@ -157,6 +161,12 @@ public partial class FloatingThingEditorControl : UserControl
 				Dispatcher.UIThread.Post(() => { if (capture != null) PushPatternValuesToControls(capture); });
 				break;
 		}
+	}
+
+	private void ResetBatchApplyFields()
+	{
+		foreach (var field in ((Visual)this).GetVisualDescendants().OfType<BatchApplyField>())
+			field.IsApplied = false;
 	}
 
 	private void EnsurePatternSpinnersHooked()

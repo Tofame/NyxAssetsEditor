@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+ xmlns:views="using:NyxAssetsEditor.Views.ArchiveLoaders"
+ x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingMultiThingEditorControl"
+ x:DataType="vm:FloatingMultiThingEditorViewModel" Width="{Binding DisplayWidth}">
+ <Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+  <Grid RowDefinitions="Auto,*,Auto">
+   <Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+    <Grid ColumnDefinitions="*,Auto,Auto">
+     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#E0E0E0" VerticalAlignment="Center"/>
+     <Button Grid.Column="1" Command="{Binding ToggleMinimizeCommand}" Content="—" Width="28" Height="24" Background="Transparent" BorderThickness="0"/>
+     <Button Grid.Column="2" Command="{Binding RequestEditorCloseCommand}" Content="×" Width="28" Height="24" Background="Transparent" BorderThickness="0"/>
+    </Grid>
+   </Border>
+
+   <Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" ColumnDefinitions="190,*" Height="{Binding DisplayHeight}">
+    <Border Grid.Column="0" Background="#202020" BorderBrush="#383838" BorderThickness="0,0,1,0" Padding="8">
+     <DockPanel>
+      <StackPanel DockPanel.Dock="Top">
+       <TextBlock Text="Selected things" Foreground="#AAA" FontSize="11" Margin="4,2,4,8"/>
+       <Button Content="All" Command="{Binding SelectAllCommand}" HorizontalContentAlignment="Left" FontWeight="SemiBold" Padding="10,7" Margin="0,0,0,6" ToolTip.Tip="Apply blank fields to every selected thing"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" Background="Transparent" BorderThickness="0">
+       <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:BatchThingEntryViewModel">
+         <Grid ColumnDefinitions="42,*,Auto" Margin="2" Height="42">
+          <Border Width="36" Height="36" Background="#181818" BorderBrush="#444" BorderThickness="1"><Image Source="{Binding PreviewImage}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None"/></Border>
+          <TextBlock Grid.Column="1" Text="{Binding DisplayedId}" Foreground="#DDD" VerticalAlignment="Center" Margin="8,0"/>
+          <Button Grid.Column="2" Content="×" Command="{Binding RemoveCommand}" IsEnabled="{Binding CanRemove}" Width="24" Height="24" Padding="0" VerticalAlignment="Center" ToolTip.Tip="Remove from batch"/>
+         </Grid>
+        </DataTemplate>
+       </ListBox.ItemTemplate>
+      </ListBox>
+     </DockPanel>
+    </Border>
+
+	    <Grid Grid.Column="1">
+	     <views:FloatingThingEditorControl DataContext="{Binding ActiveEditor}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+	    </Grid>
+   </Grid>
+
+   <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowClosePrompt}" CornerRadius="8">
+    <Border Background="#2A2A2A" BorderBrush="#555" BorderThickness="1" CornerRadius="6" Padding="18" Width="390" HorizontalAlignment="Center" VerticalAlignment="Center">
+     <StackPanel Spacing="12"><TextBlock Text="Save editor changes?" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="One or more selected things have unapplied changes." Foreground="#CCC" TextWrapping="Wrap" HorizontalAlignment="Center"/><Grid ColumnDefinitions="*,*,*" ColumnSpacing="8"><Button Content="Save" Command="{Binding PromptSaveCommand}" Background="#3A7BD5" Foreground="White"/><Button Grid.Column="1" Content="Don't Save" Command="{Binding PromptDontSaveCommand}"/><Button Grid.Column="2" Content="Cancel" Command="{Binding PromptCancelCommand}"/></Grid></StackPanel>
+    </Border>
+   </Border>
+  </Grid>
+ </Border>
+</UserControl>
