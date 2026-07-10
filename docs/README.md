@@ -16,6 +16,8 @@ dotnet run --project NyxAssetsEditor.csproj
 3. Load a matching things archive in a **Things Archive Viewer** panel (`.dat` pairs with `.spr`, `.things` pairs with `.assets`).
 4. Use section tabs (Items / Outfits / Effects / Missiles) to browse things.
 
+For `.spr` / `.dat` pairs, each loader can read `extended`, `transparency`, `frame-durations`, and `frame-groups` from a same-named `.otfi` file. Select **Prefer settings from .otfi** in the loading settings; missing or incomplete files automatically fall back to client-version inference.
+
 ## Documentation
 
 | Document | Description |

@@ -273,8 +273,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			get => _useSuggestedSettings;
 			set
 			{
-				if (SetProperty(ref _useSuggestedSettings, value) && value && PreferOtfiSettings)
-					PreferOtfiSettings = false;
+				if (SetProperty(ref _useSuggestedSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
+				}
 			}
 		}
 
@@ -283,10 +286,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			get => _preferOtfiSettings;
 			set
 			{
-				if (SetProperty(ref _preferOtfiSettings, value) && value && UseSuggestedSettings)
-					UseSuggestedSettings = false;
+				if (SetProperty(ref _preferOtfiSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+				}
 			}
 		}
+
+		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
 
 		public bool UseExtendedThingIds
 		{
@@ -777,16 +785,24 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (PreferOtfiSettings && path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase))
 			{
 				var otfi = OtfiSettingsReader.ReadForArchive(path, out var warning);
-				if (otfi?.Extended is bool extended) UseExtendedThingIds = extended;
-				if (otfi?.FrameDurations is bool durations) UseFrameAnimations = durations;
-				if (otfi?.FrameGroups is bool groups) UseFrameGroups = groups;
 				var missing = new List<string>();
 				if (otfi != null && otfi.Extended == null) missing.Add("extended");
 				if (otfi != null && otfi.FrameDurations == null) missing.Add("frame-durations");
 				if (otfi != null && otfi.FrameGroups == null) missing.Add("frame-groups");
-				if (missing.Count > 0)
-					warning = $"{warning}{(warning == null ? "" : " ")}The OTFI settings are missing {string.Join(", ", missing)}; using the selected checkboxes for those values.";
-				ErrorMessage = warning;
+				if (otfi == null || missing.Count > 0)
+				{
+					PreferOtfiSettings = false;
+					UseSuggestedSettings = true;
+					ResetSettingsToDefaults();
+					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
+					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to client-version inference.";
+				}
+				else
+				{
+					UseExtendedThingIds = otfi.Extended.Value;
+					UseFrameAnimations = otfi.FrameDurations.Value;
+					UseFrameGroups = otfi.FrameGroups.Value;
+				}
 			}
 
 			if (path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))

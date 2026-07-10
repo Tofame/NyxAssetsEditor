@@ -87,8 +87,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			get => _useSuggestedSettings;
 			set
 			{
-				if (SetProperty(ref _useSuggestedSettings, value) && value && PreferOtfiSettings)
-					PreferOtfiSettings = false;
+				if (SetProperty(ref _useSuggestedSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
+				}
 			}
 		}
 
@@ -97,10 +100,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			get => _preferOtfiSettings;
 			set
 			{
-				if (SetProperty(ref _preferOtfiSettings, value) && value && UseSuggestedSettings)
-					UseSuggestedSettings = false;
+				if (SetProperty(ref _preferOtfiSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+				}
 			}
 		}
+
+		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
 
 		public bool UseExtendedSpriteIds
 		{
@@ -278,14 +286,21 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (PreferOtfiSettings && path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase))
 			{
 				var otfi = OtfiSettingsReader.ReadForArchive(path, out var warning);
-				if (otfi?.Extended is bool extended) UseExtendedSpriteIds = extended;
-				if (otfi?.Transparency is bool transparency) UseTransparentPixels = transparency;
 				var missing = new List<string>();
 				if (otfi != null && otfi.Extended == null) missing.Add("extended");
 				if (otfi != null && otfi.Transparency == null) missing.Add("transparency");
-				if (missing.Count > 0)
-					warning = $"{warning}{(warning == null ? "" : " ")}{Path.GetFileName(path)}'s OTFI settings are missing {string.Join(", ", missing)}; using the selected checkboxes for those values.";
-				ErrorMessage = warning;
+				if (otfi == null || missing.Count > 0)
+				{
+					PreferOtfiSettings = false;
+					UseSuggestedSettings = true;
+					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
+					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to client-version inference.";
+				}
+				else
+				{
+					UseExtendedSpriteIds = otfi.Extended.Value;
+					UseTransparentPixels = otfi.Transparency.Value;
+				}
 			}
 
 			if (path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))

@@ -275,10 +275,11 @@
 							<CheckBox Content="Infer settings from client version" IsChecked="{Binding UseSuggestedSettings}" FontSize="11" Height="20"
 									  ToolTip.Tip="Uses known defaults for the archive's client version. Enabling this disables OTFI preference."/>
 							<CheckBox Content="Prefer settings from .otfi" IsChecked="{Binding PreferOtfiSettings}" FontSize="11" Height="20"
-									  ToolTip.Tip="Uses explicit settings from a matching .otfi file. Missing values fall back to the checkboxes below. Enabling this disables client-version inference."/>
-							<CheckBox Content="Extended Thing IDs" IsChecked="{Binding UseExtendedThingIds}" IsEnabled="{Binding !UseSuggestedSettings}" FontSize="11" Height="20"/>
-							<CheckBox Content="Frame Animations" IsChecked="{Binding UseFrameAnimations}" IsEnabled="{Binding !UseSuggestedSettings}" FontSize="11" Height="20"/>
-							<CheckBox Content="Frame Groups" IsChecked="{Binding UseFrameGroups}" IsEnabled="{Binding !UseSuggestedSettings}" FontSize="11" Height="20"/>
+									  ToolTip.Tip="Uses explicit settings from a matching .otfi file. If the file is missing or incomplete, loading reverts to client-version inference. Enabling this disables inference."/>
+							<TextBlock Text="Manual settings (when neither source is selected)" Foreground="#777777" FontSize="10" Margin="0,3,0,0"/>
+							<CheckBox Content="Extended Thing IDs" IsChecked="{Binding UseExtendedThingIds}" IsEnabled="{Binding CanEditManualSettings}" FontSize="11" Height="20"/>
+							<CheckBox Content="Frame Animations" IsChecked="{Binding UseFrameAnimations}" IsEnabled="{Binding CanEditManualSettings}" FontSize="11" Height="20"/>
+							<CheckBox Content="Frame Groups" IsChecked="{Binding UseFrameGroups}" IsEnabled="{Binding CanEditManualSettings}" FontSize="11" Height="20"/>
 						</StackPanel>
 					</Border>
 				</StackPanel>
