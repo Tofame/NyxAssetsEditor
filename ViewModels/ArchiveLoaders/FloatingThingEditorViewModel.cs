@@ -1,6 +1,8 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +20,22 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
 public partial class FloatingThingEditorViewModel : PanelViewModelBase
 {
+	public bool IsEmbedded { get; set; }
+	public bool ShowEditorTitleBar => !IsEmbedded;
+	public bool ShowEditorResizeHandles => !IsEmbedded && ShowResizeHandles;
+	public Action<ThingType>? BatchSaveRequested { get; set; }
+	public Action? BatchCancelRequested { get; set; }
+	public bool UseDetachedThing { get; }
+	public FloatingMultiThingEditorViewModel? BatchHost { get; set; }
+	public bool IsBatchEditor => BatchHost != null;
+	public HashSet<string> BatchTouchedProperties { get; } = new(StringComparer.Ordinal);
+	public void SetBatchOverride(string propertyName, bool enabled)
+	{
+		if (!IsBatchEditor) return;
+		if (enabled) BatchTouchedProperties.Add(propertyName);
+		else BatchTouchedProperties.Remove(propertyName);
+		IsDirty = BatchTouchedProperties.Count > 0;
+	}
 	private readonly SpriteRenderer _renderer = new();
 	private WriteableBitmap? _appearanceImage;
 	private int _selectedFrameGroupIndex;
@@ -88,6 +106,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	public bool CanSave => IsDirty;
 	public bool CanCancel => IsDirty;
+	public string SaveButtonText => BatchSaveRequested != null ? "Save All" : "Save";
 
 	public bool ShowPromptOverlay
 	{
@@ -136,9 +155,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_promptTcs?.SetResult(PromptResult.Cancel);
 	}
 
-	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing)
+	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing, bool useDetachedThing = false)
 	{
 		SourcePanel = source;
+		UseDetachedThing = useDetachedThing;
 		RequestClose += _ =>
 		{
 			StopAnimationPreview(restoreFrame: false);
@@ -157,7 +177,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void LoadThing(ThingType thing)
 	{
 		StopAnimationPreview(restoreFrame: false);
-		_originalThing = SourcePanel.GetThingType(thing.Id) ?? thing;
+		_originalThing = UseDetachedThing ? thing : SourcePanel.GetThingType(thing.Id) ?? thing;
 		_thing = Services.Exchange.ThingCloner.Clone(_originalThing, _originalThing.Id);
 		_isDirty = false;
 		OnPropertyChanged(nameof(IsDirty));
@@ -1178,14 +1198,27 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		};
 	}
 
-	private void ApplyToCatalog()
+	private void ApplyToCatalog([CallerMemberName] string? propertyName = null)
 	{
+		if (IsBatchEditor && !string.IsNullOrEmpty(propertyName)) BatchTouchedProperties.Add(propertyName);
 		IsDirty = true;
 	}
 
 	[RelayCommand]
 	public void Save()
 	{
+		if (BatchSaveRequested != null)
+		{
+			BatchSaveRequested(Thing);
+			_originalThing = Services.Exchange.ThingCloner.Clone(Thing, Thing.Id);
+			IsDirty = false;
+			Dispatcher.UIThread.Post(() =>
+			{
+				BatchTouchedProperties.Clear();
+				IsDirty = false;
+			}, DispatcherPriority.Background);
+			return;
+		}
 		SourcePanel.ApplyThingEdit(Thing);
 		_originalThing = Services.Exchange.ThingCloner.Clone(Thing, Thing.Id);
 		IsDirty = false;
@@ -1195,6 +1228,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	[RelayCommand]
 	public void Cancel()
 	{
+		if (BatchCancelRequested != null)
+		{
+			BatchCancelRequested();
+			return;
+		}
 		LoadThing(_originalThing);
 	}
 

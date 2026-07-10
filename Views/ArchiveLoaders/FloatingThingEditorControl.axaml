@@ -1,11 +1,28 @@
 <UserControl xmlns="https://github.com/avaloniaui"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 xmlns:local="using:NyxAssetsEditor.Views.ArchiveLoaders"
 			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingThingEditorControl"
 			 x:DataType="vm:FloatingThingEditorViewModel"
 			 Width="{Binding DisplayWidth}">
 
 	<UserControl.Resources>
+		<ControlTheme x:Key="{x:Type local:BatchApplyField}" TargetType="local:BatchApplyField">
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+						<CheckBox Grid.Column="0"
+								  IsVisible="{Binding ShowApply, RelativeSource={RelativeSource TemplatedParent}}"
+								  IsChecked="{Binding IsApplied, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+								  ToolTip.Tip="Apply this field to all selected things"
+								  VerticalAlignment="Center"/>
+						<ContentPresenter Grid.Column="1"
+									  Content="{TemplateBinding Content}"
+									  IsEnabled="{Binding IsFieldEnabled, RelativeSource={RelativeSource TemplatedParent}}"/>
+					</Grid>
+				</ControlTemplate>
+			</Setter>
+		</ControlTheme>
 		<ControlTheme x:Key="FlatSliderTheme" TargetType="Slider">
 			<Setter Property="Background" Value="#252525"/>
 			<Setter Property="Foreground" Value="#707070"/>
@@ -78,7 +95,7 @@
 
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
 		<Grid RowDefinitions="Auto, *, Auto">
-			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0" IsVisible="{Binding ShowEditorTitleBar}">
 				<Border.ContextMenu>
 					<ContextMenu>
 						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
@@ -259,7 +276,7 @@
 							<!-- Is Ground Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsItem}">
 								<Grid ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Column="0" Content="Is Ground" IsChecked="{Binding IsGround}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Column="0" PropertyName="IsGround"><ToggleSwitch Content="Is Ground" IsChecked="{Binding IsGround}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding IsGround}" VerticalAlignment="Center">
 										<TextBlock Text="Ground Speed:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding GroundSpeed}" Minimum="0" Maximum="65535" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -270,7 +287,7 @@
 							<!-- Has Light Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
 								<Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Row="0" Grid.Column="0" Content="Has Light" IsChecked="{Binding HasLight}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Row="0" Grid.Column="0" PropertyName="HasLight"><ToggleSwitch Content="Has Light" IsChecked="{Binding HasLight}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasLight}" VerticalAlignment="Center" Margin="0,0,0,4">
 										<TextBlock Text="Light Color:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding LightColor}" Minimum="0" Maximum="215" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -306,7 +323,7 @@
 							<!-- Automap Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsItem}">
 								<Grid ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Column="0" Content="Automap" IsChecked="{Binding MiniMap}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Column="0" PropertyName="MiniMap"><ToggleSwitch Content="Automap" IsChecked="{Binding MiniMap}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding MiniMap}" VerticalAlignment="Center">
 										<TextBlock Text="Automap Color:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding MiniMapColor}" Minimum="0" Maximum="215" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -337,7 +354,7 @@
 							<!-- Has Offset Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
 								<Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Row="0" Grid.Column="0" Content="Has Offset" IsChecked="{Binding HasOffset}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Row="0" Grid.Column="0" PropertyName="HasOffset"><ToggleSwitch Content="Has Offset" IsChecked="{Binding HasOffset}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasOffset}" VerticalAlignment="Center" Margin="0,0,0,4">
 										<TextBlock Text="Offset X:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding OffsetX}" Minimum="-1024" Maximum="1024" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -352,7 +369,7 @@
 							<!-- Has Elevation Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
 								<Grid ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Column="0" Content="Has Elevation" IsChecked="{Binding HasElevation}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Column="0" PropertyName="HasElevation"><ToggleSwitch Content="Has Elevation" IsChecked="{Binding HasElevation}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasElevation}" VerticalAlignment="Center">
 										<TextBlock Text="Elevation:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding Elevation}" Minimum="0" Maximum="255" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -362,7 +379,7 @@
 							<!-- Market Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding ShowMarket}">
 								<Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Row="0" Grid.Column="0" Content="Market" IsChecked="{Binding IsMarketItem}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Row="0" Grid.Column="0" PropertyName="IsMarketItem"><ToggleSwitch Content="Market" IsChecked="{Binding IsMarketItem}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									
 									<Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto, *" IsEnabled="{Binding IsMarketItem}" Margin="0,6,0,6">
 										<TextBlock Grid.Column="0" Text="Name:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -398,8 +415,8 @@
 								<StackPanel Spacing="6">
 									<TextBlock Text="Write / Read" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,6"/>
 									<Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto">
-										<ToggleSwitch Grid.Row="0" Grid.Column="0" Content="Writable" IsChecked="{Binding Writable}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
-										<ToggleSwitch Grid.Row="1" Grid.Column="0" Content="Writable Once" IsChecked="{Binding WritableOnce}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+										<local:BatchApplyField Grid.Row="0" Grid.Column="0" PropertyName="Writable"><ToggleSwitch Content="Writable" IsChecked="{Binding Writable}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
+										<local:BatchApplyField Grid.Row="1" Grid.Column="0" PropertyName="WritableOnce"><ToggleSwitch Content="Writable Once" IsChecked="{Binding WritableOnce}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 										<StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsEnabled="{Binding Writable}">
 											<TextBlock Text="Max Length:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 											<NumericUpDown Value="{Binding MaxTextLength}" Minimum="0" Maximum="65535" Width="100" Height="28" Padding="4,0" FontSize="11"/>
@@ -410,7 +427,7 @@
 							<!-- Has Action Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding ShowHasDefaultAction}">
 								<Grid ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Column="0" Content="Has Action" IsChecked="{Binding HasDefaultAction}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Column="0" PropertyName="HasDefaultAction"><ToggleSwitch Content="Has Action" IsChecked="{Binding HasDefaultAction}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasDefaultAction}" VerticalAlignment="Center">
 										<TextBlock Text="Action Type:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<ComboBox ItemsSource="{Binding DefaultActions}" SelectedIndex="{Binding DefaultActionIndex}" Width="170" Height="28" FontSize="11"/>
@@ -421,7 +438,7 @@
 							<!-- Lens Help Section -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsItem}">
 								<Grid ColumnDefinitions="*, Auto">
-									<ToggleSwitch Grid.Column="0" Content="Lens Help" IsChecked="{Binding IsLensHelp}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/>
+									<local:BatchApplyField Grid.Column="0" PropertyName="IsLensHelp"><ToggleSwitch Content="Lens Help" IsChecked="{Binding IsLensHelp}" OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center"/></local:BatchApplyField>
 									<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding IsLensHelp}" VerticalAlignment="Center">
 										<TextBlock Text="Type:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<ComboBox ItemsSource="{Binding LensHelpTypes}" SelectedIndex="{Binding LensHelpIndex}" Width="170" Height="28" FontSize="11"/>
@@ -450,36 +467,36 @@
 												<RadioButton Content="Top" IsChecked="{Binding IsFlagsTop}" FontSize="11"/>
 											</StackPanel>
 
-											<ToggleSwitch Content="Container" IsChecked="{Binding IsContainer}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Stackable" IsChecked="{Binding Stackable}" IsVisible="{Binding IsItem}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Force Use" IsChecked="{Binding ForceUse}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Multi Use" IsChecked="{Binding MultiUse}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Fluid Container" IsChecked="{Binding IsFluidContainer}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Fluid" IsChecked="{Binding IsFluid}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Unpassable" IsChecked="{Binding IsUnpassable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Unmoveable" IsChecked="{Binding IsUnmoveable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Block Missile" IsChecked="{Binding BlockMissile}" IsVisible="{Binding !IsMissile}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Block Pathfinder" IsChecked="{Binding BlockPathfind}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Floor Change" IsChecked="{Binding FloorChange}" OnContent="" OffContent="" FontSize="11"/>
+											<local:BatchApplyField PropertyName="IsContainer"><ToggleSwitch Content="Container" IsChecked="{Binding IsContainer}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Stackable" IsVisible="{Binding IsItem}"><ToggleSwitch Content="Stackable" IsChecked="{Binding Stackable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="ForceUse"><ToggleSwitch Content="Force Use" IsChecked="{Binding ForceUse}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="MultiUse"><ToggleSwitch Content="Multi Use" IsChecked="{Binding MultiUse}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsFluidContainer"><ToggleSwitch Content="Fluid Container" IsChecked="{Binding IsFluidContainer}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsFluid"><ToggleSwitch Content="Fluid" IsChecked="{Binding IsFluid}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsUnpassable"><ToggleSwitch Content="Unpassable" IsChecked="{Binding IsUnpassable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsUnmoveable"><ToggleSwitch Content="Unmoveable" IsChecked="{Binding IsUnmoveable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="BlockMissile" IsVisible="{Binding !IsMissile}"><ToggleSwitch Content="Block Missile" IsChecked="{Binding BlockMissile}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="BlockPathfind"><ToggleSwitch Content="Block Pathfinder" IsChecked="{Binding BlockPathfind}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="FloorChange"><ToggleSwitch Content="Floor Change" IsChecked="{Binding FloorChange}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
 										</StackPanel>
 
 										<!-- Right Column -->
 										<StackPanel Grid.Column="1" Spacing="6" Margin="10,0,0,0">
-											<ToggleSwitch Content="No Move Animation" IsChecked="{Binding NoMoveAnimation}" IsVisible="{Binding ShowNoMoveAnimation}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Pickupable" IsChecked="{Binding Pickupable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Hangable" IsChecked="{Binding Hangable}" IsVisible="{Binding ShowHangable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Hook East" IsChecked="{Binding IsHorizontal}" IsVisible="{Binding ShowIsHorizontal}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Hook South" IsChecked="{Binding IsVertical}" IsVisible="{Binding ShowIsVertical}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Rotatable" IsChecked="{Binding Rotatable}" IsVisible="{Binding IsItem}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Don't Hide" IsChecked="{Binding DontHide}" IsVisible="{Binding ShowDontHide}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Translucent" IsChecked="{Binding IsTranslucent}" IsVisible="{Binding ShowIsTranslucent}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Lying Object" IsChecked="{Binding IsLyingObject}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Full Ground" IsChecked="{Binding IsFullGround}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Ignore Look" IsChecked="{Binding IgnoreLook}" IsVisible="{Binding ShowIgnoreLook}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Useable" IsChecked="{Binding Usable}" IsVisible="{Binding ShowUsable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Wrappable" IsChecked="{Binding Wrappable}" IsVisible="{Binding ShowWrappable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Unwrappable" IsChecked="{Binding Unwrappable}" IsVisible="{Binding ShowUnwrappable}" OnContent="" OffContent="" FontSize="11"/>
-											<ToggleSwitch Content="Bottom Effect" IsChecked="{Binding BottomEffect}" IsVisible="{Binding ShowBottomEffect}" OnContent="" OffContent="" FontSize="11"/>
+											<local:BatchApplyField PropertyName="NoMoveAnimation" IsVisible="{Binding ShowNoMoveAnimation}"><ToggleSwitch Content="No Move Animation" IsChecked="{Binding NoMoveAnimation}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Pickupable"><ToggleSwitch Content="Pickupable" IsChecked="{Binding Pickupable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Hangable" IsVisible="{Binding ShowHangable}"><ToggleSwitch Content="Hangable" IsChecked="{Binding Hangable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsHorizontal" IsVisible="{Binding ShowIsHorizontal}"><ToggleSwitch Content="Hook East" IsChecked="{Binding IsHorizontal}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsVertical" IsVisible="{Binding ShowIsVertical}"><ToggleSwitch Content="Hook South" IsChecked="{Binding IsVertical}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Rotatable" IsVisible="{Binding IsItem}"><ToggleSwitch Content="Rotatable" IsChecked="{Binding Rotatable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="DontHide" IsVisible="{Binding ShowDontHide}"><ToggleSwitch Content="Don't Hide" IsChecked="{Binding DontHide}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsTranslucent" IsVisible="{Binding ShowIsTranslucent}"><ToggleSwitch Content="Translucent" IsChecked="{Binding IsTranslucent}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsLyingObject"><ToggleSwitch Content="Lying Object" IsChecked="{Binding IsLyingObject}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IsFullGround"><ToggleSwitch Content="Full Ground" IsChecked="{Binding IsFullGround}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="IgnoreLook" IsVisible="{Binding ShowIgnoreLook}"><ToggleSwitch Content="Ignore Look" IsChecked="{Binding IgnoreLook}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Usable" IsVisible="{Binding ShowUsable}"><ToggleSwitch Content="Useable" IsChecked="{Binding Usable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Wrappable" IsVisible="{Binding ShowWrappable}"><ToggleSwitch Content="Wrappable" IsChecked="{Binding Wrappable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="Unwrappable" IsVisible="{Binding ShowUnwrappable}"><ToggleSwitch Content="Unwrappable" IsChecked="{Binding Unwrappable}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
+											<local:BatchApplyField PropertyName="BottomEffect" IsVisible="{Binding ShowBottomEffect}"><ToggleSwitch Content="Bottom Effect" IsChecked="{Binding BottomEffect}" OnContent="" OffContent="" FontSize="11"/></local:BatchApplyField>
 										</StackPanel>
 									</Grid>
 								</StackPanel>
@@ -518,22 +535,22 @@
 			</TabControl>
 			<!-- Resize handles -->
 			<Border Grid.RowSpan="3" Name="ResizeLeft" Width="5" HorizontalAlignment="Left" Background="Transparent" Cursor="SizeWestEast"
-					IsVisible="{Binding ShowResizeHandles}"/>
+					IsVisible="{Binding ShowEditorResizeHandles}"/>
 			<Border Grid.RowSpan="3" Name="ResizeRight" Width="5" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWestEast"
-					IsVisible="{Binding ShowResizeHandles}"/>
+					IsVisible="{Binding ShowEditorResizeHandles}"/>
 			<Border Grid.Row="2" Name="ResizeBottom" Height="5" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNorthSouth"
-					IsVisible="{Binding ShowResizeHandles}"/>
+					IsVisible="{Binding ShowEditorResizeHandles}"/>
 			<Border Grid.Row="2" Name="ResizeCorner" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner"
-					IsVisible="{Binding ShowResizeHandles}"/>
+					IsVisible="{Binding ShowEditorResizeHandles}"/>
 			<Border Grid.Row="2" Name="ResizeBottomLeft" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomLeftCorner"
-					IsVisible="{Binding ShowResizeHandles}"/>
+					IsVisible="{Binding ShowEditorResizeHandles}"/>
 
 			<!-- Footer with Save & Cancel Buttons -->
 			<Border Grid.Row="2" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Height="44" Padding="12,0" IsVisible="{Binding !IsMinimized}">
 				<Grid ColumnDefinitions="*, Auto, Auto">
 					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
 						<Button Content="Cancel" Command="{Binding CancelCommand}" IsEnabled="{Binding CanCancel}" Width="80" Height="26" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11" Background="#3D3D3D" Foreground="#E0E0E0"/>
-						<Button Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" Width="80" Height="26" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11" Background="#3A7BD5" Foreground="White"/>
+						<Button Content="{Binding SaveButtonText}" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" Width="80" Height="26" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11" Background="#3A7BD5" Foreground="White"/>
 					</StackPanel>
 				</Grid>
 			</Border>
