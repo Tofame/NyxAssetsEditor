@@ -29,4 +29,4 @@ dotnet run --project NyxAssetsEditor.csproj
 - [Avalonia](https://avaloniaui.net/) 12 — cross-platform UI
 - [NyxAssets](https://www.nuget.org/packages/NyxAssets) — archive I/O, thing exchange, previews
 - [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/) — view models
-- [SixLabors.ImageSharp](https://sixlabors.com/products/imagesharp/) — image processing
+- [SkiaSharp](https://github.com/mono/SkiaSharp) — image processing

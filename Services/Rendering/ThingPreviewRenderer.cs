@@ -4,10 +4,8 @@ using NyxAssets.Sprites;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssets.Things;
 using NyxAssets.Things.Frames;
-using NyxAssets.Utils;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
+using System.Runtime.InteropServices;
 
 namespace NyxAssetsEditor.Services.Rendering;
 
@@ -40,7 +38,7 @@ public static class ThingPreviewRenderer
 		if (canvasW <= 0 || canvasH <= 0)
 			return null;
 
-		using var canvas = new Image<Rgba32>(canvasW, canvasH, default);
+		var canvas = new byte[canvasW * canvasH * 4];
 		var drewAny = false;
 
 		var baseLayerOnly = thing.Kind == ThingKind.Outfit;
@@ -66,18 +64,19 @@ public static class ThingPreviewRenderer
 			// Match ThingSpriteSheetExporter inner-tile placement (Asset Editor origin).
 			var innerX = (int)((fg.Width - slot.InnerWidth - 1) * edge);
 			var innerY = (int)((fg.Height - slot.InnerHeight - 1) * edge);
-			SpriteImageExporter.BlitSpriteBufferOnto(canvas, innerX, innerY, pixels);
+			BlitSpriteBuffer(canvas, canvasW, canvasH, innerX, innerY, pixels);
 			drewAny = true;
 		}
 
 		if (!drewAny)
 			return null;
 
-		using var preview = canvasW == edge && canvasH == edge
-			? canvas.Clone()
-			: ResizeToSpriteEdge(canvas);
+		if (canvasW == edge && canvasH == edge)
+		{
+			return canvas;
+		}
 
-		return ExtractRgba(preview);
+		return ResizeToSpriteEdge(canvas, canvasW, canvasH);
 	}
 
 	private static bool TryResolveSelection(ThingType thing, out ThingFrameSelection selection)
@@ -110,33 +109,65 @@ public static class ThingPreviewRenderer
 		}
 	}
 
-	private static Image<Rgba32> ResizeToSpriteEdge(Image<Rgba32> source)
+	private static byte[] ResizeToSpriteEdge(byte[] source, int srcW, int srcH)
 	{
 		var edge = SpritePixelCodec.SpriteEdgeLength;
-		var resized = source.Clone(ctx => ctx.Resize(edge, edge, KnownResamplers.NearestNeighbor));
-		return resized;
+		var srcInfo = new SKImageInfo(srcW, srcH, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+		using var original = new SKBitmap();
+		var pin = GCHandle.Alloc(source, GCHandleType.Pinned);
+		try
+		{
+			original.InstallPixels(srcInfo, pin.AddrOfPinnedObject(), srcInfo.RowBytes);
+			var dstInfo = new SKImageInfo(edge, edge, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+			using var resized = original.Resize(dstInfo, new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None));
+			return resized.Bytes;
+		}
+		finally
+		{
+			pin.Free();
+		}
 	}
 
-	private static byte[] ExtractRgba(Image<Rgba32> image)
+	private static void BlitSpriteBuffer(byte[] dst, int dstW, int dstH, int x, int y, byte[] src)
 	{
 		var edge = SpritePixelCodec.SpriteEdgeLength;
-		if (image.Width != edge || image.Height != edge)
-			throw new InvalidOperationException($"Preview image must be {edge}×{edge}.");
-
-		var rgba = new byte[SpritePixelCodec.RgbaBufferLength];
-		for (var y = 0; y < edge; y++)
+		for (var sy = 0; sy < edge; sy++)
 		{
-			for (var x = 0; x < edge; x++)
+			var dy = y + sy;
+			if (dy < 0 || dy >= dstH) continue;
+			for (var sx = 0; sx < edge; sx++)
 			{
-				var pixel = image[x, y];
-				var offset = (y * edge + x) * 4;
-				rgba[offset] = pixel.R;
-				rgba[offset + 1] = pixel.G;
-				rgba[offset + 2] = pixel.B;
-				rgba[offset + 3] = pixel.A;
+				var dx = x + sx;
+				if (dx < 0 || dx >= dstW) continue;
+
+				var srcOffset = (sy * edge + sx) * 4;
+				var dstOffset = (dy * dstW + dx) * 4;
+
+				var srcA = src[srcOffset + 3];
+				if (srcA == 0)
+					continue;
+
+				if (srcA == 255)
+				{
+					dst[dstOffset] = src[srcOffset];
+					dst[dstOffset + 1] = src[srcOffset + 1];
+					dst[dstOffset + 2] = src[srcOffset + 2];
+					dst[dstOffset + 3] = src[srcOffset + 3];
+				}
+				else
+				{
+					var sA = srcA / 255f;
+					var dA = dst[dstOffset + 3] / 255f;
+					var outA = sA + dA * (1 - sA);
+					if (outA > 0)
+					{
+						dst[dstOffset] = (byte)Math.Clamp((src[srcOffset] * sA + dst[dstOffset] * dA * (1 - sA)) / outA, 0, 255);
+						dst[dstOffset + 1] = (byte)Math.Clamp((src[srcOffset + 1] * sA + dst[dstOffset + 1] * dA * (1 - sA)) / outA, 0, 255);
+						dst[dstOffset + 2] = (byte)Math.Clamp((src[srcOffset + 2] * sA + dst[dstOffset + 2] * dA * (1 - sA)) / outA, 0, 255);
+						dst[dstOffset + 3] = (byte)(outA * 255);
+					}
+				}
 			}
 		}
-
-		return rgba;
 	}
 }
