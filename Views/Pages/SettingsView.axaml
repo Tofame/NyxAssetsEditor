@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+			 xmlns:local="using:NyxAssetsEditor.Views.Pages"
 			 x:Class="NyxAssetsEditor.Views.Pages.SettingsView"
 			 x:DataType="vm:SettingsViewModel">
 	<ScrollViewer>
@@ -152,7 +153,7 @@
 					<TextBlock Text="Show grid" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Color:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
-						<TextBox Text="{Binding ThingEditorGridColorSetting}" Width="120" Height="28" FontSize="11"/>
+						<local:HexColorPicker HexColor="{Binding ThingEditorGridColorSetting}"/>
 					</StackPanel>
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Line width:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
@@ -162,7 +163,7 @@
 					<TextBlock Text="Drag preview" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,8,0,0"/>
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Grid color:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
-						<TextBox Text="{Binding ThingEditorDragGridColorSetting}" Width="120" Height="28" FontSize="11"/>
+						<local:HexColorPicker HexColor="{Binding ThingEditorDragGridColorSetting}"/>
 					</StackPanel>
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Grid line width:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
@@ -170,7 +171,7 @@
 					</StackPanel>
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Tile highlight:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
-						<TextBox Text="{Binding ThingEditorDragHighlightColorSetting}" Width="120" Height="28" FontSize="11"/>
+						<local:HexColorPicker HexColor="{Binding ThingEditorDragHighlightColorSetting}"/>
 					</StackPanel>
 				</StackPanel>
 			</Border>
