@@ -845,11 +845,22 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	private uint GetFrameDelayMs(int frameIndex)
 	{
+		var settingsMs = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 		var timing = GetFrameTiming(frameIndex);
 		if (timing != null)
-			return (timing.Value.MinimumMilliseconds + timing.Value.MaximumMilliseconds) / 2;
+		{
+			var avg = (timing.Value.MinimumMilliseconds + timing.Value.MaximumMilliseconds) / 2;
+			if (avg > 0)
+			{
+				if (!ImprovedAnimations || Kind == ThingKind.Outfit)
+				{
+					return Math.Min(avg, settingsMs);
+				}
+				return avg;
+			}
+		}
 
-		return SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
+		return settingsMs;
 	}
 
 	private AnimationFrameTiming? GetFrameTiming(int frameIndex)
