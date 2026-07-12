@@ -26,6 +26,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useTransparentPixels = true;
 		private bool _useExtendedSpriteIds = true;
 		private bool _useSuggestedSettings = true;
+		private bool _preferOtfiSettings;
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
 		private Services.Archive.UndoRedoStack<Services.Archive.SpriteUndoAction>? _undoRedoStack;
@@ -84,8 +85,32 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool UseSuggestedSettings
 		{
 			get => _useSuggestedSettings;
-			set => SetProperty(ref _useSuggestedSettings, value);
+			set
+			{
+				if (SetProperty(ref _useSuggestedSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
+				}
+			}
 		}
+
+		public bool PreferOtfiSettings
+		{
+			get => _preferOtfiSettings;
+			set
+			{
+				if (SetProperty(ref _preferOtfiSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					OnPropertyChanged(nameof(CanEditTransparency));
+					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+				}
+			}
+		}
+
+		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
+		public bool CanEditTransparency => !PreferOtfiSettings;
 
 		public bool UseExtendedSpriteIds
 		{
@@ -260,6 +285,26 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			ErrorMessage = null;
 
+			if (PreferOtfiSettings && path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase))
+			{
+				var otfi = OtfiSettingsReader.ReadForArchive(path, out var warning);
+				var missing = new List<string>();
+				if (otfi != null && otfi.Extended == null) missing.Add("extended");
+				if (otfi != null && otfi.Transparency == null) missing.Add("transparency");
+				if (otfi == null || missing.Count > 0)
+				{
+					PreferOtfiSettings = false;
+					UseSuggestedSettings = true;
+					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
+					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to recommended settings.";
+				}
+				else
+				{
+					UseExtendedSpriteIds = otfi.Extended.GetValueOrDefault();
+					UseTransparentPixels = otfi.Transparency.GetValueOrDefault();
+				}
+			}
+
 			if (path.EndsWith(".spr", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
 			{
 				uint signature = 0;
@@ -286,7 +331,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						OnPropertyChanged(nameof(IsArchiveLoaded));
 						return;
 					}
-					else if (UseSuggestedSettings)
+					else if (UseSuggestedSettings && !PreferOtfiSettings)
 					{
 						var version = new NyxAssets.Things.ClientDataVersion { Value = versionEntry.Version };
 						UseExtendedSpriteIds = NyxAssets.Things.DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);

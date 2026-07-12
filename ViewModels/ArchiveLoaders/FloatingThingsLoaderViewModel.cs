@@ -153,6 +153,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useFrameAnimations = true;
 		private bool _useFrameGroups = true;
 		private bool _useSuggestedSettings = true;
+		private bool _preferOtfiSettings;
 		private string _jumpToIdText = string.Empty;
 		private Services.Archive.UndoRedoStack<Services.Archive.ThingUndoAction>? _undoRedoStack;
 		private Services.Archive.ThingUndoAction? _currentAction;
@@ -270,8 +271,30 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool UseSuggestedSettings
 		{
 			get => _useSuggestedSettings;
-			set => SetProperty(ref _useSuggestedSettings, value);
+			set
+			{
+				if (SetProperty(ref _useSuggestedSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
+				}
+			}
 		}
+
+		public bool PreferOtfiSettings
+		{
+			get => _preferOtfiSettings;
+			set
+			{
+				if (SetProperty(ref _preferOtfiSettings, value))
+				{
+					OnPropertyChanged(nameof(CanEditManualSettings));
+					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+				}
+			}
+		}
+
+		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
 
 		public bool UseExtendedThingIds
 		{
@@ -442,7 +465,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		private void OnClientVersionChanged(uint newVersion)
 		{
-			if (UseSuggestedSettings)
+			if (UseSuggestedSettings && !PreferOtfiSettings)
 				ResetSettingsToDefaults();
 		}
 
@@ -758,6 +781,29 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			RefreshUndoRedoCommands();
 
 			ErrorMessage = null;
+
+			if (PreferOtfiSettings && path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase))
+			{
+				var otfi = OtfiSettingsReader.ReadForArchive(path, out var warning);
+				var missing = new List<string>();
+				if (otfi != null && otfi.Extended == null) missing.Add("extended");
+				if (otfi != null && otfi.FrameDurations == null) missing.Add("frame-durations");
+				if (otfi != null && otfi.FrameGroups == null) missing.Add("frame-groups");
+				if (otfi == null || missing.Count > 0)
+				{
+					PreferOtfiSettings = false;
+					UseSuggestedSettings = true;
+					ResetSettingsToDefaults();
+					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
+					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to recommended settings.";
+				}
+				else
+				{
+					UseExtendedThingIds = otfi.Extended.GetValueOrDefault();
+					UseFrameAnimations = otfi.FrameDurations.GetValueOrDefault();
+					UseFrameGroups = otfi.FrameGroups.GetValueOrDefault();
+				}
+			}
 
 			if (path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path))
 			{
