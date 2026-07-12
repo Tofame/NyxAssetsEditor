@@ -327,9 +327,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.SprSignature == signature);
 					if (versionEntry == null)
 					{
-						ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
-						OnPropertyChanged(nameof(IsArchiveLoaded));
-						return;
+						if (!SettingsViewModel.AllowUnknownSignatures)
+						{
+							ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
+							OnPropertyChanged(nameof(IsArchiveLoaded));
+							return;
+						}
 					}
 					else if (UseSuggestedSettings && !PreferOtfiSettings)
 					{

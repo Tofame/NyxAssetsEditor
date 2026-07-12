@@ -53,6 +53,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Allow Unknown Signatures:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<CheckBox IsChecked="{Binding AllowUnknownSignaturesSetting}"/>
+						<TextBlock Text="Permit loading archives with unrecognized Client signatures."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 

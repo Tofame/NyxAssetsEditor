@@ -56,6 +56,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _allowUnknownSignatures = true;
+		public static bool AllowUnknownSignatures
+		{
+			get => _allowUnknownSignatures;
+			set
+			{
+				if (_allowUnknownSignatures != value)
+				{
+					_allowUnknownSignatures = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		private static int _assetDisplaySize = 32;
 		public static int AssetDisplaySize
 		{
@@ -238,6 +252,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set => PreloadGraphicalAssets = value;
 		}
 
+		public bool AllowUnknownSignaturesSetting
+		{
+			get => AllowUnknownSignatures;
+			set => AllowUnknownSignatures = value;
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -261,7 +281,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int thingEditorDragGridLineWidth = 1,
 			string? thingEditorDragHighlightColor = null,
 			int maxRecentCombinations = 10,
-			int undoLimit = 10)
+			int undoLimit = 10,
+			bool allowUnknownSignatures = true)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -269,6 +290,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_useTransparentPixels = useTransparentPixels;
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			_preloadGraphicalAssets = preloadGraphicalAssets;
+			_allowUnknownSignatures = allowUnknownSignatures;
 			_assetDisplaySize = assetDisplaySize;
 			ThingIdOffset = thingIdOffset;
 			_clientVersion = clientVersion;

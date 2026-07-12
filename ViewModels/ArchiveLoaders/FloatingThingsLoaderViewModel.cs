@@ -827,10 +827,13 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					var versionEntry = ClientVersion.AvailableVersions.Find(v => v.DatSignature == signature);
 					if (versionEntry == null)
 					{
-						ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
-						_catalog = null;
-						OnPropertyChanged(nameof(IsArchiveLoaded));
-						return;
+						if (!SettingsViewModel.AllowUnknownSignatures)
+						{
+							ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
+							_catalog = null;
+							OnPropertyChanged(nameof(IsArchiveLoaded));
+							return;
+						}
 					}
 					else
 					{

@@ -53,6 +53,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string ThingEditorDragHighlightColor { get; set; } = "#803A7BD5";
 			public int MaxRecentCombinations { get; set; } = 10;
 			public int UndoLimit { get; set; } = 10;
+			public bool AllowUnknownSignatures { get; set; } = true;
 		}
 
 		public class AppStateTomlModel
@@ -131,7 +132,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ThingEditorDragGridLineWidth,
 							model.ThingEditorDragHighlightColor,
 							model.MaxRecentCombinations,
-							model.UndoLimit);
+							model.UndoLimit,
+							model.AllowUnknownSignatures);
 					}
 				}
 			}
@@ -165,7 +167,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					ThingEditorDragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
 					ThingEditorDragHighlightColor = SettingsViewModel.ThingEditorDragHighlightColor,
 					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations,
-					UndoLimit = SettingsViewModel.UndoLimit
+					UndoLimit = SettingsViewModel.UndoLimit,
+					AllowUnknownSignatures = SettingsViewModel.AllowUnknownSignatures
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);
