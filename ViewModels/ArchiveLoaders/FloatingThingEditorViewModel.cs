@@ -1190,11 +1190,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			ShowDragGrid = _isAppearanceDragHover,
 			ShowCropSize = ShowCropSize,
 			HighlightRect = highlightRect,
-			GridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorGridColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(80, 80, 80, 180)),
+			GridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorGridColor, new SkiaSharp.SKColor(80, 80, 80, 180)),
 			GridLineWidth = SettingsViewModel.ThingEditorGridLineWidth,
-			DragGridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragGridColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(255, 105, 180, 180)),
+			DragGridColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragGridColor, new SkiaSharp.SKColor(255, 105, 180, 180)),
 			DragGridLineWidth = SettingsViewModel.ThingEditorDragGridLineWidth,
-			HighlightColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragHighlightColor, new SixLabors.ImageSharp.PixelFormats.Rgba32(58, 123, 213, 128)),
+			HighlightColor = AppearanceGridColorParser.Parse(SettingsViewModel.ThingEditorDragHighlightColor, new SkiaSharp.SKColor(58, 123, 213, 128)),
 		};
 	}
 

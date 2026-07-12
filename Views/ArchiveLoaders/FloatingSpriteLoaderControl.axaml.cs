@@ -639,18 +639,39 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 		private static void WriteSpriteExport(byte[] pixels, string outputPath, string format)
 		{
-			switch (format)
+			try
 			{
-				case "jpg":
-				case "jpeg":
-					SpriteImageExporter.WriteJpeg(pixels, outputPath);
-					break;
-				case "bmp":
-					SpriteImageExporter.WriteBmp(pixels, outputPath);
-					break;
-				default:
-					SpriteImageExporter.WritePng(pixels, outputPath);
-					break;
+				var edge = NyxAssets.Sprites.SpritePixelCodec.SpriteEdgeLength;
+				var info = new SkiaSharp.SKImageInfo(edge, edge, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
+				using var bitmap = new SkiaSharp.SKBitmap();
+				var pin = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+				try
+				{
+					bitmap.InstallPixels(info, pin.AddrOfPinnedObject(), info.RowBytes);
+					using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+					if (image == null) return;
+
+					SkiaSharp.SKEncodedImageFormat encodedFormat = format.ToLowerInvariant() switch
+					{
+						"jpg" or "jpeg" => SkiaSharp.SKEncodedImageFormat.Jpeg,
+						"bmp" => SkiaSharp.SKEncodedImageFormat.Bmp,
+						_ => SkiaSharp.SKEncodedImageFormat.Png,
+					};
+
+					using var data = image.Encode(encodedFormat, 100);
+					if (data == null) return;
+
+					using var stream = File.OpenWrite(outputPath);
+					data.SaveTo(stream);
+				}
+				finally
+				{
+					pin.Free();
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to write sprite image: {ex.Message}");
 			}
 		}
 	}
