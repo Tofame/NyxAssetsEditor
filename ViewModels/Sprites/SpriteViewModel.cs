@@ -35,7 +35,9 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 			}
 		}
 
-		public bool CanPaste => SpriteClipboard.HasData;
+		public bool CanModify => Id != 0;
+
+		public bool CanPaste => CanModify && SpriteClipboard.HasData;
 
 		public SpriteViewModel(uint id, FloatingSpriteLoaderViewModel panel, SpriteLoader loader, SpriteRenderer renderer)
 		{
@@ -68,7 +70,7 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 		[RelayCommand(CanExecute = nameof(CanPaste))]
 		private void Paste() => _panel.PasteSprite(this);
 
-		[RelayCommand]
+		[RelayCommand(CanExecute = nameof(CanModify))]
 		private void Replace()
 		{
 			var selected = _panel.GetSelectedSprites();
@@ -87,7 +89,7 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 		[RelayCommand]
 		private void ExportBmp() => ExportWithSelection("bmp");
 
-		[RelayCommand]
+		[RelayCommand(CanExecute = nameof(CanModify))]
 		private void Remove()
 		{
 			var selected = _panel.GetSelectedSprites();

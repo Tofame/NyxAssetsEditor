@@ -397,6 +397,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			PagedSprites.Clear();
 			if (TotalSprites == 0) return;
 
+			if (CurrentPage == 1)
+			{
+				PagedSprites.Add(new SpriteViewModel(0, this, Loader, _renderer));
+			}
+
 			uint startId = (uint)((CurrentPage - 1) * PageSize + 1);
 			uint endId = Math.Min((uint)(CurrentPage * PageSize), TotalSprites);
 
@@ -495,7 +500,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void PasteSprites(IEnumerable<SpriteViewModel> sprites)
 		{
-			var targets = sprites.OrderBy(s => s.Id).ToList();
+			var targets = sprites.Where(s => s.Id != 0).OrderBy(s => s.Id).ToList();
 			var clipboard = SpriteClipboard.GetAll();
 			if (targets.Count == 0 || clipboard.Count == 0)
 				return;
@@ -518,7 +523,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void RequestImportSprites(IEnumerable<SpriteViewModel> sprites)
 		{
-			var list = sprites.ToList();
+			var list = sprites.Where(s => s.Id != 0).ToList();
 			if (list.Count == 0)
 				return;
 
@@ -542,7 +547,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void ReplaceSpritePixels(IEnumerable<SpriteViewModel> sprites, byte[] rgba)
 		{
-			var targetsList = sprites.ToList();
+			var targetsList = sprites.Where(s => s.Id != 0).ToList();
 			var targetIds = targetsList.Select(t => t.Id).ToList();
 			StartSpriteTransaction(targetIds);
 
@@ -571,7 +576,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void RemoveSprites(IEnumerable<SpriteViewModel> sprites)
 		{
-			var ids = sprites.Select(s => s.Id).Distinct().OrderByDescending(id => id).ToList();
+			var ids = sprites.Select(s => s.Id).Where(id => id != 0).Distinct().OrderByDescending(id => id).ToList();
 			if (ids.Count == 0)
 				return;
 

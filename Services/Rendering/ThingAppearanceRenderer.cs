@@ -45,8 +45,7 @@ public static class ThingAppearanceRenderer
 		var canvasH = (int)(fg.Height * edge);
 		var canvas = new byte[canvasW * canvasH * 4];
 
-		if (!DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, options, 0, 0))
-			return null;
+		DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, options, 0, 0);
 
 		ApplyGridAndHighlight(canvas, canvasW, canvasH, options, edge, (int)fg.Width, (int)fg.Height);
 
@@ -77,7 +76,6 @@ public static class ThingAppearanceRenderer
 		var canvasH = Math.Max(edge, (int)(fg.PatternY * fg.Height * edge));
 		var canvas = new byte[canvasW * canvasH * 4];
 
-		var drewAny = false;
 		for (uint py = 0; py < fg.PatternY; py++)
 		{
 			for (uint px = 0; px < fg.PatternX; px++)
@@ -95,16 +93,14 @@ public static class ThingAppearanceRenderer
 				};
 				var offsetX = (int)(px * cellW);
 				var offsetY = (int)(py * cellH);
-				if (DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, patternOptions, offsetX, offsetY))
-					drewAny = true;
+				DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, patternOptions, offsetX, offsetY);
 
 				if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
 					DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
 			}
 		}
 
-		if (!drewAny)
-			return null;
+
 
 		ApplyGridAndHighlight(canvas, canvasW, canvasH, options, edge, (int)(fg.PatternX * fg.Width), (int)(fg.PatternY * fg.Height));
 		if (UsesGrid(options))
@@ -145,7 +141,6 @@ public static class ThingAppearanceRenderer
 			(Direction8.SouthEast, 2, 2),
 		];
 
-		var drewAny = false;
 		foreach (var (direction, column, row) in slots)
 		{
 			var (patternX, patternY) = MissileDirectionPatterns.GetPattern(direction);
@@ -162,15 +157,13 @@ public static class ThingAppearanceRenderer
 			};
 			var offsetX = column * cellW;
 			var offsetY = row * cellH;
-			if (DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, cellOptions, offsetX, offsetY))
-				drewAny = true;
+			DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, cellOptions, offsetX, offsetY);
 
 			if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
 				DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
 		}
 
-		if (!drewAny)
-			return null;
+
 
 		var (borderColor, borderWidth) = UsesGrid(options)
 			? GetActiveGridStyle(options)

@@ -104,6 +104,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				_spriteDragStart = e.GetPosition(this);
 				_spriteDragStarted = false;
 				_spriteDragPressEvent = e;
+				e.Pointer.Capture(control);
 				e.Handled = true;
 			}
 
@@ -116,13 +117,6 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			if (_dragSprite == null || _viewModel == null || _spriteDragPressEvent == null)
 				return;
 
-			if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-			{
-				_dragSprite = null;
-				_spriteDragPressEvent = null;
-				return;
-			}
-
 			if (_spriteDragStarted)
 				return;
 
@@ -133,9 +127,11 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				return;
 
 			_spriteDragStarted = true;
+			e.Pointer.Capture(null);
 
 			var data = SpriteDragContext.CreateDrag(_viewModel, _dragSprite.Id);
 			await DragDrop.DoDragDropAsync(_spriteDragPressEvent, data, DragDropEffects.Copy);
+			SpriteDragContext.CurrentDrag = null;
 
 			_dragSprite = null;
 			_spriteDragPressEvent = null;
@@ -147,6 +143,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			if (_spriteDragStarted)
 				return;
 
+			e.Pointer.Capture(null);
 			_dragSprite = null;
 			_spriteDragPressEvent = null;
 		}

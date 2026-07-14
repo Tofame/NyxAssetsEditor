@@ -289,8 +289,24 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		ClearAppearanceDragHover();
 
-		if (sourcePanel is not { IsArchiveLoaded: true } || spriteId < 1)
+		if (sourcePanel is not { IsArchiveLoaded: true })
 			return;
+
+		if (spriteId == 0)
+		{
+			AssignSpriteToDropTarget(0, dropX, dropY);
+			return;
+		}
+
+		if (SourcePanel.LinkedSpritePanel == null)
+		{
+			if (NyxAssetsEditor.ViewModels.Common.ArchiveFormatHelper.AreCompatible(sourcePanel.ArchiveFormat, SourcePanel.ArchiveFormat))
+			{
+				SourcePanel.LinkedSpritePanel = sourcePanel;
+				SourcePanel.NotifySpriteLinkChanged();
+				RefreshAppearance();
+			}
+		}
 
 		if (SourcePanel.GetActiveSpriteLoader() == null)
 			return;

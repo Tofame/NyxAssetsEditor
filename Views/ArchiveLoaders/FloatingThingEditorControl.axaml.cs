@@ -73,6 +73,19 @@ public partial class FloatingThingEditorControl : UserControl
 
 		if (DataContext is FloatingThingEditorViewModel vm)
 		{
+			if (vm.SourcePanel.LinkedSpritePanel == null)
+			{
+				if (SpriteDragContext.TryRead(e, out var sourcePanel, out _) && sourcePanel != null)
+				{
+					if (NyxAssetsEditor.ViewModels.Common.ArchiveFormatHelper.AreCompatible(sourcePanel.ArchiveFormat, vm.SourcePanel.ArchiveFormat))
+					{
+						vm.SourcePanel.LinkedSpritePanel = sourcePanel;
+						vm.SourcePanel.NotifySpriteLinkChanged();
+						vm.RefreshAppearance();
+					}
+				}
+			}
+
 			var pos = e.GetPosition(AppearanceImageControl);
 			vm.UpdateAppearanceDragHover(pos.X, pos.Y);
 		}
@@ -93,6 +106,19 @@ public partial class FloatingThingEditorControl : UserControl
 		if (!canAccept || DataContext is not FloatingThingEditorViewModel vm)
 			return;
 
+		if (vm.SourcePanel.LinkedSpritePanel == null)
+		{
+			if (SpriteDragContext.TryRead(e, out var sourcePanel, out _) && sourcePanel != null)
+			{
+				if (NyxAssetsEditor.ViewModels.Common.ArchiveFormatHelper.AreCompatible(sourcePanel.ArchiveFormat, vm.SourcePanel.ArchiveFormat))
+				{
+					vm.SourcePanel.LinkedSpritePanel = sourcePanel;
+					vm.SourcePanel.NotifySpriteLinkChanged();
+					vm.RefreshAppearance();
+				}
+			}
+		}
+
 		var pos = e.GetPosition(AppearanceImageControl);
 		vm.UpdateAppearanceDragHover(pos.X, pos.Y);
 	}
@@ -108,6 +134,16 @@ public partial class FloatingThingEditorControl : UserControl
 		{
 			vm.ClearAppearanceDragHover();
 			return;
+		}
+
+		if (vm.SourcePanel.LinkedSpritePanel == null)
+		{
+			if (NyxAssetsEditor.ViewModels.Common.ArchiveFormatHelper.AreCompatible(sourcePanel.ArchiveFormat, vm.SourcePanel.ArchiveFormat))
+			{
+				vm.SourcePanel.LinkedSpritePanel = sourcePanel;
+				vm.SourcePanel.NotifySpriteLinkChanged();
+				vm.RefreshAppearance();
+			}
 		}
 
 		var pos = e.GetPosition(AppearanceImageControl);

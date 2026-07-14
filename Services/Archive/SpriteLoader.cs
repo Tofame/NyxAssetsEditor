@@ -95,6 +95,11 @@ public class SpriteLoader : IDisposable
     {
         byte[] rgbaBuffer = new byte[SpritePixelCodec.RgbaBufferLength];
 
+        if (spriteId == 0)
+        {
+            return rgbaBuffer;
+        }
+
         if (_archive_spr != null)
         {
             _archive_spr.TryDecodeSpriteById(spriteId, rgbaBuffer);
