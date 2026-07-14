@@ -62,6 +62,31 @@ public partial class FloatingThingEditorControl : UserControl
 		}
 	}
 
+	protected override void OnPointerPressed(PointerPressedEventArgs e)
+	{
+		base.OnPointerPressed(e);
+
+		if (DataContext is FloatingThingEditorViewModel vm)
+		{
+			var visual = e.Source as Visual;
+			bool clickedInsideTarget = false;
+			while (visual != null)
+			{
+				if (visual == AppearanceDropTarget)
+				{
+					clickedInsideTarget = true;
+					break;
+				}
+				visual = visual.GetVisualParent();
+			}
+
+			if (!clickedInsideTarget)
+			{
+				vm.SelectedSlot = null;
+			}
+		}
+	}
+
 	private void OnAppearanceDragEnter(object? sender, DragEventArgs e)
 	{
 		if (!SpriteDragContext.CanAccept(e))
@@ -216,34 +241,31 @@ public partial class FloatingThingEditorControl : UserControl
 		if (DataContext is not FloatingThingEditorViewModel vm)
 			return;
 
-		var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, vm.LastMouseX, vm.LastMouseY, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
+		if (vm.SelectedSlot == null)
+			return;
+
+		var slot = vm.SelectedSlot.Value;
 
 		if (e.KeyModifiers == KeyModifiers.Control)
 		{
 			if (e.Key == Key.C)
 			{
-				if (slot != null)
-				{
-					vm.CopySlot(slot.Value);
-					e.Handled = true;
-				}
+				vm.CopySlot(slot);
+				e.Handled = true;
 			}
 			else if (e.Key == Key.V)
 			{
-				if (slot != null && vm.CanPasteSpriteId)
+				if (vm.CanPasteSpriteId)
 				{
-					vm.PasteSlot(slot.Value);
+					vm.PasteSlot(slot);
 					e.Handled = true;
 				}
 			}
 		}
 		else if (e.Key == Key.Delete || e.Key == Key.Back)
 		{
-			if (slot != null)
-			{
-				vm.ClearSlot(slot.Value);
-				e.Handled = true;
-			}
+			vm.ClearSlot(slot);
+			e.Handled = true;
 		}
 	}
 
