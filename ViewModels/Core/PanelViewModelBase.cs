@@ -62,6 +62,7 @@ namespace NyxAssetsEditor.ViewModels.Core
 				if (SetProperty(ref _panelWidth, value))
 				{
 					OnPropertyChanged(nameof(DisplayWidth));
+					OnPropertyChanged(nameof(PanelContentWidth));
 				}
 			}
 		}
@@ -89,6 +90,7 @@ namespace NyxAssetsEditor.ViewModels.Core
 					OnPropertyChanged(nameof(IsFloating));
 					OnPropertyChanged(nameof(ShowResizeHandles));
 					OnPropertyChanged(nameof(DisplayWidth));
+					OnPropertyChanged(nameof(PanelContentWidth));
 					OnPropertyChanged(nameof(DisplayHeight));
 				}
 			}
@@ -97,6 +99,7 @@ namespace NyxAssetsEditor.ViewModels.Core
 		public bool IsFloating => DockState == "Floating";
 		public bool ShowResizeHandles => IsFloating && !IsMinimized;
 		public double DisplayWidth => IsFloating ? PanelWidth : double.NaN;
+		public double PanelContentWidth => IsFloating ? Math.Max(0, PanelWidth - 2) : double.NaN;
 		public double DisplayHeight => IsFloating ? ContentHeight : double.NaN;
 
 		[RelayCommand]

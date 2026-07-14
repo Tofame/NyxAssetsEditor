@@ -1,6 +1,7 @@
 using System;
 using NyxAssets.Things;
 using NyxAssetsEditor.Services.Persistence;
+using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 
 namespace NyxAssetsEditor.ViewModels.Pages
@@ -108,6 +109,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private static uint _outfitAnimationDurationMs = 300;
 		private static uint _effectAnimationDurationMs = 100;
 		private static uint _missileAnimationDurationMs = 500;
+		private static MountedOutfitAlignment _looktypeMountAlignment = MountedOutfitAlignment.OtClientCompatible;
+		private static int _looktypeMountedRiderOffsetX;
+		private static int _looktypeMountedRiderOffsetY;
 
 		private static string _thingEditorGridColor = "#B4808080";
 		private static int _thingEditorGridLineWidth = 1;
@@ -116,6 +120,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private static string _thingEditorDragHighlightColor = "#803A7BD5";
 
 		public static event Action? ThingEditorAppearanceSettingsChanged;
+		public static event Action? LooktypeRendererSettingsChanged;
+
+		public static MountedOutfitAlignment LooktypeMountAlignment => _looktypeMountAlignment;
+		public static int LooktypeMountedRiderOffsetX => _looktypeMountedRiderOffsetX;
+		public static int LooktypeMountedRiderOffsetY => _looktypeMountedRiderOffsetY;
 
 		public static uint ItemAnimationDurationMs
 		{
@@ -246,6 +255,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set => ThingEditorDragHighlightColor = value;
 		}
 
+		public int SelectedLooktypeMountAlignmentIndex
+		{
+			get => (int)_looktypeMountAlignment;
+			set
+			{
+				var alignment = value == (int)MountedOutfitAlignment.IndependentAssetDisplacement
+					? MountedOutfitAlignment.IndependentAssetDisplacement
+					: MountedOutfitAlignment.OtClientCompatible;
+				if (_looktypeMountAlignment == alignment) return;
+				_looktypeMountAlignment = alignment;
+				OnPropertyChanged();
+				LooktypeRendererSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public int LooktypeMountedRiderOffsetXSetting
+		{
+			get => _looktypeMountedRiderOffsetX;
+			set => SetLooktypeMountedRiderOffset(ref _looktypeMountedRiderOffsetX, value, nameof(LooktypeMountedRiderOffsetXSetting));
+		}
+
+		public int LooktypeMountedRiderOffsetYSetting
+		{
+			get => _looktypeMountedRiderOffsetY;
+			set => SetLooktypeMountedRiderOffset(ref _looktypeMountedRiderOffsetY, value, nameof(LooktypeMountedRiderOffsetYSetting));
+		}
+
 		public bool PreloadGraphicalAssetsSetting
 		{
 			get => PreloadGraphicalAssets;
@@ -282,7 +319,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			string? thingEditorDragHighlightColor = null,
 			int maxRecentCombinations = 10,
 			int undoLimit = 10,
-			bool allowUnknownSignatures = true)
+			bool allowUnknownSignatures = true,
+			string? looktypeMountAlignment = null,
+			int looktypeMountedRiderOffsetX = 0,
+			int looktypeMountedRiderOffsetY = 0)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -307,6 +347,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_thingEditorDragGridLineWidth = Math.Clamp(thingEditorDragGridLineWidth, 1, 4);
 			if (!string.IsNullOrWhiteSpace(thingEditorDragHighlightColor))
 				_thingEditorDragHighlightColor = thingEditorDragHighlightColor;
+			_looktypeMountAlignment = Enum.TryParse<MountedOutfitAlignment>(looktypeMountAlignment, true, out var alignment) &&
+				Enum.IsDefined(typeof(MountedOutfitAlignment), alignment)
+					? alignment
+					: MountedOutfitAlignment.OtClientCompatible;
+			_looktypeMountedRiderOffsetX = Math.Clamp(looktypeMountedRiderOffsetX, -128, 128);
+			_looktypeMountedRiderOffsetY = Math.Clamp(looktypeMountedRiderOffsetY, -128, 128);
 		}
 
 		public int SelectedThingIdOffset
@@ -502,6 +548,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			field = clamped;
 			OnPropertyChanged(propertyName);
+			PersistenceService.SaveSettings();
+		}
+
+		private void SetLooktypeMountedRiderOffset(ref int field, int value, string propertyName)
+		{
+			var clamped = Math.Clamp(value, -128, 128);
+			if (field == clamped) return;
+			field = clamped;
+			OnPropertyChanged(propertyName);
+			LooktypeRendererSettingsChanged?.Invoke();
 			PersistenceService.SaveSettings();
 		}
 

@@ -160,6 +160,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
 				thingsPanel.NotifySpriteLinkChanged();
+			RefreshLooktypeGenerators();
+		}
+
+		public void RefreshLooktypeGenerators()
+		{
+			foreach (var generator in ActivePanels.OfType<FloatingLooktypeGeneratorViewModel>())
+				generator.RefreshArchivePairs();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -463,6 +470,26 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			panel.NotifySpriteLinkChanged();
 		}
 
+		[RelayCommand]
+		private void OpenLooktypeGenerator()
+		{
+			var existing = ActivePanels.OfType<FloatingLooktypeGeneratorViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				existing.RefreshArchivePairs();
+				return;
+			}
+
+			AddPanel(new FloatingLooktypeGeneratorViewModel(this)
+			{
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			});
+		}
+
 		private void AddPanel(PanelViewModelBase panel)
 		{
 			panel.RequestClose += OnPanelRequestClose;
@@ -475,6 +502,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			PersistenceService.SaveAppState(this);
 			RefreshCompileCommands();
+			RefreshLooktypeGenerators();
 		}
 
 		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
@@ -599,11 +627,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						thingsPanel.NotifySpriteLinkChanged();
 				}
 				RefreshCompileCommands();
+				RefreshLooktypeGenerators();
 			}
 
 			if (e.PropertyName == nameof(FloatingThingsLoaderViewModel.IsArchiveLoaded))
 			{
 				RefreshCompileCommands();
+				RefreshLooktypeGenerators();
+			}
+
+			if (e.PropertyName == "HasSavedChanges"
+				&& sender is FloatingSpriteLoaderViewModel or FloatingThingsLoaderViewModel)
+			{
+				RefreshLooktypeGenerators();
 			}
 
 			if (e.PropertyName == nameof(PanelViewModelBase.IsMinimized) ||
@@ -734,6 +770,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			UpdateColumnWidths();
 			OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
 			RefreshCompileCommands();
+			RefreshLooktypeGenerators();
 
 			PersistenceService.SaveAppState(this);
 		}

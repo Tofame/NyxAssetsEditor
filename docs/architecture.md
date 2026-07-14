@@ -79,3 +79,25 @@ Double-click a thing in the Things Archive Viewer to open a floating **Thing Edi
 | **Properties** | Common flags (stackable, rotatable, animate always, etc.) |
 
 Edits apply live to the catalog. A linked sprite archive is required for texture previews.
+
+## Looktype generator
+
+The Assets toolbar can open a dockable Looktype Generator. It composes outfits or item-based
+appearances from a selected linked archive pair without modifying either archive. Named profiles
+are stored in the versioned `looktypes.json` file beside the executable and can be exchanged as
+TFS-style Lua outfit tables or XML `<look>` fragments. The panel previews the selected profile's
+generated text and accepts pasted single- or multi-looktype documents. File import reads every
+valid entry; export writes the profile library as a valid multi-looktype document.
+Generated Lua uses `creature.outfit` and `creature.corpse`; imports accept any table owner, such as
+`monster.outfit` or `dragon.outfit`. XML uses the `corpse` attribute on `<look>` elements. The preview
+can switch between the configured appearance and corpse item without changing the profile's exported
+appearance mode.
+Preview direction, animation timing, and rotation remain app-local by default. A per-profile opt-in
+can preserve them in saved profiles and include importable Nyx metadata in Lua/XML exports.
+Profile names can be included independently as quoted `nyx-looktype` metadata, keeping them out of
+the TFS Lua outfit table and XML `<look>` attributes while still supporting multi-profile round trips.
+
+Outfit previews use the NyxAssets frame resolver for direction, walking groups, addons, and mounts.
+The renderer generates the 133 Tibia colours mathematically and applies the yellow/head, red/body,
+green/legs, and blue/feet masks. Missing IDs or unsupported addon/mount patterns are reported inside
+the panel and do not prevent the profile from being edited or moved to another archive pair.

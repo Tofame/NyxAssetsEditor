@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NyxAssetsEditor", "NyxAssetsEditor.csproj", "{744CB975-61D9-459D-905E-1EFF92033135}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NyxAssetsEditor.Tests", "Tests\NyxAssetsEditor.Tests.csproj", "{7F850427-F925-4A1E-9EE3-B956B55A7BC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{744CB975-61D9-459D-905E-1EFF92033135}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{744CB975-61D9-459D-905E-1EFF92033135}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{744CB975-61D9-459D-905E-1EFF92033135}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F850427-F925-4A1E-9EE3-B956B55A7BC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F850427-F925-4A1E-9EE3-B956B55A7BC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F850427-F925-4A1E-9EE3-B956B55A7BC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F850427-F925-4A1E-9EE3-B956B55A7BC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
