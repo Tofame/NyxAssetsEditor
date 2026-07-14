@@ -30,6 +30,8 @@ public partial class FloatingThingEditorControl : UserControl
 		DataContextChanged += OnDataContextChanged;
 		Loaded += OnLoaded;
 
+		AppearanceDropTarget.KeyDown += OnAppearanceKeyDown;
+
 		var titleBar = this.FindControl<Border>("TitleBar");
 		if (titleBar == null)
 			return;
@@ -158,6 +160,9 @@ public partial class FloatingThingEditorControl : UserControl
 			return;
 
 		var pos = e.GetPosition(AppearanceImageControl);
+		vm.LastMouseX = pos.X;
+		vm.LastMouseY = pos.Y;
+
 		var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, pos.X, pos.Y, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
 		if (slot == null)
 		{
@@ -176,10 +181,17 @@ public partial class FloatingThingEditorControl : UserControl
 
 	private void OnAppearancePointerPressed(object? sender, PointerPressedEventArgs e)
 	{
-		if (e.ClickCount == 2 && DataContext is FloatingThingEditorViewModel vm)
+		if (DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		// Focus the parent drop target to capture keyboard events
+		AppearanceDropTarget.Focus();
+
+		var pos = e.GetPosition(AppearanceImageControl);
+		var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, pos.X, pos.Y, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
+
+		if (e.ClickCount == 2)
 		{
-			var pos = e.GetPosition(AppearanceImageControl);
-			var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, pos.X, pos.Y, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
 			if (slot != null)
 			{
 				var spriteId = vm.GetSpriteIdAtSlot(slot.Value);
@@ -187,6 +199,50 @@ public partial class FloatingThingEditorControl : UserControl
 				{
 					vm.NavigateToSprite(spriteId);
 				}
+			}
+		}
+		else
+		{
+			var pointerPoint = e.GetCurrentPoint(AppearanceImageControl);
+			if (pointerPoint.Properties.IsLeftButtonPressed || pointerPoint.Properties.IsRightButtonPressed)
+			{
+				vm.SelectedSlot = slot;
+			}
+		}
+	}
+
+	private void OnAppearanceKeyDown(object? sender, KeyEventArgs e)
+	{
+		if (DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, vm.LastMouseX, vm.LastMouseY, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
+
+		if (e.KeyModifiers == KeyModifiers.Control)
+		{
+			if (e.Key == Key.C)
+			{
+				if (slot != null)
+				{
+					vm.CopySlot(slot.Value);
+					e.Handled = true;
+				}
+			}
+			else if (e.Key == Key.V)
+			{
+				if (slot != null && vm.CanPasteSpriteId)
+				{
+					vm.PasteSlot(slot.Value);
+					e.Handled = true;
+				}
+			}
+		}
+		else if (e.Key == Key.Delete || e.Key == Key.Back)
+		{
+			if (slot != null)
+			{
+				vm.ClearSlot(slot.Value);
+				e.Handled = true;
 			}
 		}
 	}

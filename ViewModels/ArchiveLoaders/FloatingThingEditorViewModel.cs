@@ -1204,6 +1204,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		(int X, int Y, int Width, int Height)? highlightRect = null;
 		if (_isAppearanceDragHover && _hoverSlot is { } slot)
 			highlightRect = ThingAppearanceSlotGeometry.GetHighlightRect(this, slot);
+		else if (_selectedSlot is { } selSlot)
+			highlightRect = ThingAppearanceSlotGeometry.GetHighlightRect(this, selSlot);
 
 		return new ThingAppearanceOptions
 		{
@@ -1939,6 +1941,156 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			return 0;
 
 		return fg.SpriteIds[index];
+	}
+
+	private NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot? _selectedSlot;
+	public NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot? SelectedSlot
+	{
+		get => _selectedSlot;
+		set
+		{
+			if (SetProperty(ref _selectedSlot, value))
+			{
+				RefreshAppearance();
+			}
+		}
+	}
+
+	public double LastMouseX { get; set; }
+	public double LastMouseY { get; set; }
+
+	private bool _showSetSpriteIdPrompt;
+	public bool ShowSetSpriteIdPrompt
+	{
+		get => _showSetSpriteIdPrompt;
+		set => SetProperty(ref _showSetSpriteIdPrompt, value);
+	}
+
+	private string _targetSpriteIdText = string.Empty;
+	public string TargetSpriteIdText
+	{
+		get => _targetSpriteIdText;
+		set => SetProperty(ref _targetSpriteIdText, value);
+	}
+
+	private static uint _copiedSpriteId;
+	private static bool _hasCopiedSprite;
+
+	public bool CanPasteSpriteId => _hasCopiedSprite;
+
+	[RelayCommand]
+	private void OpenSetSpriteIdPrompt()
+	{
+		if (SelectedSlot is { } slot)
+		{
+			var currentId = GetSpriteIdAtSlot(slot);
+			TargetSpriteIdText = currentId.ToString();
+			ShowSetSpriteIdPrompt = true;
+		}
+	}
+
+	[RelayCommand]
+	private void CancelSetSpriteId()
+	{
+		ShowSetSpriteIdPrompt = false;
+		TargetSpriteIdText = string.Empty;
+	}
+
+	[RelayCommand]
+	private void ConfirmSetSpriteId()
+	{
+		ShowSetSpriteIdPrompt = false;
+		if (uint.TryParse(TargetSpriteIdText.Trim(), out var spriteId) && SelectedSlot is { } slot)
+		{
+			var fg = CurrentFrameGroup;
+			var index = fg.GetSpriteIndex(
+				slot.InnerW,
+				slot.InnerH,
+				(uint)SelectedLayer,
+				slot.PatternX,
+				slot.PatternY,
+				_viewPatternZ,
+				(uint)SelectedFrame);
+
+			if (index < fg.SpriteIds.Length)
+			{
+				fg.SpriteIds[index] = spriteId;
+				ApplyToCatalog();
+				RefreshAppearance();
+			}
+		}
+		TargetSpriteIdText = string.Empty;
+	}
+
+	public void CopySlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
+	{
+		_copiedSpriteId = GetSpriteIdAtSlot(slot);
+		_hasCopiedSprite = true;
+		OnPropertyChanged(nameof(CanPasteSpriteId));
+	}
+
+	public void PasteSlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
+	{
+		if (!_hasCopiedSprite)
+			return;
+
+		var fg = CurrentFrameGroup;
+		var index = fg.GetSpriteIndex(
+			slot.InnerW,
+			slot.InnerH,
+			(uint)SelectedLayer,
+			slot.PatternX,
+			slot.PatternY,
+			_viewPatternZ,
+			(uint)SelectedFrame);
+
+		if (index < fg.SpriteIds.Length)
+		{
+			fg.SpriteIds[index] = _copiedSpriteId;
+			ApplyToCatalog();
+			RefreshAppearance();
+		}
+	}
+
+	public void ClearSlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
+	{
+		var fg = CurrentFrameGroup;
+		var index = fg.GetSpriteIndex(
+			slot.InnerW,
+			slot.InnerH,
+			(uint)SelectedLayer,
+			slot.PatternX,
+			slot.PatternY,
+			_viewPatternZ,
+			(uint)SelectedFrame);
+
+		if (index < fg.SpriteIds.Length)
+		{
+			fg.SpriteIds[index] = 0;
+			ApplyToCatalog();
+			RefreshAppearance();
+		}
+	}
+
+	[RelayCommand]
+	private void CopySelectedSlot()
+	{
+		if (SelectedSlot is { } slot)
+			CopySlot(slot);
+	}
+
+	[RelayCommand]
+	private void PasteSelectedSlot()
+	{
+		if (SelectedSlot is { } slot)
+			PasteSlot(slot);
+	}
+
+	[RelayCommand]
+	private void ClearSelectedSlot()
+	{
+		if (SelectedSlot is { } slot)
+			ClearSlot(slot);
 	}
 
 	public void NavigateToSprite(uint spriteId)

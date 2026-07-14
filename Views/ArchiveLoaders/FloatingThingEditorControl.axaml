@@ -147,8 +147,18 @@
 												DragDrop.DragLeave="OnAppearanceDragLeave"
 												DragDrop.DragOver="OnAppearanceDragOver"
 												DragDrop.Drop="OnAppearanceDrop"
+												Focusable="True"
 												Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
 												HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
+											<Border.ContextMenu>
+												<ContextMenu>
+													<MenuItem Header="Set Sprite ID..." Command="{Binding OpenSetSpriteIdPromptCommand}"/>
+													<MenuItem Header="Clear" Command="{Binding ClearSelectedSlotCommand}"/>
+													<Separator/>
+													<MenuItem Header="Copy Sprite ID" Command="{Binding CopySelectedSlotCommand}" InputGesture="Ctrl+C"/>
+													<MenuItem Header="Paste Sprite ID" Command="{Binding PasteSelectedSlotCommand}" InputGesture="Ctrl+V" IsEnabled="{Binding CanPasteSpriteId}"/>
+												</ContextMenu>
+											</Border.ContextMenu>
 											<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
 												   HorizontalAlignment="Center" VerticalAlignment="Center"
 												   PointerMoved="OnAppearancePointerMoved"
@@ -581,6 +591,19 @@
 							<Button Grid.Column="0" Content="Save" Command="{Binding PromptSaveCommand}" Background="#3A7BD5" Foreground="White" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
 							<Button Grid.Column="1" Content="Don't Save" Command="{Binding PromptDontSaveCommand}" Margin="4,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
 							<Button Grid.Column="2" Content="Cancel" Command="{Binding PromptCancelCommand}" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+			</Border>
+			<!-- Set Sprite ID Prompt Overlay -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowSetSpriteIdPrompt}" CornerRadius="8">
+				<Border Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="280" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Set Sprite ID" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" FontSize="13"/>
+						<TextBox Text="{Binding TargetSpriteIdText}" PlaceholderText="Enter Sprite ID..." FontSize="12" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+						<Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
+							<Button Grid.Column="0" Content="Cancel" Command="{Binding CancelSetSpriteIdCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
+							<Button Grid.Column="1" Content="OK" Command="{Binding ConfirmSetSpriteIdCommand}" Background="#3A7BD5" Foreground="White" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
 						</Grid>
 					</StackPanel>
 				</Border>
