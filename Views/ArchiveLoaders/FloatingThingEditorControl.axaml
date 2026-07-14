@@ -150,7 +150,10 @@
 												Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
 												HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
 											<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
-												   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												   HorizontalAlignment="Center" VerticalAlignment="Center"
+												   PointerMoved="OnAppearancePointerMoved"
+												   PointerExited="OnAppearancePointerExited"
+												   PointerPressed="OnAppearancePointerPressed"/>
 										</Border>
 									</ScrollViewer>
 

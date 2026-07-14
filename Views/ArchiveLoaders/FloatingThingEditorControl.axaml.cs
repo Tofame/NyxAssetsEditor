@@ -152,6 +152,45 @@ public partial class FloatingThingEditorControl : UserControl
 		e.Handled = true;
 	}
 
+	private void OnAppearancePointerMoved(object? sender, PointerEventArgs e)
+	{
+		if (DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		var pos = e.GetPosition(AppearanceImageControl);
+		var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, pos.X, pos.Y, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
+		if (slot == null)
+		{
+			ToolTip.SetTip(AppearanceImageControl, null);
+			return;
+		}
+
+		var spriteId = vm.GetSpriteIdAtSlot(slot.Value);
+		ToolTip.SetTip(AppearanceImageControl, $"Sprite ID: {spriteId}");
+	}
+
+	private void OnAppearancePointerExited(object? sender, PointerEventArgs e)
+	{
+		ToolTip.SetTip(AppearanceImageControl, null);
+	}
+
+	private void OnAppearancePointerPressed(object? sender, PointerPressedEventArgs e)
+	{
+		if (e.ClickCount == 2 && DataContext is FloatingThingEditorViewModel vm)
+		{
+			var pos = e.GetPosition(AppearanceImageControl);
+			var slot = NyxAssetsEditor.Services.Rendering.ThingAppearanceDropTarget.Resolve(vm, pos.X, pos.Y, vm.AppearancePixelWidth, vm.AppearancePixelHeight);
+			if (slot != null)
+			{
+				var spriteId = vm.GetSpriteIdAtSlot(slot.Value);
+				if (spriteId > 0)
+				{
+					vm.NavigateToSprite(spriteId);
+				}
+			}
+		}
+	}
+
 	private void ResetAppearanceDropBorder()
 	{
 		AppearanceDropTarget.BorderBrush = AppearanceDropBorderDefault;

@@ -1923,6 +1923,35 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		}
 	}
 
+	public uint GetSpriteIdAtSlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
+	{
+		var fg = CurrentFrameGroup;
+		var index = fg.GetSpriteIndex(
+			slot.InnerW,
+			slot.InnerH,
+			(uint)SelectedLayer,
+			slot.PatternX,
+			slot.PatternY,
+			_viewPatternZ,
+			(uint)SelectedFrame);
+
+		if (index >= fg.SpriteIds.Length)
+			return 0;
+
+		return fg.SpriteIds[index];
+	}
+
+	public void NavigateToSprite(uint spriteId)
+	{
+		var spritePanel = SourcePanel.LinkedSpritePanel;
+		if (spritePanel == null)
+			return;
+
+		spritePanel.IsVisible = true;
+		spritePanel.IsMinimized = false;
+		spritePanel.GoToSpriteId(spriteId);
+	}
+
 	public void RequestApplyToCatalog() => ApplyToCatalog();
 }
 

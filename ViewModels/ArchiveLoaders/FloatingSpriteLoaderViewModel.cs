@@ -726,6 +726,41 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ScrollToItemRequested?.Invoke(sprite);
 		}
 
+		public void GoToSpriteId(uint id)
+		{
+			if (id == 0)
+			{
+				CurrentPage = 1;
+				var sprite0 = PagedSprites.FirstOrDefault(s => s.Id == 0);
+				if (sprite0 != null)
+				{
+					SelectSprite(sprite0);
+					ScrollToItemRequested?.Invoke(sprite0);
+				}
+				return;
+			}
+
+			if (id > TotalSprites)
+				return;
+
+			var targetPage = (int)((id - 1) / PageSize + 1);
+			if (CurrentPage != targetPage)
+			{
+				CurrentPage = targetPage;
+			}
+			else
+			{
+				UpdatePage();
+			}
+
+			var sprite = PagedSprites.FirstOrDefault(s => s.Id == id);
+			if (sprite == null)
+				return;
+
+			SelectSprite(sprite);
+			ScrollToItemRequested?.Invoke(sprite);
+		}
+
 		public event Action<object>? ScrollToItemRequested;
 
 
