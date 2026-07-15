@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
+using NyxAssetsEditor.ViewModels.ArchiveLoaders;
+using NyxAssetsEditor.ViewModels.Sprites;
 
 namespace NyxAssetsEditor.ViewModels.Shell;
 
@@ -68,5 +70,18 @@ public partial class MainWindowViewModel : ViewModelBase
 			thingsAnimations,
 			thingsGroups
 		);
+	}
+
+	[RelayCommand]
+	private void NavigateToPaint()
+	{
+		CurrentPage = new PaintViewModel(this);
+	}
+
+	public void EditSprite(SpriteViewModel sprite, FloatingSpriteLoaderViewModel panel)
+	{
+		var paintVM = new PaintViewModel(this);
+		paintVM.InitializeWithSprite(sprite, panel);
+		CurrentPage = paintVM;
 	}
 }
