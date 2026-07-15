@@ -1020,7 +1020,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			CustomPalettes.Clear();
 
 			// Add a default Tibia Outfit Mask palette
-			var maskPalette = new PaletteViewModel("Outfit Masks");
+			var maskPalette = new PaletteViewModel("Outfit Masks", false);
 			maskPalette.Colors.Add(Colors.Red);
 			maskPalette.Colors.Add(Colors.Green);
 			maskPalette.Colors.Add(Colors.Blue);
@@ -1028,7 +1028,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			CustomPalettes.Add(maskPalette);
 
 			// Add default Retro Neon palette
-			var neonPalette = new PaletteViewModel("Retro Neon");
+			var neonPalette = new PaletteViewModel("Retro Neon", false);
 			neonPalette.Colors.Add(Color.Parse("#FF0055"));
 			neonPalette.Colors.Add(Color.Parse("#00FFCC"));
 			neonPalette.Colors.Add(Color.Parse("#9900FF"));
@@ -1038,7 +1038,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			CustomPalettes.Add(neonPalette);
 
 			// Add default Retro Pastel palette
-			var pastelPalette = new PaletteViewModel("Pastel Dream");
+			var pastelPalette = new PaletteViewModel("Pastel Dream", false);
 			pastelPalette.Colors.Add(Color.Parse("#FFB3BA"));
 			pastelPalette.Colors.Add(Color.Parse("#FFDFBA"));
 			pastelPalette.Colors.Add(Color.Parse("#FFFFBA"));
