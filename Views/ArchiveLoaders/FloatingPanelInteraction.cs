@@ -103,6 +103,27 @@ public sealed class FloatingPanelInteraction
 		if (!_isDragging || vm == null)
 			return;
 
+		var pointerPoint = e.GetCurrentPoint(_host);
+		if (!pointerPoint.Properties.IsLeftButtonPressed)
+		{
+			_isDragging = false;
+			_dragThresholdMet = false;
+			_activePointer = null;
+			_sharedActivePointer = null;
+			vm.IsDraggingVM = false;
+			e.Pointer.Capture(null);
+			e.Handled = true;
+
+			var assetsView2 = _host.FindAncestorOfType<Pages.AssetsView>();
+			if (assetsView2?.DataContext is AssetsViewModel parentVm2)
+			{
+				parentVm2.DragOverZone = null;
+				parentVm2.IsDraggingPanel = false;
+				parentVm2.TriggerSaveAppState();
+			}
+			return;
+		}
+
 		var assetsView = _host.FindAncestorOfType<Pages.AssetsView>();
 		var parentVm = assetsView?.DataContext as AssetsViewModel;
 
