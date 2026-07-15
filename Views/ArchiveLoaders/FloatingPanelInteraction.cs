@@ -28,11 +28,13 @@ public sealed class FloatingPanelInteraction
 	private double _initialWidth;
 	private double _initialHeight;
 	private double _initialPositionX;
+	private double _initialPositionY;
 	private IPointer? _activePointer;
+	private IInputElement? _activeDragElement;
 
 	private const double DragThreshold = 8.0;
 
-	public FloatingPanelInteraction(UserControl host, Border titleBar, double minWidth = 340, double minHeight = 150)
+	public FloatingPanelInteraction(UserControl host, Border titleBar, Border? bottomBar = null, double minWidth = 340, double minHeight = 150)
 	{
 		_host = host;
 		_titleBar = titleBar;
@@ -43,11 +45,18 @@ public sealed class FloatingPanelInteraction
 		_titleBar.PointerMoved += OnTitleBarPointerMoved;
 		_titleBar.PointerReleased += OnTitleBarPointerReleased;
 		_host.AttachedToVisualTree += OnAttachedToVisualTree;
+
+		if (bottomBar != null)
+		{
+			bottomBar.PointerPressed += OnTitleBarPointerPressed;
+			bottomBar.PointerMoved += OnTitleBarPointerMoved;
+			bottomBar.PointerReleased += OnTitleBarPointerReleased;
+		}
 	}
 
 	public void RegisterResizeHandle(Border handle, int direction)
 	{
-		handle.PointerPressed += (_, e) => StartResizing(e, direction);
+		handle.PointerPressed += (s, e) => StartResizing(handle, e, direction);
 		handle.PointerMoved += (_, e) => PerformResizing(e);
 		handle.PointerReleased += OnResizeReleased;
 	}
@@ -62,7 +71,7 @@ public sealed class FloatingPanelInteraction
 		_isDragging = true;
 		_activePointer = _sharedActivePointer;
 		_clickPosition = new Point(vm.DragClickX, vm.DragClickY);
-		_activePointer.Capture(_titleBar);
+		_activePointer.Capture(_activeDragElement ?? _titleBar);
 	}
 
 	private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -92,7 +101,8 @@ public sealed class FloatingPanelInteraction
 		Vm.DragClickX = _clickPosition.X;
 		Vm.DragClickY = _clickPosition.Y;
 
-		e.Pointer.Capture(sender as IInputElement);
+		_activeDragElement = sender as IInputElement;
+		e.Pointer.Capture(_activeDragElement);
 		e.Handled = true;
 	}
 
@@ -102,6 +112,28 @@ public sealed class FloatingPanelInteraction
 		var vm = Vm;
 		if (!_isDragging || vm == null)
 			return;
+
+		var pointerPoint = e.GetCurrentPoint(_host);
+		if (!pointerPoint.Properties.IsLeftButtonPressed)
+		{
+			_isDragging = false;
+			_dragThresholdMet = false;
+			_activePointer = null;
+			_sharedActivePointer = null;
+			_activeDragElement = null;
+			vm.IsDraggingVM = false;
+			e.Pointer.Capture(null);
+			e.Handled = true;
+
+			var assetsView2 = _host.FindAncestorOfType<Pages.AssetsView>();
+			if (assetsView2?.DataContext is AssetsViewModel parentVm2)
+			{
+				parentVm2.DragOverZone = null;
+				parentVm2.IsDraggingPanel = false;
+				parentVm2.TriggerSaveAppState();
+			}
+			return;
+		}
 
 		var assetsView = _host.FindAncestorOfType<Pages.AssetsView>();
 		var parentVm = assetsView?.DataContext as AssetsViewModel;
@@ -125,7 +157,7 @@ public sealed class FloatingPanelInteraction
 			{
 				var pos = e.GetPosition(assetsView);
 				vm.PositionX = pos.X - _clickPosition.X;
-				vm.PositionY = pos.Y - _clickPosition.Y;
+				vm.PositionY = Math.Max(0, pos.Y - _clickPosition.Y);
 			}
 
 			e.Handled = true;
@@ -137,7 +169,7 @@ public sealed class FloatingPanelInteraction
 		{
 			var currentPosition = e.GetPosition(canvasVisual);
 			vm.PositionX = currentPosition.X - _clickPosition.X;
-			vm.PositionY = currentPosition.Y - _clickPosition.Y;
+			vm.PositionY = Math.Max(0, currentPosition.Y - _clickPosition.Y);
 		}
 
 		if (parentVm != null && assetsView != null)
@@ -159,6 +191,7 @@ public sealed class FloatingPanelInteraction
 		_dragThresholdMet = false;
 		_activePointer = null;
 		_sharedActivePointer = null;
+		_activeDragElement = null;
 		vm.IsDraggingVM = false;
 		e.Pointer.Capture(null);
 		e.Handled = true;
@@ -177,7 +210,7 @@ public sealed class FloatingPanelInteraction
 		parentVm.TriggerSaveAppState();
 	}
 
-	private void StartResizing(PointerPressedEventArgs e, int direction)
+	private void StartResizing(IInputElement handle, PointerPressedEventArgs e, int direction)
 	{
 		if (!e.GetCurrentPoint(_host).Properties.IsLeftButtonPressed || Vm is not { IsFloating: true } vm)
 			return;
@@ -192,7 +225,8 @@ public sealed class FloatingPanelInteraction
 		_initialWidth = vm.PanelWidth;
 		_initialHeight = vm.ContentHeight;
 		_initialPositionX = vm.PositionX;
-		e.Pointer.Capture(e.Source as IInputElement);
+		_initialPositionY = vm.PositionY;
+		e.Pointer.Capture(handle);
 		e.Handled = true;
 	}
 
@@ -209,10 +243,10 @@ public sealed class FloatingPanelInteraction
 		var dx = currentPos.X - _initialPointerPosition.X;
 		var dy = currentPos.Y - _initialPointerPosition.Y;
 
-		if (_resizeDirection is 1 or 3)
+		if (_resizeDirection is 1 or 3 or 7)
 			Vm.PanelWidth = Math.Max(_minWidth, _initialWidth + dx);
 
-		if (_resizeDirection is 4 or 5)
+		if (_resizeDirection is 4 or 5 or 8)
 		{
 			var newWidth = Math.Max(_minWidth, _initialWidth - dx);
 			var widthDiff = newWidth - _initialWidth;
@@ -222,6 +256,14 @@ public sealed class FloatingPanelInteraction
 
 		if (_resizeDirection is 2 or 3 or 5)
 			Vm.ContentHeight = Math.Max(_minHeight, _initialHeight + dy);
+
+		if (_resizeDirection is 6 or 7 or 8)
+		{
+			var newHeight = Math.Max(_minHeight, _initialHeight - dy);
+			var heightDiff = newHeight - _initialHeight;
+			Vm.ContentHeight = newHeight;
+			Vm.PositionY = Math.Max(0, _initialPositionY - heightDiff);
+		}
 
 		e.Handled = true;
 	}
