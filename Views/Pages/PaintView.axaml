@@ -62,7 +62,7 @@
 						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
 					</StackPanel>
 					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-						<Button Content="Save to Archive" Command="{Binding SaveCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
+						<Button Content="Copy to Clipboard" Command="{Binding CopyToClipboardCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
 						<Button Content="Cancel" Command="{Binding CancelCommand}"/>
 					</StackPanel>
 				</Grid>
