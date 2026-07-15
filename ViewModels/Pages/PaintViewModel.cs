@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Models;
+using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Core;
@@ -1004,6 +1006,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private void Cancel()
 		{
 			_mainWindow.NavigateToAssetsCommand.Execute(null);
+		}
+
+		[RelayCommand]
+		private async Task CopyToClipboard()
+		{
+			var pixels = GetCompositePixels();
+			await SpriteClipboard.CopyAsync(pixels);
 		}
 
 		private void LoadDefaultPalettes()
