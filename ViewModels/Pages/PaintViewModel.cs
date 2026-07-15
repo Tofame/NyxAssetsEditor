@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Models;
+using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
@@ -233,6 +234,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private readonly bool[,] _selectionMask = new bool[32, 32];
 		private static readonly string PalettesFilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "paint", "paint_palletes.toml");
+		private DateTime _lastStateSave = DateTime.MinValue;
 
 		public PaintViewModel(MainWindowViewModel mainWindow)
 		{
@@ -625,6 +627,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 
 			CanvasPreview = _renderer.Convert(overlay);
+
+			var _now = DateTime.UtcNow;
+			if (Sprite != null && (_now - _lastStateSave).TotalMilliseconds >= 500)
+			{
+				_lastStateSave = _now;
+				PersistenceService.SavePaintState(this);
+			}
 		}
 
 		private void BlendGuidePixel(byte[] pixels, int x, int y, Color guideColor)
@@ -1013,6 +1022,100 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			var pixels = GetCompositePixels();
 			await SpriteClipboard.CopyAsync(pixels);
+		}
+
+		public async Task TryRestoreStateAsync(PersistenceService.PaintStateModel state)
+		{
+			if (string.IsNullOrEmpty(state.SpriteFilePath) || !File.Exists(state.SpriteFilePath))
+				return;
+
+			var panel = new FloatingSpriteLoaderViewModel(_renderer);
+			try
+			{
+				await panel.LoadArchiveAsync(state.SpriteFilePath).ConfigureAwait(true);
+			}
+			catch
+			{
+				return;
+			}
+
+			if (state.SpriteId > 0)
+			{
+				int page = (int)((state.SpriteId - 1) / panel.PageSize + 1);
+				if (page != panel.CurrentPage)
+					panel.CurrentPage = page;
+			}
+
+			var sprite = panel.PagedSprites.FirstOrDefault(s => s.Id == state.SpriteId);
+			if (sprite == null)
+				return;
+
+			Sprite = sprite;
+			Panel = panel;
+
+			Layers.Clear();
+			foreach (var layerModel in state.Layers)
+			{
+				byte[] pixels;
+				try { pixels = Convert.FromBase64String(layerModel.Pixels ?? ""); }
+				catch { pixels = new byte[32 * 32 * 4]; }
+				if (pixels.Length != 32 * 32 * 4)
+					pixels = new byte[32 * 32 * 4];
+
+				var layer = new LayerViewModel(layerModel.Name ?? "Layer", pixels)
+				{
+					IsVisible = layerModel.IsVisible,
+					Opacity = layerModel.Opacity
+				};
+				Layers.Add(layer);
+			}
+
+			if (Layers.Count == 0)
+			{
+				var basePixels = sprite.GetPixels();
+				var copy = new byte[basePixels.Length];
+				Array.Copy(basePixels, copy, basePixels.Length);
+				Layers.Add(new LayerViewModel("Base", copy));
+			}
+
+			ActiveLayer = Layers[Math.Clamp(state.ActiveLayerIndex, 0, Layers.Count - 1)];
+
+			if (Enum.TryParse<PaintTool>(state.ActiveTool, out var tool))
+				ActiveTool = tool;
+			if (Enum.TryParse<BrushShape>(state.BrushShape, out var shape))
+				BrushShape = shape;
+			BrushSize = Math.Max(1, state.BrushSize);
+			ZoomLevel = state.ZoomLevel > 0 ? state.ZoomLevel : 12.0;
+			ActiveColor = Color.FromRgb(
+				(byte)Math.Clamp(state.ColorR, 0, 255),
+				(byte)Math.Clamp(state.ColorG, 0, 255),
+				(byte)Math.Clamp(state.ColorB, 0, 255));
+			CopyOnAxisX = state.CopyOnAxisX;
+			CopyOnAxisY = state.CopyOnAxisY;
+
+			// Rebuild original-colors palette from the bottom layer
+			var existingOriginal = CustomPalettes.FirstOrDefault(p => p.Name == "Original colors");
+			if (existingOriginal != null)
+				CustomPalettes.Remove(existingOriginal);
+
+			var bottomLayer = Layers[Layers.Count - 1];
+			var originalColors = new HashSet<Color>();
+			for (int i = 0; i < bottomLayer.Pixels.Length; i += 4)
+			{
+				byte r = bottomLayer.Pixels[i];
+				byte g = bottomLayer.Pixels[i + 1];
+				byte b = bottomLayer.Pixels[i + 2];
+				byte a = bottomLayer.Pixels[i + 3];
+				if (a > 10)
+					originalColors.Add(Color.FromArgb(a, r, g, b));
+			}
+			var origPalette = new PaletteViewModel("Original colors", false);
+			foreach (var color in originalColors.OrderBy(c => c.ToString()))
+				origPalette.Colors.Add(color);
+			CustomPalettes.Insert(0, origPalette);
+			SelectedPalette = origPalette;
+
+			ClearSelection();
 		}
 
 		private void LoadDefaultPalettes()

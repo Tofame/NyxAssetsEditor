@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
@@ -74,9 +75,16 @@ public partial class MainWindowViewModel : ViewModelBase
 	}
 
 	[RelayCommand]
-	private void NavigateToPaint()
+	private async System.Threading.Tasks.Task NavigateToPaint()
 	{
-		CurrentPage = _paintViewModel ??= new PaintViewModel(this);
+		_paintViewModel ??= new PaintViewModel(this);
+		CurrentPage = _paintViewModel;
+		if (_paintViewModel.Sprite == null)
+		{
+			var state = PersistenceService.LoadPaintState();
+			if (state != null)
+				await _paintViewModel.TryRestoreStateAsync(state);
+		}
 	}
 
 	public void EditSprite(SpriteViewModel sprite, FloatingSpriteLoaderViewModel panel)
