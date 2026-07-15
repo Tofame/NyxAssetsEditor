@@ -807,7 +807,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			RightDockedPanels.Remove(panel);
 		}
 
-		public async void LoadCombination(string spritePath, string thingsPath)
+		public async void LoadCombination(
+			string spritePath,
+			string thingsPath,
+			bool spriteGuess = true,
+			bool spritePreferOtfi = false,
+			bool spriteTransparent = true,
+			bool spriteExtended = true,
+			bool thingsGuess = true,
+			bool thingsPreferOtfi = false,
+			bool thingsExtended = true,
+			bool thingsAnimations = true,
+			bool thingsGroups = true)
 		{
 			FloatingSpriteLoaderViewModel? spritePanel = null;
 			FloatingThingsLoaderViewModel? thingsPanel = null;
@@ -817,8 +828,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				spritePanel = new FloatingSpriteLoaderViewModel(_renderer)
 				{
 					PageSize = SettingsViewModel.DefaultPageSize,
-					UseTransparentPixels = SettingsViewModel.UseTransparentPixels,
-					UseExtendedSpriteIds = SettingsViewModel.UseExtendedSpriteIds,
+					GuessSettingsFromSignature = spriteGuess,
+					PreferOtfiSettings = spritePreferOtfi,
+					UseTransparentPixels = spriteTransparent,
+					UseExtendedSpriteIds = spriteExtended,
 					PositionX = 100,
 					PositionY = 100,
 					IsVisible = true
@@ -830,6 +843,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			{
 				thingsPanel = new FloatingThingsLoaderViewModel(this)
 				{
+					GuessSettingsFromSignature = thingsGuess,
+					PreferOtfiSettings = thingsPreferOtfi,
+					UseExtendedThingIds = thingsExtended,
+					UseFrameAnimations = thingsAnimations,
+					UseFrameGroups = thingsGroups,
 					PositionX = 100,
 					PositionY = 100,
 					IsVisible = true

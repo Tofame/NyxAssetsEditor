@@ -25,8 +25,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private int _pageSize = 100;
 		private bool _useTransparentPixels = true;
 		private bool _useExtendedSpriteIds = true;
-		private bool _useSuggestedSettings = true;
-		private bool _preferOtfiSettings;
+		private bool _guessSettingsFromSignature = false;
+		private bool _preferOtfiSettings = true;
 		private bool _showSaveConfirmation;
 		private string _jumpToIdText = string.Empty;
 		private Services.Archive.UndoRedoStack<Services.Archive.SpriteUndoAction>? _undoRedoStack;
@@ -82,12 +82,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 		}
 
-		public bool UseSuggestedSettings
+		public bool GuessSettingsFromSignature
 		{
-			get => _useSuggestedSettings;
+			get => _guessSettingsFromSignature;
 			set
 			{
-				if (SetProperty(ref _useSuggestedSettings, value))
+				if (SetProperty(ref _guessSettingsFromSignature, value))
 				{
 					OnPropertyChanged(nameof(CanEditManualSettings));
 					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
@@ -104,12 +104,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				{
 					OnPropertyChanged(nameof(CanEditManualSettings));
 					OnPropertyChanged(nameof(CanEditTransparency));
-					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+					if (value && GuessSettingsFromSignature) GuessSettingsFromSignature = false;
 				}
 			}
 		}
 
-		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
+		public bool CanEditManualSettings => !GuessSettingsFromSignature && !PreferOtfiSettings;
 		public bool CanEditTransparency => !PreferOtfiSettings;
 
 		public bool UseExtendedSpriteIds
@@ -294,7 +294,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (otfi == null || missing.Count > 0)
 				{
 					PreferOtfiSettings = false;
-					UseSuggestedSettings = true;
+					GuessSettingsFromSignature = true;
 					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
 					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to recommended settings.";
 				}
@@ -334,7 +334,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 							return;
 						}
 					}
-					else if (UseSuggestedSettings && !PreferOtfiSettings)
+					else if (GuessSettingsFromSignature && !PreferOtfiSettings)
 					{
 						var version = new NyxAssets.Things.ClientDataVersion { Value = versionEntry.Version };
 						UseExtendedSpriteIds = NyxAssets.Things.DatThingFormatRules.UsesExtendedSpriteIdsByDefault(version);
@@ -363,7 +363,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				if (!string.IsNullOrEmpty(spritePath))
 				{
-					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(spritePath, "");
+					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(
+						spritePath,
+						"",
+						spriteGuess: GuessSettingsFromSignature,
+						spritePreferOtfi: PreferOtfiSettings,
+						spriteTransparent: UseTransparentPixels,
+						spriteExtended: UseExtendedSpriteIds
+					);
 				}
 			}
 		}
