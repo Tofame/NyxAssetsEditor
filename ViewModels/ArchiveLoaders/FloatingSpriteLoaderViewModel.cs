@@ -363,7 +363,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				if (!string.IsNullOrEmpty(spritePath))
 				{
-					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(spritePath, "");
+					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(
+						spritePath,
+						"",
+						spriteGuess: GuessSettingsFromSignature,
+						spritePreferOtfi: PreferOtfiSettings,
+						spriteTransparent: UseTransparentPixels,
+						spriteExtended: UseExtendedSpriteIds
+					);
 				}
 			}
 		}

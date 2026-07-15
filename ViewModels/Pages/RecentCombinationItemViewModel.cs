@@ -11,6 +11,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public string SpritePath { get; }
 		public string ThingsPath { get; }
 
+		// Sprite settings
+		public bool SpriteGuessSettingsFromSignature { get; }
+		public bool SpritePreferOtfiSettings { get; }
+		public bool SpriteUseTransparentPixels { get; }
+		public bool SpriteUseExtendedSpriteIds { get; }
+
+		// Things settings
+		public bool ThingsGuessSettingsFromSignature { get; }
+		public bool ThingsPreferOtfiSettings { get; }
+		public bool ThingsUseExtendedThingIds { get; }
+		public bool ThingsUseFrameAnimations { get; }
+		public bool ThingsUseFrameGroups { get; }
+
 		public string DisplayName { get; }
 		public string DetailsText { get; }
 		public string ToolTipText { get; }
@@ -18,11 +31,33 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public bool HasSpriteOnly => !string.IsNullOrEmpty(SpritePath) && string.IsNullOrEmpty(ThingsPath);
 		public bool HasThingsOnly => string.IsNullOrEmpty(SpritePath) && !string.IsNullOrEmpty(ThingsPath);
 
-		public RecentCombinationItemViewModel(string spritePath, string thingsPath, HomeViewModel parent)
+		public RecentCombinationItemViewModel(
+			string spritePath,
+			string thingsPath,
+			HomeViewModel parent,
+			bool spriteGuess = true,
+			bool spritePreferOtfi = false,
+			bool spriteTransparent = true,
+			bool spriteExtended = true,
+			bool thingsGuess = true,
+			bool thingsPreferOtfi = false,
+			bool thingsExtended = true,
+			bool thingsAnimations = true,
+			bool thingsGroups = true)
 		{
 			SpritePath = spritePath;
 			ThingsPath = thingsPath;
 			_parent = parent;
+
+			SpriteGuessSettingsFromSignature = spriteGuess;
+			SpritePreferOtfiSettings = spritePreferOtfi;
+			SpriteUseTransparentPixels = spriteTransparent;
+			SpriteUseExtendedSpriteIds = spriteExtended;
+			ThingsGuessSettingsFromSignature = thingsGuess;
+			ThingsPreferOtfiSettings = thingsPreferOtfi;
+			ThingsUseExtendedThingIds = thingsExtended;
+			ThingsUseFrameAnimations = thingsAnimations;
+			ThingsUseFrameGroups = thingsGroups;
 
 			string sprName = string.IsNullOrEmpty(spritePath) ? "" : Path.GetFileName(spritePath);
 			string datName = string.IsNullOrEmpty(thingsPath) ? "" : Path.GetFileName(thingsPath);
@@ -86,7 +121,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private void Load()
 		{
-			_parent.LoadCombination(SpritePath, ThingsPath);
+			_parent.LoadCombination(
+				SpritePath,
+				ThingsPath,
+				SpriteGuessSettingsFromSignature,
+				SpritePreferOtfiSettings,
+				SpriteUseTransparentPixels,
+				SpriteUseExtendedSpriteIds,
+				ThingsGuessSettingsFromSignature,
+				ThingsPreferOtfiSettings,
+				ThingsUseExtendedThingIds,
+				ThingsUseFrameAnimations,
+				ThingsUseFrameGroups
+			);
 		}
 	}
 }

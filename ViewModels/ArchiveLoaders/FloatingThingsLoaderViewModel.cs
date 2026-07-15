@@ -904,7 +904,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				if (!string.IsNullOrEmpty(thingsPath) || !string.IsNullOrEmpty(spritePath))
 				{
-					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(spritePath, thingsPath);
+					NyxAssetsEditor.Services.Persistence.PersistenceService.AddRecentCombination(
+						spritePath,
+						thingsPath,
+						spriteGuess: LinkedSpritePanel?.GuessSettingsFromSignature ?? true,
+						spritePreferOtfi: LinkedSpritePanel?.PreferOtfiSettings ?? false,
+						spriteTransparent: LinkedSpritePanel?.UseTransparentPixels ?? true,
+						spriteExtended: LinkedSpritePanel?.UseExtendedSpriteIds ?? true,
+						thingsGuess: GuessSettingsFromSignature,
+						thingsPreferOtfi: PreferOtfiSettings,
+						thingsExtended: UseExtendedThingIds,
+						thingsAnimations: UseFrameAnimations,
+						thingsGroups: UseFrameGroups
+					);
 				}
 			}
 		}

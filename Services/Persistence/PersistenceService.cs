@@ -67,6 +67,19 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string SpritePath { get; set; } = "";
 			public string ThingsPath { get; set; } = "";
 			public string LastUsed { get; set; } = "";
+
+			// Sprite settings
+			public bool SpriteGuessSettingsFromSignature { get; set; } = true;
+			public bool SpritePreferOtfiSettings { get; set; }
+			public bool SpriteUseTransparentPixels { get; set; } = true;
+			public bool SpriteUseExtendedSpriteIds { get; set; } = true;
+
+			// Things settings
+			public bool ThingsGuessSettingsFromSignature { get; set; } = true;
+			public bool ThingsPreferOtfiSettings { get; set; }
+			public bool ThingsUseExtendedThingIds { get; set; } = true;
+			public bool ThingsUseFrameAnimations { get; set; } = true;
+			public bool ThingsUseFrameGroups { get; set; } = true;
 		}
 
 		public class AssetsStateModel
@@ -369,7 +382,18 @@ namespace NyxAssetsEditor.Services.Persistence
 			}
 		}
 
-		public static void AddRecentCombination(string spritePath, string thingsPath)
+		public static void AddRecentCombination(
+			string spritePath,
+			string thingsPath,
+			bool spriteGuess = true,
+			bool spritePreferOtfi = false,
+			bool spriteTransparent = true,
+			bool spriteExtended = true,
+			bool thingsGuess = true,
+			bool thingsPreferOtfi = false,
+			bool thingsExtended = true,
+			bool thingsAnimations = true,
+			bool thingsGroups = true)
 		{
 			try
 			{
@@ -410,7 +434,16 @@ namespace NyxAssetsEditor.Services.Persistence
 				{
 					SpritePath = spritePath ?? "",
 					ThingsPath = thingsPath ?? "",
-					LastUsed = DateTime.Now.ToString("o")
+					LastUsed = DateTime.Now.ToString("o"),
+					SpriteGuessSettingsFromSignature = spriteGuess,
+					SpritePreferOtfiSettings = spritePreferOtfi,
+					SpriteUseTransparentPixels = spriteTransparent,
+					SpriteUseExtendedSpriteIds = spriteExtended,
+					ThingsGuessSettingsFromSignature = thingsGuess,
+					ThingsPreferOtfiSettings = thingsPreferOtfi,
+					ThingsUseExtendedThingIds = thingsExtended,
+					ThingsUseFrameAnimations = thingsAnimations,
+					ThingsUseFrameGroups = thingsGroups
 				});
 
 				// Keep configured entries count

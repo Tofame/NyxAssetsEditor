@@ -36,7 +36,18 @@ public partial class MainWindowViewModel : ViewModelBase
 		CurrentPage = _assetsViewModel ??= new AssetsViewModel();
 	}
 
-	public void LoadCombination(string spritePath, string thingsPath)
+	public void LoadCombination(
+		string spritePath,
+		string thingsPath,
+		bool spriteGuess = true,
+		bool spritePreferOtfi = false,
+		bool spriteTransparent = true,
+		bool spriteExtended = true,
+		bool thingsGuess = true,
+		bool thingsPreferOtfi = false,
+		bool thingsExtended = true,
+		bool thingsAnimations = true,
+		bool thingsGroups = true)
 	{
 		if (_assetsViewModel == null)
 		{
@@ -44,6 +55,18 @@ public partial class MainWindowViewModel : ViewModelBase
 		}
 
 		CurrentPage = _assetsViewModel;
-		_assetsViewModel.LoadCombination(spritePath, thingsPath);
+		_assetsViewModel.LoadCombination(
+			spritePath,
+			thingsPath,
+			spriteGuess,
+			spritePreferOtfi,
+			spriteTransparent,
+			spriteExtended,
+			thingsGuess,
+			thingsPreferOtfi,
+			thingsExtended,
+			thingsAnimations,
+			thingsGroups
+		);
 	}
 }

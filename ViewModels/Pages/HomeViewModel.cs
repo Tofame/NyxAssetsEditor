@@ -28,13 +28,49 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			RecentCombinations = new List<RecentCombinationItemViewModel>();
 			foreach (var r in recents)
 			{
-				RecentCombinations.Add(new RecentCombinationItemViewModel(r.SpritePath, r.ThingsPath, this));
+				RecentCombinations.Add(new RecentCombinationItemViewModel(
+					r.SpritePath,
+					r.ThingsPath,
+					this,
+					r.SpriteGuessSettingsFromSignature,
+					r.SpritePreferOtfiSettings,
+					r.SpriteUseTransparentPixels,
+					r.SpriteUseExtendedSpriteIds,
+					r.ThingsGuessSettingsFromSignature,
+					r.ThingsPreferOtfiSettings,
+					r.ThingsUseExtendedThingIds,
+					r.ThingsUseFrameAnimations,
+					r.ThingsUseFrameGroups
+				));
 			}
 		}
 
-		public void LoadCombination(string spritePath, string thingsPath)
+		public void LoadCombination(
+			string spritePath,
+			string thingsPath,
+			bool spriteGuess = true,
+			bool spritePreferOtfi = false,
+			bool spriteTransparent = true,
+			bool spriteExtended = true,
+			bool thingsGuess = true,
+			bool thingsPreferOtfi = false,
+			bool thingsExtended = true,
+			bool thingsAnimations = true,
+			bool thingsGroups = true)
 		{
-			_mainWindow?.LoadCombination(spritePath, thingsPath);
+			_mainWindow?.LoadCombination(
+				spritePath,
+				thingsPath,
+				spriteGuess,
+				spritePreferOtfi,
+				spriteTransparent,
+				spriteExtended,
+				thingsGuess,
+				thingsPreferOtfi,
+				thingsExtended,
+				thingsAnimations,
+				thingsGroups
+			);
 		}
 	}
 }
