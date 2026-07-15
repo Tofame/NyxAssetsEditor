@@ -272,6 +272,12 @@ namespace NyxAssetsEditor.Views.Pages
 			if (canvas == null || e.NewSize.Width <= 0 || e.NewSize.Height <= 0)
 				return;
 
+			var layersPanel = this.FindControl<Border>("LayersPanel");
+			if (layersPanel != null)
+			{
+				layersPanel.Height = Math.Max(150, e.NewSize.Height - 50);
+			}
+
 			var palettePanel = this.FindControl<Border>("PalettePanel");
 			if (palettePanel != null && !_palettePositionInitialized)
 			{
