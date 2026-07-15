@@ -49,8 +49,15 @@ public static class SpriteClipboard
 			{
 				try
 				{
-					var renderer = new NyxAssetsEditor.Services.Rendering.SpriteRenderer();
-					var bitmap = renderer.Convert(_sprites[0]);
+					var rgba = _sprites[0];
+					var edge = SpriteModel.SpriteSize;
+					var info = new SkiaSharp.SKImageInfo(edge, edge, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
+					using var skBitmap = new SkiaSharp.SKBitmap(info);
+					System.Runtime.InteropServices.Marshal.Copy(rgba, 0, skBitmap.GetPixels(), rgba.Length);
+					using var skImage = SkiaSharp.SKImage.FromBitmap(skBitmap);
+					using var pngData = skImage.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+					using var ms = new MemoryStream(pngData.ToArray());
+					var bitmap = new Avalonia.Media.Imaging.Bitmap(ms);
 					_lastSetSystemBitmap = bitmap;
 					await clipboard.SetBitmapAsync(bitmap);
 				}
