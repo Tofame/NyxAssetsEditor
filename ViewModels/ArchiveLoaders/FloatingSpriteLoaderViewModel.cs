@@ -484,25 +484,28 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool HasSpriteSelection => GetSelectedSprites().Count > 0;
 		public int SelectedSpriteCount => GetSelectedSprites().Count;
 
-		public void CopySprite(SpriteViewModel sprite) => CopySprites(new[] { sprite });
+		public async Task CopySpriteAsync(SpriteViewModel sprite) => await CopySpritesAsync(new[] { sprite });
 
-		public void CopySprites(IEnumerable<SpriteViewModel> sprites)
+		public async Task CopySpritesAsync(IEnumerable<SpriteViewModel> sprites)
 		{
 			var list = sprites.ToList();
 			if (list.Count == 0)
 				return;
 
-			SpriteClipboard.CopyMany(list.Select(s => s.GetPixels()));
+			await SpriteClipboard.CopyManyAsync(list.Select(s => s.GetPixels()));
 			NotifyPasteAvailability();
 		}
 
-		public void PasteSprite(SpriteViewModel? sprite) => PasteSprites(sprite != null ? new[] { sprite } : GetSelectedSprites());
+		public async Task PasteSpriteAsync(SpriteViewModel? sprite) => await PasteSpritesAsync(sprite != null ? new[] { sprite } : GetSelectedSprites());
 
-		public void PasteSprites(IEnumerable<SpriteViewModel> sprites)
+		public async Task PasteSpritesAsync(IEnumerable<SpriteViewModel> sprites)
 		{
 			var targets = sprites.Where(s => s.Id != 0).OrderBy(s => s.Id).ToList();
-			var clipboard = SpriteClipboard.GetAll();
-			if (targets.Count == 0 || clipboard.Count == 0)
+			if (targets.Count == 0)
+				return;
+
+			var clipboard = await SpriteClipboard.GetAllAsync();
+			if (clipboard.Count == 0)
 				return;
 
 			var targetIds = targets.Select(t => t.Id).ToList();
@@ -519,6 +522,54 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 
 			EndSpriteTransaction(targetIds);
+		}
+
+		public void ImportFiles(IEnumerable<string> filePaths)
+		{
+			var sortedPaths = filePaths.OrderBy(p => p).ToList();
+			if (sortedPaths.Count == 0) return;
+
+			var startId = Loader.SpriteCount + 1;
+			var newIds = new List<uint>();
+
+			try
+			{
+				for (var i = 0; i < sortedPaths.Count; i++)
+				{
+					newIds.Add((uint)(startId + i));
+				}
+
+				StartSpriteTransaction(newIds);
+
+				foreach (var path in sortedPaths)
+				{
+					var rgba = SpriteImageImporter.Load32x32Rgba(path);
+					var newId = Loader.AddNewSprite();
+					Loader.SetSpritePixels(newId, rgba);
+					AddedSpriteIds.Add(newId);
+				}
+
+				TotalSprites = Loader.SpriteCount;
+				HasSavedChanges = true;
+
+				var lastPage = TotalPages;
+				if (CurrentPage != lastPage)
+					CurrentPage = lastPage;
+				else
+					UpdatePage();
+
+				var newSprite = PagedSprites.LastOrDefault();
+				if (newSprite != null)
+					SelectSprite(newSprite);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to import dropped files: {ex.Message}");
+			}
+			finally
+			{
+				EndSpriteTransaction(newIds);
+			}
 		}
 
 		public void RequestImportSprites(IEnumerable<SpriteViewModel> sprites)
@@ -642,13 +693,13 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				item.NotifyPasteAvailabilityChanged();
 		}
 
-		public bool CanPasteSelected => HasSpriteSelection && SpriteClipboard.HasData;
+		public bool CanPasteSelected => HasSpriteSelection;
 
 		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
-		private void CopySelectedSprite() => CopySprites(GetSelectedSprites());
+		private async Task CopySelectedSprite() => await CopySpritesAsync(GetSelectedSprites());
 
 		[RelayCommand(CanExecute = nameof(CanPasteSelected))]
-		private void PasteSelectedSprite() => PasteSprites(GetSelectedSprites());
+		private async Task PasteSelectedSprite() => await PasteSpritesAsync(GetSelectedSprites());
 
 		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
 		private void RemoveSelectedSprites() => RemoveSprites(GetSelectedSprites());
@@ -665,20 +716,20 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
 		private void ExportSelectedBmp() => RequestExportSprites(GetSelectedSprites(), "bmp");
 
-		public void HandleCopyShortcut()
+		public async void HandleCopyShortcut()
 		{
 			if (HasSpriteSelection)
-				CopySprites(GetSelectedSprites());
+				await CopySpritesAsync(GetSelectedSprites());
 			else if (SelectedSprite != null)
-				CopySprite(SelectedSprite);
+				await CopySpriteAsync(SelectedSprite);
 		}
 
-		public void HandlePasteShortcut()
+		public async void HandlePasteShortcut()
 		{
 			if (HasSpriteSelection)
-				PasteSprites(GetSelectedSprites());
+				await PasteSpritesAsync(GetSelectedSprites());
 			else if (SelectedSprite != null)
-				PasteSprite(SelectedSprite);
+				await PasteSpriteAsync(SelectedSprite);
 		}
 
 		[RelayCommand]

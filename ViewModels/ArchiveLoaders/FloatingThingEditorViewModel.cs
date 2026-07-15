@@ -2023,11 +2023,24 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		TargetSpriteIdText = string.Empty;
 	}
 
-	public void CopySlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
+	public async void CopySlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
 	{
 		_copiedSpriteId = GetSpriteIdAtSlot(slot);
 		_hasCopiedSprite = true;
 		OnPropertyChanged(nameof(CanPasteSpriteId));
+
+		if (_copiedSpriteId != 0 && SourcePanel.LinkedSpritePanel != null)
+		{
+			try
+			{
+				var pixels = SourcePanel.LinkedSpritePanel.Loader.LoadSpritePixels(_copiedSpriteId);
+				await NyxAssetsEditor.Services.ImportExport.SpriteClipboard.CopyAsync(pixels);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to copy slot sprite to system clipboard: {ex.Message}");
+			}
+		}
 	}
 
 	public void PasteSlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)

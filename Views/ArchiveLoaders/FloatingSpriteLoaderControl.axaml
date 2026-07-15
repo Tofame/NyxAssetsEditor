@@ -102,8 +102,10 @@
 				</Grid>
 			</Border>
 
-			<!-- Content Area (Scrollable Sprite Grid/List) -->
-			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#1E1E1E" Height="{Binding DisplayHeight}">
+			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#1E1E1E" Height="{Binding DisplayHeight}"
+				  DragDrop.AllowDrop="True"
+				  DragDrop.DragOver="OnDragOver"
+				  DragDrop.Drop="OnDrop">
 				<!-- Grid View Mode -->
 				<ListBox x:Name="SpriteGridListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsGridView, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8" SelectionMode="Multiple">
 					<ListBox.ItemsPanel>

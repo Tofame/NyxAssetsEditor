@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using Avalonia.Platform.Storage;
 using System;
 using System.IO;
+using System.Collections.Generic;
 using NyxAssets.Utils;
 using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.Services.Archive;
@@ -669,6 +670,46 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.WriteLine($"Failed to write sprite image: {ex.Message}");
+			}
+		}
+
+		private void OnDragOver(object? sender, DragEventArgs e)
+		{
+			if (_viewModel != null && _viewModel.IsArchiveLoaded && e.DataTransfer.Contains(DataFormat.File))
+			{
+				e.DragEffects = DragDropEffects.Copy;
+				e.Handled = true;
+			}
+			else
+			{
+				e.DragEffects = DragDropEffects.None;
+			}
+		}
+
+		private void OnDrop(object? sender, DragEventArgs e)
+		{
+			if (_viewModel == null || !_viewModel.IsArchiveLoaded)
+				return;
+
+			var files = e.DataTransfer.TryGetFiles();
+			if (files != null)
+			{
+				var paths = new List<string>();
+				foreach (var file in files)
+				{
+					var path = file.TryGetLocalPath();
+					if (path != null && SpriteImageImporter.IsSupportedImage(path))
+					{
+						paths.Add(path);
+					}
+				}
+
+				if (paths.Count > 0)
+				{
+					_viewModel.ImportFiles(paths);
+					e.DragEffects = DragDropEffects.Copy;
+					e.Handled = true;
+				}
 			}
 		}
 	}
