@@ -90,7 +90,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool IsGridView { get; set; } = true;
 			public int PageSize { get; set; } = 100;
 			public int CurrentPage { get; set; } = 1;
-			public bool UseSuggestedSettings { get; set; } = true;
+			public bool GuessSettingsFromSignature { get; set; } = true;
 			public bool PreferOtfiSettings { get; set; }
 
 			// Sprite-specific
@@ -227,7 +227,7 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.CurrentPage = spritePanel.CurrentPage;
 						state.UseTransparentPixels = spritePanel.UseTransparentPixels;
 						state.UseExtendedSpriteIds = spritePanel.UseExtendedSpriteIds;
-						state.UseSuggestedSettings = spritePanel.UseSuggestedSettings;
+						state.GuessSettingsFromSignature = spritePanel.GuessSettingsFromSignature;
 						state.PreferOtfiSettings = spritePanel.PreferOtfiSettings;
 					}
 					else if (panel is FloatingThingsLoaderViewModel thingsPanel)
@@ -241,7 +241,7 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.UseFrameAnimations = thingsPanel.UseFrameAnimations;
 						state.UseFrameGroups = thingsPanel.UseFrameGroups;
 						state.LinkedSpriteFilePath = thingsPanel.LinkedSpritePanel?.FilePath ?? "";
-						state.UseSuggestedSettings = thingsPanel.UseSuggestedSettings;
+						state.GuessSettingsFromSignature = thingsPanel.GuessSettingsFromSignature;
 						state.PreferOtfiSettings = thingsPanel.PreferOtfiSettings;
 					}
 
@@ -293,7 +293,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							UseTransparentPixels = panelState.UseTransparentPixels,
 							UseExtendedSpriteIds = panelState.UseExtendedSpriteIds,
 							IsDefaultPosition = false,
-							UseSuggestedSettings = panelState.UseSuggestedSettings,
+							GuessSettingsFromSignature = panelState.GuessSettingsFromSignature,
 							PreferOtfiSettings = panelState.PreferOtfiSettings
 						};
 
@@ -316,7 +316,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							UseFrameAnimations = panelState.UseFrameAnimations,
 							UseFrameGroups = panelState.UseFrameGroups,
 							IsDefaultPosition = false,
-							UseSuggestedSettings = panelState.UseSuggestedSettings,
+							GuessSettingsFromSignature = panelState.GuessSettingsFromSignature,
 							PreferOtfiSettings = panelState.PreferOtfiSettings
 						};
 

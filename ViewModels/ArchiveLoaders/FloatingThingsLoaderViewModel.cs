@@ -152,8 +152,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private bool _useExtendedThingIds = true;
 		private bool _useFrameAnimations = true;
 		private bool _useFrameGroups = true;
-		private bool _useSuggestedSettings = true;
-		private bool _preferOtfiSettings;
+		private bool _guessSettingsFromSignature = false;
+		private bool _preferOtfiSettings = true;
 		private string _jumpToIdText = string.Empty;
 		private Services.Archive.UndoRedoStack<Services.Archive.ThingUndoAction>? _undoRedoStack;
 		private Services.Archive.ThingUndoAction? _currentAction;
@@ -268,12 +268,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public FloatingSpriteLoaderViewModel? LinkedSpritePanel { get; set; }
 
-		public bool UseSuggestedSettings
+		public bool GuessSettingsFromSignature
 		{
-			get => _useSuggestedSettings;
+			get => _guessSettingsFromSignature;
 			set
 			{
-				if (SetProperty(ref _useSuggestedSettings, value))
+				if (SetProperty(ref _guessSettingsFromSignature, value))
 				{
 					OnPropertyChanged(nameof(CanEditManualSettings));
 					if (value && PreferOtfiSettings) PreferOtfiSettings = false;
@@ -289,12 +289,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (SetProperty(ref _preferOtfiSettings, value))
 				{
 					OnPropertyChanged(nameof(CanEditManualSettings));
-					if (value && UseSuggestedSettings) UseSuggestedSettings = false;
+					if (value && GuessSettingsFromSignature) GuessSettingsFromSignature = false;
 				}
 			}
 		}
 
-		public bool CanEditManualSettings => !UseSuggestedSettings && !PreferOtfiSettings;
+		public bool CanEditManualSettings => !GuessSettingsFromSignature && !PreferOtfiSettings;
 
 		public bool UseExtendedThingIds
 		{
@@ -465,7 +465,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		private void OnClientVersionChanged(uint newVersion)
 		{
-			if (UseSuggestedSettings && !PreferOtfiSettings)
+			if (GuessSettingsFromSignature && !PreferOtfiSettings)
 				ResetSettingsToDefaults();
 		}
 
@@ -792,7 +792,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (otfi == null || missing.Count > 0)
 				{
 					PreferOtfiSettings = false;
-					UseSuggestedSettings = true;
+					GuessSettingsFromSignature = true;
 					ResetSettingsToDefaults();
 					var reason = warning ?? $"The OTFI file is missing {string.Join(", ", missing)}.";
 					ErrorMessage = $"OTFI settings could not be used. {reason} Reverted to recommended settings.";
