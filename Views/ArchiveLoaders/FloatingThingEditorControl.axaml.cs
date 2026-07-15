@@ -33,15 +33,19 @@ public partial class FloatingThingEditorControl : UserControl
 		AppearanceDropTarget.KeyDown += OnAppearanceKeyDown;
 
 		var titleBar = this.FindControl<Border>("TitleBar");
+		var bottomBar = this.FindControl<Border>("BottomBar");
 		if (titleBar == null)
 			return;
 
-		var interaction = new FloatingPanelInteraction(this, titleBar, minWidth: 400, minHeight: 200);
+		var interaction = new FloatingPanelInteraction(this, titleBar, bottomBar, minWidth: 400, minHeight: 200);
 		RegisterResizeHandle(interaction, "ResizeLeft", 4);
 		RegisterResizeHandle(interaction, "ResizeRight", 1);
 		RegisterResizeHandle(interaction, "ResizeBottom", 2);
 		RegisterResizeHandle(interaction, "ResizeCorner", 3);
 		RegisterResizeHandle(interaction, "ResizeBottomLeft", 5);
+		RegisterResizeHandle(interaction, "ResizeTop", 6);
+		RegisterResizeHandle(interaction, "ResizeTopRight", 7);
+		RegisterResizeHandle(interaction, "ResizeTopLeft", 8);
 	}
 
 	private void OnDataContextChanged(object? sender, EventArgs e)

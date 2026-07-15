@@ -299,39 +299,30 @@
 
 			<!-- Resize Handles (Overlay) -->
 			<!-- Left edge resize handle -->
-			<Border Grid.RowSpan="3" Width="5" HorizontalAlignment="Left" Background="Transparent" Cursor="SizeWestEast" 
-			        IsVisible="{Binding ShowResizeHandles}"
-			        PointerPressed="OnResizeLeftPressed" 
-			        PointerMoved="OnResizeLeftMoved" 
-			        PointerReleased="OnResizeReleased"/>
+			<Border Grid.RowSpan="3" Name="ResizeLeft" Width="5" HorizontalAlignment="Left" Background="Transparent" Cursor="SizeWestEast" ZIndex="100"
+			        IsVisible="{Binding ShowResizeHandles}"/>
 
 			<!-- Right edge resize handle -->
-			<Border Grid.RowSpan="3" Width="5" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWestEast" 
-					IsVisible="{Binding ShowResizeHandles}"
-					PointerPressed="OnResizeRightPressed" 
-					PointerMoved="OnResizeRightMoved" 
-					PointerReleased="OnResizeReleased"/>
+			<Border Grid.RowSpan="3" Name="ResizeRight" Width="5" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWestEast" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
 			
 			<!-- Bottom edge resize handle -->
-			<Border Grid.Row="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNorthSouth" 
-					IsVisible="{Binding ShowResizeHandles}"
-					PointerPressed="OnResizeBottomPressed" 
-					PointerMoved="OnResizeBottomMoved" 
-					PointerReleased="OnResizeReleased"/>
+			<Border Grid.RowSpan="3" Name="ResizeBottom" Height="5" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNorthSouth" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
 			
 			<!-- Bottom-right corner resize handle -->
-			<Border Grid.Row="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner" 
-					IsVisible="{Binding ShowResizeHandles}"
-					PointerPressed="OnResizeCornerPressed" 
-					PointerMoved="OnResizeCornerMoved" 
-					PointerReleased="OnResizeReleased"/>
+			<Border Grid.RowSpan="3" Name="ResizeCorner" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
 			
 			<!-- Bottom-left corner resize handle -->
-			<Border Grid.Row="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomLeftCorner" 
-					IsVisible="{Binding ShowResizeHandles}"
-					PointerPressed="OnResizeBottomLeftPressed" 
-					PointerMoved="OnResizeBottomLeftMoved" 
-					PointerReleased="OnResizeReleased"/>
+			<Border Grid.RowSpan="3" Name="ResizeBottomLeft" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomLeftCorner" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
+			<Border Grid.RowSpan="3" Name="ResizeTop" Height="5" VerticalAlignment="Top" Background="Transparent" Cursor="SizeNorthSouth" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
+			<Border Grid.RowSpan="3" Name="ResizeTopLeft" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Cursor="TopLeftCorner" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
+			<Border Grid.RowSpan="3" Name="ResizeTopRight" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" Cursor="TopRightCorner" ZIndex="100"
+					IsVisible="{Binding ShowResizeHandles}"/>
 			<!-- Save Confirmation Overlay -->
 			<Border Grid.Row="0" Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowSaveConfirmation}" CornerRadius="8">
 				<Border Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="340" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
