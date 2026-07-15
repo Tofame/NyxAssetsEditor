@@ -59,7 +59,6 @@
 					<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
 						<Button Content="Mirror Horizontal" Command="{Binding MirrorHorizontalCommand}"/>
 						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
-						<Button Content="Sharpen" Command="{Binding ApplySharpenCommand}"/>
 					</StackPanel>
 					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 						<Button Content="Save to Archive" Command="{Binding SaveCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>

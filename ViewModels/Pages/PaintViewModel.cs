@@ -730,65 +730,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand]
-		private void ApplySharpen()
-		{
-			if (ActiveLayer == null)
-				return;
-
-			var src = (byte[])ActiveLayer.Pixels.Clone();
-			var dst = ActiveLayer.Pixels;
-
-			// Sharpen kernel
-			//  0 -1  0
-			// -1  5 -1
-			//  0 -1  0
-			float[] kernel = {
-				 0, -1,  0,
-				-1,  5, -1,
-				 0, -1,  0
-			};
-
-			for (int y = 0; y < 32; y++)
-			{
-				for (int x = 0; x < 32; x++)
-				{
-					if (HasSelection && !_selectionMask[x, y])
-						continue;
-
-					float rSum = 0, gSum = 0, bSum = 0, aSum = 0;
-
-					for (int ky = -1; ky <= 1; ky++)
-					{
-						for (int kx = -1; kx <= 1; kx++)
-						{
-							int px = Math.Clamp(x + kx, 0, 31);
-							int py = Math.Clamp(y + ky, 0, 31);
-
-							var color = GetPixelColor(src, px, py);
-							float weight = kernel[(ky + 1) * 3 + (kx + 1)];
-
-							rSum += color.R * weight;
-							gSum += color.G * weight;
-							bSum += color.B * weight;
-							aSum += color.A * weight;
-						}
-					}
-
-					var finalColor = Color.FromArgb(
-						(byte)Math.Clamp(aSum, 0, 255),
-						(byte)Math.Clamp(rSum, 0, 255),
-						(byte)Math.Clamp(gSum, 0, 255),
-						(byte)Math.Clamp(bSum, 0, 255)
-					);
-
-					SetPixel(dst, x, y, finalColor);
-				}
-			}
-
-			UpdateCanvasPreview();
-		}
-
-		[RelayCommand]
 		private void RecolorAll()
 		{
 			if (ActiveLayer == null)
