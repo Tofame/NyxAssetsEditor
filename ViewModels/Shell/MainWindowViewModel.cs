@@ -11,6 +11,7 @@ namespace NyxAssetsEditor.ViewModels.Shell;
 public partial class MainWindowViewModel : ViewModelBase
 {
 	private AssetsViewModel? _assetsViewModel;
+	private PaintViewModel? _paintViewModel;
 
 	[ObservableProperty]
 	private ViewModelBase _currentPage;
@@ -75,13 +76,14 @@ public partial class MainWindowViewModel : ViewModelBase
 	[RelayCommand]
 	private void NavigateToPaint()
 	{
-		CurrentPage = new PaintViewModel(this);
+		CurrentPage = _paintViewModel ??= new PaintViewModel(this);
 	}
 
 	public void EditSprite(SpriteViewModel sprite, FloatingSpriteLoaderViewModel panel)
 	{
-		var paintVM = new PaintViewModel(this);
-		paintVM.InitializeWithSprite(sprite, panel);
-		CurrentPage = paintVM;
+		_paintViewModel ??= new PaintViewModel(this);
+		if (_paintViewModel.Sprite != sprite)
+			_paintViewModel.InitializeWithSprite(sprite, panel);
+		CurrentPage = _paintViewModel;
 	}
 }
