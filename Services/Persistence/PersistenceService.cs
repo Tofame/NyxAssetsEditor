@@ -467,6 +467,38 @@ namespace NyxAssetsEditor.Services.Persistence
 			}
 		}
 
+		public static void RemoveRecentCombination(string spritePath, string thingsPath)
+		{
+			try
+			{
+				if (!File.Exists(AppStatePath))
+					return;
+
+				string toml = File.ReadAllText(AppStatePath);
+				var model = TomlSerializer.Deserialize<AppStateTomlModel>(toml);
+				if (model?.RecentCombinations == null)
+					return;
+
+				string normSprite = string.IsNullOrEmpty(spritePath) ? "" : Path.GetFullPath(spritePath);
+				string normThings = string.IsNullOrEmpty(thingsPath) ? "" : Path.GetFullPath(thingsPath);
+
+				model.RecentCombinations.RemoveAll(rc =>
+				{
+					string s = string.IsNullOrEmpty(rc.SpritePath) ? "" : Path.GetFullPath(rc.SpritePath);
+					string t = string.IsNullOrEmpty(rc.ThingsPath) ? "" : Path.GetFullPath(rc.ThingsPath);
+					return string.Equals(s, normSprite, StringComparison.OrdinalIgnoreCase) &&
+						   string.Equals(t, normThings, StringComparison.OrdinalIgnoreCase);
+				});
+
+				string serialized = TomlSerializer.Serialize(model);
+				File.WriteAllText(AppStatePath, serialized);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to remove recent combination: {ex.Message}");
+			}
+		}
+
 		public static List<RecentCombinationModel> GetRecentCombinations()
 		{
 			try

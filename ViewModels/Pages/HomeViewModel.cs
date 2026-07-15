@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Shell;
 
@@ -11,13 +12,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public string Title => "Home Dashboard";
 		public string Description => "Welcome to Nyx Assets Editor! Quick access to your recently opened archives.";
 
-		public List<RecentCombinationItemViewModel> RecentCombinations { get; }
+		public ObservableCollection<RecentCombinationItemViewModel> RecentCombinations { get; }
 
 		// Parameterless constructor for design-time
 		public HomeViewModel()
 		{
 			_mainWindow = null!;
-			RecentCombinations = new List<RecentCombinationItemViewModel>();
+			RecentCombinations = new ObservableCollection<RecentCombinationItemViewModel>();
 		}
 
 		public HomeViewModel(MainWindowViewModel mainWindow)
@@ -25,7 +26,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_mainWindow = mainWindow;
 
 			var recents = NyxAssetsEditor.Services.Persistence.PersistenceService.GetRecentCombinations();
-			RecentCombinations = new List<RecentCombinationItemViewModel>();
+			RecentCombinations = new ObservableCollection<RecentCombinationItemViewModel>();
 			foreach (var r in recents)
 			{
 				RecentCombinations.Add(new RecentCombinationItemViewModel(
@@ -71,6 +72,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				thingsAnimations,
 				thingsGroups
 			);
+		}
+
+		public void RemoveCombination(RecentCombinationItemViewModel item)
+		{
+			NyxAssetsEditor.Services.Persistence.PersistenceService.RemoveRecentCombination(item.SpritePath, item.ThingsPath);
+			RecentCombinations.Remove(item);
 		}
 	}
 }

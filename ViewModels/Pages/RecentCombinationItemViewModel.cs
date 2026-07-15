@@ -135,5 +135,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				ThingsUseFrameGroups
 			);
 		}
+
+		[RelayCommand]
+		private void Remove()
+		{
+			_parent.RemoveCombination(this);
+		}
 	}
 }
