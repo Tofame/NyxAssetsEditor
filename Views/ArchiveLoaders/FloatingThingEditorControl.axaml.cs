@@ -157,6 +157,8 @@ public partial class FloatingThingEditorControl : UserControl
 		if (DataContext is not FloatingThingEditorViewModel vm)
 			return;
 
+		Focus();
+
 		if (!SpriteDragContext.TryRead(e, out var sourcePanel, out var spriteId) || sourcePanel == null)
 		{
 			vm.ClearAppearanceDragHover();

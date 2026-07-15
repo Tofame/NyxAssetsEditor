@@ -1236,6 +1236,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	[RelayCommand]
 	public void Save()
 	{
+		if (!IsDirty) return;
 		if (BatchSaveRequested != null)
 		{
 			BatchSaveRequested(Thing);
