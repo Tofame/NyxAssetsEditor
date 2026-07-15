@@ -24,8 +24,15 @@ namespace NyxAssetsEditor.Views.Pages
 
 		private void OnCanvasPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			_isDrawing = true;
-			HandlePointer(e);
+			var props = e.GetCurrentPoint(this).Properties;
+			if (!props.IsLeftButtonPressed)
+				return;
+			// Only start drawing when clicking directly on the canvas image
+			if (e.Source is Image)
+			{
+				_isDrawing = true;
+				HandlePointer(e);
+			}
 			e.Handled = true;
 		}
 

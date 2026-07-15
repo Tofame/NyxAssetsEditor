@@ -77,6 +77,11 @@
 					<!-- Centered Sprite Canvas Drawing Area -->
 					<Grid VerticalAlignment="Center" HorizontalAlignment="Center">
 						<Border BorderBrush="#444444" BorderThickness="1" Background="#141414">
+							<Border.ContextMenu>
+								<ContextMenu>
+									<MenuItem Header="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}"/>
+								</ContextMenu>
+							</Border.ContextMenu>
 							<Viewbox Stretch="Uniform" Height="{Binding ZoomDimension}" Width="{Binding ZoomDimension}">
 								<Image x:Name="CanvasImage"
 									   Source="{Binding CanvasPreview}"
@@ -137,7 +142,7 @@
 							<Border.Background>
 								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
 							</Border.Background>
-							<Grid RowDefinitions="Auto, Auto, Auto, Auto, *, Auto, Auto">
+							<Grid RowDefinitions="Auto, Auto, Auto, Auto, *, Auto">
 								<TextBlock Grid.Row="0" Text="Palette &amp; Colors" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
 										   Cursor="SizeAll"/>
 								<Grid Grid.Row="1" Margin="0,0,0,8">
@@ -236,8 +241,7 @@
 										</Grid>
 									</Grid>
 								</Border>
-								<!-- Extract Colors -->
-								<Button Grid.Row="6" Content="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}" HorizontalAlignment="Stretch" Height="24" FontSize="10" Padding="0" Margin="0,8,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
 							</Grid>
 						</Border>
 
