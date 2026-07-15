@@ -4,6 +4,7 @@
 			xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
 			xmlns:common="using:NyxAssetsEditor.Views.Common"
+			xmlns:views="using:NyxAssetsEditor.Views.Pages"
 			mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
 			x:Class="NyxAssetsEditor.Views.Pages.PaintView"
 			x:DataType="vm:PaintViewModel"
@@ -91,21 +92,21 @@
 					</Grid>
 
 					<!-- Overlay Canvas for Draggable Controls (Null background allows clicks to pass through) -->
-					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SizeChanged="OnWorkspaceCanvasSizeChanged">
 						<!-- Floating Layers Panel (Top Left) -->
 						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
 								Width="220" Height="220" Padding="12"
 								Canvas.Left="15" Canvas.Top="15"
-								BoxShadow="0 4 12 0 #A0000000">
+								BoxShadow="0 4 12 0 #A0000000"
+								PointerPressed="OnPanelHeaderPointerPressed"
+								PointerMoved="OnPanelHeaderPointerMoved"
+								PointerReleased="OnPanelHeaderPointerReleased">
 							<Border.Background>
 								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
 							</Border.Background>
 							<Grid RowDefinitions="Auto, Auto, *">
 								<TextBlock Grid.Row="0" Text="Layers" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
-										   Cursor="SizeAll"
-										   PointerPressed="OnPanelHeaderPointerPressed"
-										   PointerMoved="OnPanelHeaderPointerMoved"
-										   PointerReleased="OnPanelHeaderPointerReleased"/>
+										   Cursor="SizeAll"/>
 								<StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
 									<Button Content="+" Command="{Binding AddLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 									<Button Content="-" Command="{Binding DeleteLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
@@ -127,35 +128,42 @@
 						</Border>
 
 						<!-- Floating Palette & Colors Panel (Top Right) -->
-						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+						<Border x:Name="PalettePanel" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
 								Width="260" Height="580" Padding="12"
-								Canvas.Left="520" Canvas.Top="15"
-								BoxShadow="0 4 12 0 #A0000000">
+								BoxShadow="0 4 12 0 #A0000000"
+								PointerPressed="OnPanelHeaderPointerPressed"
+								PointerMoved="OnPanelHeaderPointerMoved"
+								PointerReleased="OnPanelHeaderPointerReleased">
 							<Border.Background>
 								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
 							</Border.Background>
 							<Grid RowDefinitions="Auto, Auto, Auto, Auto, *, Auto, Auto">
 								<TextBlock Grid.Row="0" Text="Palette &amp; Colors" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
-										   Cursor="SizeAll"
-										   PointerPressed="OnPanelHeaderPointerPressed"
-										   PointerMoved="OnPanelHeaderPointerMoved"
-										   PointerReleased="OnPanelHeaderPointerReleased"/>
-								<Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+										   Cursor="SizeAll"/>
+								<Grid Grid.Row="1" Margin="0,0,0,8">
 									<ComboBox ItemsSource="{Binding CustomPalettes}" SelectedItem="{Binding SelectedPalette}" HorizontalAlignment="Stretch" Height="26" FontSize="11">
 										<ComboBox.ItemTemplate>
 											<DataTemplate DataType="{x:Type vm:PaletteViewModel}">
-												<TextBlock Text="{Binding Name}"/>
+												<Grid ColumnDefinitions="*, Auto">
+													<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+													<Button Grid.Column="1" Content="✕" 
+															Command="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).DeletePaletteCommand}"
+															CommandParameter="{Binding}"
+															IsVisible="{Binding IsModifiable}"
+															Width="18" Height="18" Padding="0" Margin="5,0,0,0"
+															HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="9"
+															Background="Transparent" BorderThickness="0" Foreground="#FF5555"/>
+												</Grid>
 											</DataTemplate>
 										</ComboBox.ItemTemplate>
 									</ComboBox>
-									<Button Grid.Column="1" Content="Apply" Command="{Binding ApplySelectedPaletteCommand}" Margin="5,0,0,0" Height="26" FontSize="11" Padding="6,0"/>
 								</Grid>
 								<!-- Palette Creation -->
 								<Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto, Auto" Margin="0,0,0,8">
 									<TextBox Text="{Binding NewPaletteName, Mode=TwoWay}" PlaceholderText="Palette Name" Height="26" FontSize="11" Padding="5,2"/>
 									<Button Grid.Column="1" Content="+" Command="{Binding CreatePaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Create palette"/>
 									<Button Grid.Column="2" Content="R" Command="{Binding RenameSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Rename palette"/>
-									<Button Grid.Column="3" Content="D" Command="{Binding DeleteSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Delete palette"/>
+									<Button Grid.Column="3" Content="D" Command="{Binding DuplicateSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Duplicate selected palette"/>
 								</Grid>
 								<!-- Color Picker -->
 								<Border Grid.Row="3" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,8">
@@ -174,11 +182,24 @@
 										</ItemsControl.ItemsPanel>
 										<ItemsControl.ItemTemplate>
 											<DataTemplate DataType="{x:Type Color}">
-												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand" BorderBrush="#444444" BorderThickness="1" Tapped="OnPaletteColorTapped">
+												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand" Tapped="OnPaletteColorTapped">
+													<Border.BorderBrush>
+														<MultiBinding Converter="{x:Static views:ColorToBrushConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).ActiveColor"/>
+														</MultiBinding>
+													</Border.BorderBrush>
+													<Border.BorderThickness>
+														<MultiBinding Converter="{x:Static views:ColorToThicknessConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).ActiveColor"/>
+														</MultiBinding>
+													</Border.BorderThickness>
 													<Border.ContextMenu>
 														<ContextMenu>
-															<MenuItem Header="Set Active" Tapped="OnPaletteColorTapped"/>
-															<MenuItem Header="Delete Color" Command="{Binding $parent[UserControl].DataContext.DeleteColorCommand}" CommandParameter="{Binding}"/>
+															<MenuItem Header="Set Active" Click="OnSetActiveColorClick"/>
+															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick"/>
+															<MenuItem Header="Remove" Click="OnRemoveColorClick"/>
 														</ContextMenu>
 													</Border.ContextMenu>
 													<Border.Background>

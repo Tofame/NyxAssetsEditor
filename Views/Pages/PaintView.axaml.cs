@@ -4,6 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
+using Avalonia.Data.Converters;
+using System.Globalization;
+using System.Collections.Generic;
 using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.Views.Pages
@@ -11,6 +15,7 @@ namespace NyxAssetsEditor.Views.Pages
 	public partial class PaintView : UserControl
 	{
 		private bool _isDrawing = false;
+		private bool _palettePositionInitialized = false;
 
 		public PaintView()
 		{
@@ -140,6 +145,31 @@ namespace NyxAssetsEditor.Views.Pages
 			if (panel == null)
 				return;
 
+			// Do not initiate dragging if click originates inside an interactive control
+			var current = e.Source as Avalonia.Visual;
+			while (current != null && current != panel)
+			{
+				if (current is Button || 
+					current is ComboBox || 
+					current is TextBox || 
+					current is Slider || 
+					current is ListBox ||
+					current is ScrollViewer ||
+					current is ItemsControl ||
+					current.GetType().Name.Contains("ColorPicker") ||
+					current.GetType().Name.Contains("ComboBox") ||
+					current.GetType().Name.Contains("TextBox") ||
+					current.GetType().Name.Contains("Button") ||
+					current.GetType().Name.Contains("Slider") ||
+					current.GetType().Name.Contains("ListBox") ||
+					current.GetType().Name.Contains("ScrollViewer") ||
+					current.GetType().Name.Contains("ItemsControl"))
+				{
+					return;
+				}
+				current = current.GetVisualParent();
+			}
+
 			_draggedPanel = panel;
 			_isDraggingPanel = true;
 			_panelStartPointerPosition = e.GetPosition(this);
@@ -182,6 +212,103 @@ namespace NyxAssetsEditor.Views.Pages
 				_draggedPanel = null;
 				e.Handled = true;
 			}
+		}
+
+		private void OnSetActiveColorClick(object? sender, RoutedEventArgs e)
+		{
+			var menuItem = sender as MenuItem;
+			if (menuItem?.DataContext is Color color)
+			{
+				var vm = DataContext as PaintViewModel;
+				if (vm != null)
+				{
+					vm.ActiveColor = color;
+				}
+			}
+		}
+
+		private void OnDuplicateColorClick(object? sender, RoutedEventArgs e)
+		{
+			var menuItem = sender as MenuItem;
+			if (menuItem?.DataContext is Color color)
+			{
+				var vm = DataContext as PaintViewModel;
+				if (vm != null)
+				{
+					if (vm.DuplicateColorCommand.CanExecute(color))
+					{
+						vm.DuplicateColorCommand.Execute(color);
+					}
+				}
+			}
+		}
+
+		private void OnRemoveColorClick(object? sender, RoutedEventArgs e)
+		{
+			var menuItem = sender as MenuItem;
+			if (menuItem?.DataContext is Color color)
+			{
+				var vm = DataContext as PaintViewModel;
+				if (vm != null)
+				{
+					if (vm.DeleteColorCommand.CanExecute(color))
+					{
+						vm.DeleteColorCommand.Execute(color);
+					}
+				}
+			}
+		}
+
+		private void OnWorkspaceCanvasSizeChanged(object? sender, SizeChangedEventArgs e)
+		{
+			var canvas = sender as Canvas;
+			if (canvas == null || e.NewSize.Width <= 0 || e.NewSize.Height <= 0)
+				return;
+
+			var palettePanel = this.FindControl<Border>("PalettePanel");
+			if (palettePanel != null && !_palettePositionInitialized)
+			{
+				double left = e.NewSize.Width - palettePanel.Width - 50;
+				double top = (e.NewSize.Height - palettePanel.Height) / 2;
+
+				Canvas.SetLeft(palettePanel, Math.Max(0, left));
+				Canvas.SetTop(palettePanel, Math.Max(0, top));
+				_palettePositionInitialized = true;
+			}
+		}
+	}
+
+	public class ColorToBrushConverter : IMultiValueConverter
+	{
+		public static readonly ColorToBrushConverter Instance = new();
+
+		public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+		{
+			if (values.Count >= 2 && values[0] is Color itemColor && values[1] is Color activeColor)
+			{
+				if (itemColor == activeColor)
+				{
+					return new SolidColorBrush(Color.Parse("#FFD700")); // Gold
+				}
+			}
+			return new SolidColorBrush(Color.Parse("#444444")); // Default border brush
+		}
+	}
+
+	public class ColorToThicknessConverter : IMultiValueConverter
+	{
+		public static readonly ColorToThicknessConverter Instance = new();
+
+		public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+		{
+			if (values.Count >= 2 && values[0] is Color itemColor && values[1] is Color activeColor)
+			{
+				if (itemColor == activeColor)
+				{
+					return new Thickness(2);
+				}
+			}
+			return new Thickness(1);
 		}
 	}
 }

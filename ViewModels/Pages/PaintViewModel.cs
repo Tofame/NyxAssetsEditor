@@ -56,11 +56,15 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private string _name;
 
+		[ObservableProperty]
+		private bool _isModifiable = true;
+
 		public ObservableCollection<Color> Colors { get; } = new ObservableCollection<Color>();
 
-		public PaletteViewModel(string name)
+		public PaletteViewModel(string name, bool isModifiable = true)
 		{
 			_name = name;
+			_isModifiable = isModifiable;
 		}
 	}
 
@@ -223,6 +227,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private PaletteViewModel? _selectedPalette;
 
+		partial void OnSelectedPaletteChanged(PaletteViewModel? value) => ApplySelectedPalette();
+
 		private readonly bool[,] _selectionMask = new bool[32, 32];
 		private static readonly string PalettesFilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "paint", "paint_palletes.toml");
 
@@ -247,7 +253,35 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			ActiveLayer = baseLayer;
 
 			ClearSelection();
-			ExtractPaletteFromPixels(basePixels);
+
+			var originalColors = new HashSet<Color>();
+			for (int i = 0; i < basePixels.Length; i += 4)
+			{
+				byte r = basePixels[i];
+				byte g = basePixels[i + 1];
+				byte b = basePixels[i + 2];
+				byte a = basePixels[i + 3];
+				if (a > 10)
+				{
+					originalColors.Add(Color.FromArgb(a, r, g, b));
+				}
+			}
+
+			var existingOriginal = CustomPalettes.FirstOrDefault(p => p.Name == "Original colors");
+			if (existingOriginal != null)
+			{
+				CustomPalettes.Remove(existingOriginal);
+			}
+
+			var origPalette = new PaletteViewModel("Original colors", false);
+			foreach (var color in originalColors.OrderBy(c => c.ToString()))
+			{
+				origPalette.Colors.Add(color);
+			}
+			CustomPalettes.Insert(0, origPalette);
+			SelectedPalette = origPalette;
+			ApplySelectedPalette();
+
 			UpdateCanvasPreview();
 		}
 
@@ -770,7 +804,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (!PaletteColors.Contains(ActiveColor))
 			{
 				PaletteColors.Add(ActiveColor);
-				if (SelectedPalette != null && !SelectedPalette.Colors.Contains(ActiveColor))
+				if (SelectedPalette != null && SelectedPalette.IsModifiable && !SelectedPalette.Colors.Contains(ActiveColor))
 				{
 					SelectedPalette.Colors.Add(ActiveColor);
 					SavePalettes();
@@ -782,7 +816,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private void CreatePalette()
 		{
 			string paletteName = string.IsNullOrWhiteSpace(NewPaletteName)
-				? $"Palette {CustomPalettes.Count + 1}"
+				? $"Palette{CustomPalettes.Count + 1}"
 				: NewPaletteName.Trim();
 
 			var newPalette = new PaletteViewModel(paletteName);
@@ -800,7 +834,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private void DeleteColor(Color color)
 		{
 			PaletteColors.Remove(color);
-			if (SelectedPalette != null)
+			if (SelectedPalette != null && SelectedPalette.IsModifiable)
 			{
 				SelectedPalette.Colors.Remove(color);
 				SavePalettes();
@@ -808,12 +842,46 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand]
-		private void DeleteSelectedPalette()
+		private void DuplicateColor(Color color)
 		{
-			if (SelectedPalette != null && SelectedPalette.Name != "Outfit Masks")
+			if (SelectedPalette != null && SelectedPalette.IsModifiable)
 			{
-				CustomPalettes.Remove(SelectedPalette);
-				SelectedPalette = CustomPalettes.FirstOrDefault();
+				PaletteColors.Add(color);
+				SelectedPalette.Colors.Add(color);
+				SavePalettes();
+			}
+		}
+
+		[RelayCommand]
+		private void DuplicateSelectedPalette()
+		{
+			if (SelectedPalette == null)
+				return;
+
+			string baseName = SelectedPalette.Name;
+			string dupName = $"{baseName} Copy";
+
+			var duplicated = new PaletteViewModel(dupName, true);
+			foreach (var c in SelectedPalette.Colors)
+			{
+				duplicated.Colors.Add(c);
+			}
+
+			CustomPalettes.Add(duplicated);
+			SelectedPalette = duplicated;
+			SavePalettes();
+		}
+
+		[RelayCommand]
+		private void DeletePalette(PaletteViewModel palette)
+		{
+			if (palette != null && palette.IsModifiable)
+			{
+				CustomPalettes.Remove(palette);
+				if (SelectedPalette == palette)
+				{
+					SelectedPalette = CustomPalettes.FirstOrDefault();
+				}
 				SavePalettes();
 			}
 		}
@@ -821,7 +889,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private void RenameSelectedPalette()
 		{
-			if (SelectedPalette != null && SelectedPalette.Name != "Outfit Masks" && !string.IsNullOrWhiteSpace(NewPaletteName))
+			if (SelectedPalette != null && SelectedPalette.IsModifiable && !string.IsNullOrWhiteSpace(NewPaletteName))
 			{
 				SelectedPalette.Name = NewPaletteName.Trim();
 				NewPaletteName = "";
@@ -887,7 +955,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				if (!PaletteColors.Contains(color))
 				{
 					PaletteColors.Add(color);
-					if (SelectedPalette != null && !SelectedPalette.Colors.Contains(color))
+					if (SelectedPalette != null && SelectedPalette.IsModifiable && !SelectedPalette.Colors.Contains(color))
 					{
 						SelectedPalette.Colors.Add(color);
 					}
@@ -987,6 +1055,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				var lines = new List<string>();
 				foreach (var palette in CustomPalettes)
 				{
+					if (!palette.IsModifiable)
+						continue;
+
 					lines.Add($"[{palette.Name}]");
 					foreach (var color in palette.Colors)
 					{
