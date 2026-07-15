@@ -276,6 +276,43 @@ namespace NyxAssetsEditor.Views.Pages
 				_palettePositionInitialized = true;
 			}
 		}
+
+		private void OnGradientButtonContextRequested(object? sender, ContextRequestedEventArgs e)
+		{
+			var button = sender as Button;
+			if (button != null)
+			{
+				var flyout = Avalonia.Controls.Primitives.FlyoutBase.GetAttachedFlyout(button) as Flyout;
+				if (flyout?.Content is StyledElement content)
+				{
+					content.DataContext = button.DataContext;
+				}
+				Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(button);
+				e.Handled = true;
+			}
+		}
+
+		private void OnCloseFlyoutClick(object? sender, RoutedEventArgs e)
+		{
+			var control = sender as Control;
+			if (control != null)
+			{
+				var vm = DataContext as PaintViewModel;
+				if (vm != null)
+				{
+					if (vm.ApplyStopsInputCommand.CanExecute(null))
+					{
+						vm.ApplyStopsInputCommand.Execute(null);
+					}
+				}
+
+				var presenter = control.FindAncestorOfType<FlyoutPresenter>();
+				if (presenter?.Parent is Avalonia.Controls.Primitives.Popup popup)
+				{
+					popup.IsOpen = false;
+				}
+			}
+		}
 	}
 
 	public class ColorToBrushConverter : IMultiValueConverter

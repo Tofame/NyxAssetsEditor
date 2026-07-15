@@ -801,13 +801,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private void AddColorToPalette()
 		{
-			if (!PaletteColors.Contains(ActiveColor))
+			if (SelectedPalette != null && SelectedPalette.IsModifiable)
 			{
-				PaletteColors.Add(ActiveColor);
-				if (SelectedPalette != null && SelectedPalette.IsModifiable && !SelectedPalette.Colors.Contains(ActiveColor))
+				if (!SelectedPalette.Colors.Contains(ActiveColor))
 				{
 					SelectedPalette.Colors.Add(ActiveColor);
 					SavePalettes();
+				}
+				if (!PaletteColors.Contains(ActiveColor))
+				{
+					PaletteColors.Add(ActiveColor);
 				}
 			}
 		}
@@ -820,10 +823,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				: NewPaletteName.Trim();
 
 			var newPalette = new PaletteViewModel(paletteName);
-			foreach (var c in PaletteColors)
-			{
-				newPalette.Colors.Add(c);
-			}
 			CustomPalettes.Add(newPalette);
 			SelectedPalette = newPalette;
 			NewPaletteName = ""; // Clear input textbox
@@ -894,6 +893,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				SelectedPalette.Name = NewPaletteName.Trim();
 				NewPaletteName = "";
 				SavePalettes();
+				
+				var temp = SelectedPalette;
+				SelectedPalette = null;
+				SelectedPalette = temp;
 			}
 		}
 
@@ -937,15 +940,38 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		[ObservableProperty]
+		private int _gradientStops = 8;
+
+		public string GradientStepsButtonText => $"Gen ({GradientStops} steps)";
+
+		[ObservableProperty]
+		private string _gradientStopsInput = "8";
+
+		partial void OnGradientStopsChanged(int value)
+		{
+			OnPropertyChanged(nameof(GradientStepsButtonText));
+		}
+
+		[RelayCommand]
+		private void ApplyStopsInput()
+		{
+			if (int.TryParse(GradientStopsInput, out int val) && val > 1)
+			{
+				GradientStops = val;
+			}
+		}
+
 		[RelayCommand]
 		private void GenerateGradient()
 		{
 			Color start = ActiveColor;
 			Color end = GradientEndColor;
+			int steps = GradientStops;
 
-			for (int i = 0; i < 8; i++)
+			for (int i = 0; i < steps; i++)
 			{
-				float t = i / 7.0f;
+				float t = steps > 1 ? i / (float)(steps - 1) : 0.0f;
 				byte r = (byte)(start.R + (end.R - start.R) * t);
 				byte g = (byte)(start.G + (end.G - start.G) * t);
 				byte b = (byte)(start.B + (end.B - start.B) * t);

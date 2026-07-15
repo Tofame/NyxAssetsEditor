@@ -221,7 +221,18 @@
 										<TextBlock Grid.Row="0" Text="Gradient Tool (Active ➔ Target)" FontSize="10" Foreground="#A0A0A0" Margin="0,0,0,4"/>
 										<Grid Grid.Row="1" ColumnDefinitions="*, Auto">
 											<ColorPicker Color="{Binding GradientEndColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" Width="140" Height="22"/>
-											<Button Grid.Column="1" Content="Gen (8 steps)" Command="{Binding GenerateGradientCommand}" Margin="4,0,0,0" Height="22" FontSize="9" Padding="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+											<Button Grid.Column="1" Content="{Binding GradientStepsButtonText}" Command="{Binding GenerateGradientCommand}" Margin="4,0,0,0" Height="22" FontSize="9" Padding="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+													ContextRequested="OnGradientButtonContextRequested">
+												<FlyoutBase.AttachedFlyout>
+													<Flyout Placement="Bottom">
+														<StackPanel Orientation="Horizontal" Spacing="5" Margin="5">
+															<TextBlock Text="Stops:" VerticalAlignment="Center" FontSize="10"/>
+															<TextBox Text="{Binding GradientStopsInput, Mode=TwoWay}" Width="40" Height="20" FontSize="10" Padding="2,0"/>
+															<Button Content="Set" Command="{Binding ApplyStopsInputCommand}" Click="OnCloseFlyoutClick" Width="30" Height="20" FontSize="10" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+														</StackPanel>
+													</Flyout>
+												</FlyoutBase.AttachedFlyout>
+											</Button>
 										</Grid>
 									</Grid>
 								</Border>
