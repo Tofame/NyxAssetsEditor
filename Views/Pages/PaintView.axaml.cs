@@ -221,6 +221,71 @@ namespace NyxAssetsEditor.Views.Pages
 			}
 		}
 
+		// ── Layer drag-to-reorder ────────────────────────────────────────────────
+		private int _dragLayerStartIndex = -1;
+		private bool _isDraggingLayer = false;
+
+		private void OnLayerDragHandlePressed(object? sender, PointerPressedEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			if (vm == null || sender is not Control ctrl) return;
+			var layerVM = ctrl.DataContext as LayerViewModel;
+			if (layerVM == null) return;
+
+			_dragLayerStartIndex = vm.Layers.IndexOf(layerVM);
+			if (_dragLayerStartIndex < 0) return;
+
+			_isDraggingLayer = true;
+			e.Pointer.Capture(ctrl);
+			e.Handled = true;
+		}
+
+		private void OnLayerDragHandleMoved(object? sender, PointerEventArgs e)
+		{
+			if (_isDraggingLayer) e.Handled = true;
+		}
+
+		private void OnLayerDragHandleReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			if (!_isDraggingLayer) return;
+
+			_isDraggingLayer = false;
+			e.Pointer.Capture(null);
+
+			var vm = DataContext as PaintViewModel;
+			if (vm != null && _dragLayerStartIndex >= 0)
+			{
+				var listBox = this.FindControl<ListBox>("LayersListBox");
+				if (listBox != null)
+				{
+					int toIndex = GetLayerDropIndex(listBox, e.GetPosition(listBox), vm.Layers.Count);
+					if (toIndex >= 0 && toIndex != _dragLayerStartIndex)
+					{
+						vm.Layers.Move(_dragLayerStartIndex, toIndex);
+						vm.UpdateCanvasPreview();
+					}
+				}
+			}
+
+			_dragLayerStartIndex = -1;
+			e.Handled = true;
+		}
+
+		private static int GetLayerDropIndex(ListBox listBox, Point posInListBox, int totalLayers)
+		{
+			for (int i = 0; i < totalLayers; i++)
+			{
+				var container = listBox.ContainerFromIndex(i) as Control;
+				if (container == null) continue;
+				var topLeft = container.TranslatePoint(new Point(0, 0), listBox);
+				if (topLeft == null) continue;
+				var rect = new Rect(topLeft.Value, container.Bounds.Size);
+				if (rect.Contains(posInListBox))
+					return i;
+			}
+			return -1;
+		}
+
 		private void OnSetActiveColorClick(object? sender, RoutedEventArgs e)
 		{
 			var menuItem = sender as MenuItem;

@@ -45,6 +45,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private double _opacity = 1.0;
 
+		public bool IsNotVisible => !IsVisible;
+
+		public decimal OpacityPercent
+		{
+			get => (decimal)Math.Round(Opacity * 100);
+			set
+			{
+				Opacity = (double)Math.Clamp(value, 0, 100) / 100.0;
+				OnPropertyChanged(nameof(OpacityPercent));
+			}
+		}
+
+		partial void OnIsVisibleChanged(bool value)
+		{
+			OnPropertyChanged(nameof(IsNotVisible));
+		}
+
+		partial void OnOpacityChanged(double value)
+		{
+			OnPropertyChanged(nameof(OpacityPercent));
+		}
+
+		[RelayCommand]
+		private void ToggleVisibility()
+		{
+			IsVisible = !IsVisible;
+		}
+
 		public byte[] Pixels { get; set; }
 
 		public LayerViewModel(string name, byte[] pixels)
@@ -75,6 +103,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 	{
 		private readonly MainWindowViewModel _mainWindow;
 		private readonly SpriteRenderer _renderer = new SpriteRenderer();
+
+		private void SubscribeLayer(LayerViewModel layer) =>
+			layer.PropertyChanged += OnLayerPropertyChanged;
+
+		private void UnsubscribeLayer(LayerViewModel layer) =>
+			layer.PropertyChanged -= OnLayerPropertyChanged;
+
+		private void OnLayerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == nameof(LayerViewModel.IsVisible) ||
+				e.PropertyName == nameof(LayerViewModel.Opacity))
+				UpdateCanvasPreview();
+		}
 
 		[ObservableProperty]
 		private SpriteViewModel? _sprite;
@@ -247,12 +288,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			Sprite = sprite;
 			Panel = panel;
 
+			foreach (var l in Layers) UnsubscribeLayer(l);
 			Layers.Clear();
 			var initialPixels = sprite.GetPixels();
 			var basePixels = new byte[32 * 32 * 4];
 			Array.Copy(initialPixels, basePixels, initialPixels.Length);
 
 			var baseLayer = new LayerViewModel("Base", basePixels);
+			SubscribeLayer(baseLayer);
 			Layers.Add(baseLayer);
 			ActiveLayer = baseLayer;
 
@@ -683,6 +726,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			var emptyPixels = new byte[32 * 32 * 4];
 			var newLayer = new LayerViewModel($"Layer {Layers.Count + 1}", emptyPixels);
+			SubscribeLayer(newLayer);
 			Layers.Insert(0, newLayer); // Insert on top
 			ActiveLayer = newLayer;
 			UpdateCanvasPreview();
@@ -695,6 +739,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				return;
 
 			int index = Layers.IndexOf(ActiveLayer);
+			UnsubscribeLayer(ActiveLayer);
 			Layers.Remove(ActiveLayer);
 			ActiveLayer = Layers[Math.Min(index, Layers.Count - 1)];
 			UpdateCanvasPreview();
@@ -1067,6 +1112,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					IsVisible = layerModel.IsVisible,
 					Opacity = layerModel.Opacity
 				};
+				SubscribeLayer(layer);
 				Layers.Add(layer);
 			}
 
@@ -1075,7 +1121,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				var basePixels = sprite.GetPixels();
 				var copy = new byte[basePixels.Length];
 				Array.Copy(basePixels, copy, basePixels.Length);
-				Layers.Add(new LayerViewModel("Base", copy));
+				var fallbackLayer = new LayerViewModel("Base", copy);
+				SubscribeLayer(fallbackLayer);
+				Layers.Add(fallbackLayer);
 			}
 
 			ActiveLayer = Layers[Math.Clamp(state.ActiveLayerIndex, 0, Layers.Count - 1)];

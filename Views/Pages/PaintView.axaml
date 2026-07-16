@@ -118,19 +118,43 @@
 									<Button Content="▲" Command="{Binding MoveLayerUpCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 									<Button Content="▼" Command="{Binding MoveLayerDownCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 								</StackPanel>
-								<ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-									<ListBox ItemsSource="{Binding Layers}" SelectedItem="{Binding ActiveLayer}" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4">
-										<ListBox.ItemTemplate>
-											<DataTemplate DataType="{x:Type vm:LayerViewModel}">
-												<Grid ColumnDefinitions="Auto, *, Auto">
-													<CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}" Margin="0,0,4,0"/>
-													<TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"/>
-													<Slider Grid.Column="2" Minimum="0" Maximum="1" Value="{Binding Opacity}" Width="50" VerticalAlignment="Center" Margin="4,0,0,0"/>
-												</Grid>
-											</DataTemplate>
-										</ListBox.ItemTemplate>
-									</ListBox>
-								</ScrollViewer>
+								<ListBox x:Name="LayersListBox" Grid.Row="2"
+								 ItemsSource="{Binding Layers}" SelectedItem="{Binding ActiveLayer}"
+								 Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4"
+								 ScrollViewer.VerticalScrollBarVisibility="Auto">
+							<ListBox.ItemTemplate>
+								<DataTemplate DataType="{x:Type vm:LayerViewModel}">
+									<Grid ColumnDefinitions="Auto, Auto, *, Auto" Background="Transparent">
+										<!-- Drag handle -->
+										<TextBlock Grid.Column="0" Text="⠿" Cursor="Hand"
+												   Foreground="#555555" VerticalAlignment="Center"
+												   Margin="0,0,4,0" FontSize="13"
+												   PointerPressed="OnLayerDragHandlePressed"
+												   PointerMoved="OnLayerDragHandleMoved"
+												   PointerReleased="OnLayerDragHandleReleased"/>
+										<!-- Visibility eye toggle -->
+										<Button Grid.Column="1" Command="{Binding ToggleVisibilityCommand}"
+												Width="20" Height="20" Padding="0" Margin="0,0,4,0"
+												Background="Transparent" BorderThickness="0"
+												HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+											<Panel>
+												<TextBlock Text="👁" IsVisible="{Binding IsVisible}"
+														   FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												<TextBlock Text="⊘" IsVisible="{Binding IsNotVisible}"
+														   FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+											</Panel>
+										</Button>
+										<!-- Layer name -->
+										<TextBlock Grid.Column="2" Text="{Binding Name}"
+												   VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"/>
+										<!-- Opacity % -->
+										<NumericUpDown Grid.Column="3" Value="{Binding OpacityPercent}"
+													   Minimum="0" Maximum="100" Increment="5"
+													   Width="60" Height="24" FontSize="10" Padding="2,0"/>
+									</Grid>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
 							</Grid>
 						</Border>
 
