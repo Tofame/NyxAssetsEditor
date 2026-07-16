@@ -16,7 +16,7 @@ public partial class FloatingLooktypeGeneratorControl : UserControl
 		DataContextChanged += OnDataContextChanged;
 		var titleBar = this.FindControl<Border>("TitleBar");
 		if (titleBar == null) return;
-		var interaction = new FloatingPanelInteraction(this, titleBar, 760, 420);
+		var interaction = new FloatingPanelInteraction(this, titleBar, minWidth: 760, minHeight: 420);
 		Register(interaction, "ResizeLeft", 4); Register(interaction, "ResizeRight", 1);
 		Register(interaction, "ResizeBottom", 2); Register(interaction, "ResizeCorner", 3);
 	}
