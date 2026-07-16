@@ -15,7 +15,7 @@ dotnet run --project NyxAssetsEditor.csproj
 2. Load a sprite archive in a **Sprite Archive Viewer** panel.
 3. Load a matching things archive in a **Things Archive Viewer** panel (`.dat` pairs with `.spr`, `.things` pairs with `.assets`).
 4. Use section tabs (Items / Outfits / Effects / Missiles) to browse things.
-5. Open **Looktype Generator** from the Assets toolbar to create, preview, save, import, or export composed appearances.
+5. Open **Looktype Generator** from the Assets toolbar to create and preview an appearance, or edit/copy its live-detected Lua/XML.
 
 For `.spr` / `.dat` pairs, each loader can read `extended`, `transparency`, `frame-durations`, and `frame-groups` from a same-named `.otfi` file. Select **Prefer settings from .otfi** in the loading settings; missing or incomplete files automatically fall back to the recommended settings detected from the archive version.
 

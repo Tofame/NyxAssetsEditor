@@ -1,5 +1,3 @@
-using System;
-
 namespace NyxAssetsEditor.Models.Looktypes;
 
 public enum LooktypeAppearanceKind
@@ -18,8 +16,6 @@ public enum LooktypeDirection
 
 public sealed class LooktypeProfile
 {
-	public Guid Id { get; set; } = Guid.NewGuid();
-	public string Name { get; set; } = "New Looktype";
 	public LooktypeAppearanceKind AppearanceKind { get; set; }
 	public uint LookType { get; set; }
 	public uint LookTypeEx { get; set; }
@@ -36,13 +32,10 @@ public sealed class LooktypeProfile
 	public int WalkIntervalMs { get; set; }
 	public bool AutoRotate { get; set; }
 	public int RotationIntervalMs { get; set; } = 1000;
-	public bool IncludeNameInExport { get; set; } = true;
 	public bool IncludePreviewSettings { get; set; }
 
 	public LooktypeProfile Clone() => new()
 	{
-		Id = Id,
-		Name = Name,
 		AppearanceKind = AppearanceKind,
 		LookType = LookType,
 		LookTypeEx = LookTypeEx,
@@ -59,13 +52,6 @@ public sealed class LooktypeProfile
 		WalkIntervalMs = WalkIntervalMs,
 		AutoRotate = AutoRotate,
 		RotationIntervalMs = RotationIntervalMs,
-		IncludeNameInExport = IncludeNameInExport,
 		IncludePreviewSettings = IncludePreviewSettings,
 	};
-}
-
-public sealed class LooktypeLibraryDocument
-{
-	public int Version { get; set; } = 1;
-	public System.Collections.Generic.List<LooktypeProfile> Profiles { get; set; } = new();
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -15,14 +14,7 @@ using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
-public enum LooktypeFileOperation { ImportLua, ImportXml, ExportLua, ExportXml }
 public enum LooktypeColorPart { Head, Body, Legs, Feet }
-
-public sealed class LooktypeFileRequestEventArgs : EventArgs
-{
-	public LooktypeFileOperation Operation { get; init; }
-	public string SuggestedFileName { get; init; } = "looktype";
-}
 
 public sealed class LooktypeArchivePairViewModel
 {
@@ -59,7 +51,6 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	private readonly SpriteRenderer _bitmapRenderer = new();
 	private readonly DispatcherTimer _animationTimer = new();
 	private readonly DispatcherTimer _rotationTimer = new();
-	private readonly LooktypeLibraryDocument _library;
 	private int _animationDirection = 1;
 	private int _animationStartFrame;
 	private bool _isPingPongAnimation;
@@ -70,7 +61,6 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	private string? _serviceMessage;
 
 	public string Title => "Looktype Generator";
-	public ObservableCollection<LooktypeProfile> Profiles { get; } = new();
 	public ObservableCollection<LooktypeArchivePairViewModel> ArchivePairs { get; } = new();
 	public ObservableCollection<uint> AppearanceIds { get; } = new();
 	public ObservableCollection<uint> MountIds { get; } = new();
@@ -81,24 +71,12 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	public ObservableCollection<LooktypeColorCellViewModel> LegColors { get; } = new();
 	public ObservableCollection<LooktypeColorCellViewModel> FeetColors { get; } = new();
 
-	public event EventHandler<LooktypeFileRequestEventArgs>? RequestFileDialog;
-
-	private LooktypeProfile? _selectedProfile;
-	public LooktypeProfile? SelectedProfile
-	{
-		get => _selectedProfile;
-		set { if (SetProperty(ref _selectedProfile, value) && value != null) { LoadWorking(value); if (!_loading) _parent.TriggerSaveAppState(); } }
-	}
-
 	private LooktypeArchivePairViewModel? _selectedArchivePair;
 	public LooktypeArchivePairViewModel? SelectedArchivePair
 	{
 		get => _selectedArchivePair;
 		set { if (SetProperty(ref _selectedArchivePair, value)) { RefreshArchiveChoices(); RefreshPreview(); if (!_loading) _parent.TriggerSaveAppState(); } }
 	}
-
-	private string _profileName = "New Looktype";
-	public string ProfileName { get => _profileName; set { if (SetProperty(ref _profileName, value)) Changed(p => p.Name = value); } }
 
 	private bool _isOutfitMode = true;
 	public bool IsOutfitMode
@@ -189,12 +167,6 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	private bool _autoRotate;
 	public bool AutoRotate { get => _autoRotate; set { if (SetProperty(ref _autoRotate, value)) { Changed(p => p.AutoRotate = value); RestartRotation(); } } }
 	private bool _includePreviewSettings;
-	private bool _includeNameInExport = true;
-	public bool IncludeNameInExport
-	{
-		get => _includeNameInExport;
-		set { if (SetProperty(ref _includeNameInExport, value)) Changed(profile => profile.IncludeNameInExport = value); }
-	}
 	public bool IncludePreviewSettings
 	{
 		get => _includePreviewSettings;
@@ -211,31 +183,32 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	public bool IsSouth => Direction == LooktypeDirection.South;
 	public bool IsWest => Direction == LooktypeDirection.West;
 
-	private bool _isDirty;
-	public bool IsDirty { get => _isDirty; private set => SetProperty(ref _isDirty, value); }
 	private WriteableBitmap? _previewImage;
 	public WriteableBitmap? PreviewImage { get => _previewImage; private set => SetProperty(ref _previewImage, value); }
 	private string _message = "Load an archive pair to preview.";
 	public string Message { get => _message; private set => SetProperty(ref _message, value); }
 	public bool HasMessage => !string.IsNullOrWhiteSpace(Message);
-	private string _importText = string.Empty;
-	public string ImportText { get => _importText; set => SetProperty(ref _importText, value); }
-	private bool _showGeneratedLua = true;
-	public bool IsGeneratedLua => _showGeneratedLua;
-	public bool IsGeneratedXml => !_showGeneratedLua;
+	private string _appearanceText = string.Empty;
+	private bool _appearanceTextIsXml = true;
+	private bool _applyingAppearanceText;
+	public bool IsAppearanceLua => !_appearanceTextIsXml;
+	public bool IsAppearanceXml => _appearanceTextIsXml;
+	public string AppearanceText
+	{
+		get => _appearanceText;
+		set
+		{
+			if (!SetProperty(ref _appearanceText, value)) return;
+			ApplyAppearanceText(value);
+		}
+	}
 	private bool _previewCorpse;
 	public bool IsPreviewingAppearance => !_previewCorpse;
 	public bool IsPreviewingCorpse => _previewCorpse;
-	public string GeneratedInterchangeText => _showGeneratedLua
-		? LooktypeInterchangeService.ExportLua(_working)
-		: LooktypeInterchangeService.ExportXml(_working);
-
-	public FloatingLooktypeGeneratorViewModel(AssetsViewModel parent, string? selectedProfileId = null)
+	public FloatingLooktypeGeneratorViewModel(AssetsViewModel parent)
 	{
 		_parent = parent;
-		PanelWidth = 1100; ContentHeight = 800;
-		_library = LooktypeLibraryService.Load(out _serviceMessage);
-		foreach (var profile in _library.Profiles.OrderBy(p => p.Name)) Profiles.Add(profile);
+		PanelWidth = 900; ContentHeight = 800;
 		foreach (var color in TibiaOutfitPalette.Create())
 		{
 			HeadColors.Add(new(color)); BodyColors.Add(new(color)); LegColors.Add(new(color)); FeetColors.Add(new(color));
@@ -244,9 +217,8 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 		_rotationTimer.Tick += OnRotationTick;
 		SettingsViewModel.LooktypeRendererSettingsChanged += OnLooktypeRendererSettingsChanged;
 		RefreshArchivePairs();
-		var requested = Guid.TryParse(selectedProfileId, out var id) ? Profiles.FirstOrDefault(p => p.Id == id) : null;
-		SelectedProfile = requested ?? Profiles.FirstOrDefault();
-		if (SelectedProfile == null) New();
+		LoadWorking(_working);
+		UpdateAppearanceText();
 	}
 
 	public void RefreshArchivePairs(string? preferredSpritePath = null, string? preferredThingsPath = null)
@@ -298,60 +270,23 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	{
 		_loading = true;
 		_working = source.Clone();
-		_profileName = _working.Name; _isOutfitMode = _working.AppearanceKind == LooktypeAppearanceKind.Outfit;
+		_isOutfitMode = _working.AppearanceKind == LooktypeAppearanceKind.Outfit;
 		_selectedAppearanceId = _isOutfitMode ? _working.LookType : _working.LookTypeEx;
 		_selectedMountId = _working.Mount == 0 ? null : _working.Mount;
 		_selectedCorpseId = _working.Corpse == 0 ? null : _working.Corpse;
 		_walkIntervalMs = _working.WalkIntervalMs; _rotationIntervalMs = Math.Max(MinimumPreviewIntervalMs, _working.RotationIntervalMs);
 		_animationEnabled = _working.AnimationEnabled; _autoRotate = _working.AutoRotate;
-		_includeNameInExport = _working.IncludeNameInExport;
 		_includePreviewSettings = _working.IncludePreviewSettings;
 		_animationPhase = _working.AnimationPhase; _direction = _working.Direction; _manualPhasePreview = false;
 		OnPropertyChanged(string.Empty); NotifyDirection(); RefreshColorSelections(); RefreshArchiveChoices();
-		_loading = false; IsDirty = false; _animationDirection = 1; _animationTimer.Stop(); RestartRotation(); RefreshPreview();
+		_loading = false; _animationDirection = 1; _animationTimer.Stop(); RestartRotation(); RefreshPreview();
 	}
 
 	private void Changed(Action<LooktypeProfile> change)
 	{
 		if (_loading) return;
-		change(_working); IsDirty = true;
-		OnPropertyChanged(nameof(GeneratedInterchangeText));
-	}
-
-	[RelayCommand]
-	private void New()
-	{
-		var profile = new LooktypeProfile { Id = Guid.NewGuid(), Name = UniqueName("New Looktype") };
-		_selectedProfile = null; OnPropertyChanged(nameof(SelectedProfile)); LoadWorking(profile); IsDirty = true;
-	}
-
-	[RelayCommand]
-	private void Save()
-	{
-		_working.Name = UniqueName(string.IsNullOrWhiteSpace(ProfileName) ? "Looktype" : ProfileName.Trim(), _working.Id);
-		var existing = _library.Profiles.FindIndex(p => p.Id == _working.Id);
-		var saved = _working.Clone();
-		if (!saved.IncludePreviewSettings) ResetPreviewSettings(saved);
-		if (existing >= 0) _library.Profiles[existing] = saved; else _library.Profiles.Add(saved);
-		if (!SaveLibrary()) { RefreshPreview(); return; }
-		RefillProfiles(saved.Id); IsDirty = false;
-	}
-
-	[RelayCommand]
-	private void SaveAs()
-	{
-		_working.Id = Guid.NewGuid(); _working.Name = UniqueName(ProfileName + " Copy"); ProfileName = _working.Name; Save();
-	}
-
-	[RelayCommand]
-	private void Delete()
-	{
-		if (SelectedProfile == null) return;
-		var removed = _library.Profiles.FirstOrDefault(p => p.Id == SelectedProfile.Id);
-		_library.Profiles.RemoveAll(p => p.Id == SelectedProfile.Id);
-		if (!SaveLibrary()) { if (removed != null) _library.Profiles.Add(removed); RefreshPreview(); return; }
-		RefillProfiles(null);
-		if (Profiles.Count > 0) SelectedProfile = Profiles[0]; else New();
+		change(_working);
+		if (!_applyingAppearanceText) UpdateAppearanceText();
 	}
 
 	[RelayCommand]
@@ -387,20 +322,6 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	}
 	private void SetColor(byte id, Action<LooktypeProfile> set) { Changed(set); RefreshColorSelections(); RefreshPreview(); }
 
-	[RelayCommand] private void ImportLua() => RequestFileDialog?.Invoke(this, new() { Operation = LooktypeFileOperation.ImportLua });
-	[RelayCommand] private void ImportXml() => RequestFileDialog?.Invoke(this, new() { Operation = LooktypeFileOperation.ImportXml });
-	[RelayCommand] private void ExportLua() => RequestFileDialog?.Invoke(this, new() { Operation = LooktypeFileOperation.ExportLua, SuggestedFileName = "looktypes.lua" });
-	[RelayCommand] private void ExportXml() => RequestFileDialog?.Invoke(this, new() { Operation = LooktypeFileOperation.ExportXml, SuggestedFileName = "looktypes.xml" });
-	[RelayCommand]
-	private void ShowGeneratedFormat(string format)
-	{
-		var lua = !format.Equals("Xml", StringComparison.OrdinalIgnoreCase);
-		if (_showGeneratedLua == lua) return;
-		_showGeneratedLua = lua;
-		OnPropertyChanged(nameof(IsGeneratedLua)); OnPropertyChanged(nameof(IsGeneratedXml));
-		OnPropertyChanged(nameof(GeneratedInterchangeText));
-	}
-
 	[RelayCommand]
 	private void ShowPreviewMode(string mode)
 	{
@@ -413,68 +334,52 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 		RefreshPreview();
 	}
 
-	[RelayCommand] private void ImportLuaText() => ImportDocument(ImportText, LooktypeFileOperation.ImportLua, "Pasted Lua");
-	[RelayCommand] private void ImportXmlText() => ImportDocument(ImportText, LooktypeFileOperation.ImportXml, "Pasted XML");
-
-	public void ImportFile(string path, LooktypeFileOperation operation)
+	private void ApplyAppearanceText(string text)
 	{
-		try
+		if (_applyingAppearanceText || string.IsNullOrWhiteSpace(text)) return;
+		var isXml = text.TrimStart().StartsWith('<');
+		if (_appearanceTextIsXml != isXml)
 		{
-			ImportDocument(File.ReadAllText(path), operation, Path.GetFileNameWithoutExtension(path));
+			_appearanceTextIsXml = isXml;
+			OnPropertyChanged(nameof(IsAppearanceLua));
+			OnPropertyChanged(nameof(IsAppearanceXml));
 		}
-		catch (Exception ex) { _serviceMessage = $"Could not import looktype: {ex.Message}"; RefreshPreview(); }
+		var result = _appearanceTextIsXml
+			? LooktypeInterchangeService.ImportXml(text)
+			: LooktypeInterchangeService.ImportLua(text);
+		if (!result.Success)
+		{
+			_serviceMessage = result.Error;
+			RefreshPreview();
+			return;
+		}
+
+		_serviceMessage = result.Warnings.Count > 0 ? string.Join(" ", result.Warnings) : null;
+		_applyingAppearanceText = true;
+		try { LoadWorking(result.Profile); }
+		finally { _applyingAppearanceText = false; }
 	}
 
-	private void ImportDocument(string text, LooktypeFileOperation operation, string suggestedName)
+	[RelayCommand]
+	private void ShowAppearanceFormat(string format)
 	{
-		if (string.IsNullOrWhiteSpace(text)) { _serviceMessage = "Paste or select Lua/XML text to import."; RefreshPreview(); return; }
-		var result = operation == LooktypeFileOperation.ImportLua
-			? LooktypeInterchangeService.ImportLuaDocument(text, suggestedName)
-			: LooktypeInterchangeService.ImportXmlDocument(text, suggestedName);
-		if (!result.Success) { _serviceMessage = result.Error; RefreshPreview(); return; }
-
-		var snapshot = _library.Profiles.Select(profile => profile.Clone()).ToList();
-		Guid? selected = null;
-		foreach (var imported in result.Profiles)
-		{
-			imported.Id = Guid.NewGuid(); imported.Name = UniqueName(imported.Name);
-			_library.Profiles.Add(imported.Clone()); selected ??= imported.Id;
-		}
-		if (!SaveLibrary())
-		{
-			_library.Profiles.Clear(); _library.Profiles.AddRange(snapshot); RefreshPreview(); return;
-		}
-		RefillProfiles(selected);
-		_importText = string.Empty; OnPropertyChanged(nameof(ImportText));
-		_serviceMessage = $"Imported {result.Profiles.Count} looktype{(result.Profiles.Count == 1 ? string.Empty : "s")}.";
-		if (result.Warnings.Count > 0) _serviceMessage += " " + string.Join(" ", result.Warnings);
+		var isXml = format.Equals("Xml", StringComparison.OrdinalIgnoreCase);
+		if (_appearanceTextIsXml == isXml) return;
+		_appearanceTextIsXml = isXml;
+		OnPropertyChanged(nameof(IsAppearanceLua));
+		OnPropertyChanged(nameof(IsAppearanceXml));
+		UpdateAppearanceText();
 		RefreshPreview();
 	}
 
-	public string GetExportText(LooktypeFileOperation operation)
+	private void UpdateAppearanceText()
 	{
-		var profiles = GetDocumentProfiles();
-		return operation == LooktypeFileOperation.ExportLua
-			? LooktypeInterchangeService.ExportLuaDocument(profiles)
-			: LooktypeInterchangeService.ExportXmlDocument(profiles);
+		_serviceMessage = null;
+		var text = _appearanceTextIsXml
+			? LooktypeInterchangeService.ExportXml(_working)
+			: LooktypeInterchangeService.ExportLua(_working);
+		SetProperty(ref _appearanceText, text, nameof(AppearanceText));
 	}
-
-	private IReadOnlyList<LooktypeProfile> GetDocumentProfiles()
-	{
-		var profiles = _library.Profiles.Select(profile => profile.Clone()).ToList();
-		var index = profiles.FindIndex(profile => profile.Id == _working.Id);
-		if (index >= 0) profiles[index] = _working.Clone(); else profiles.Add(_working.Clone());
-		return profiles;
-	}
-
-	private static void ResetPreviewSettings(LooktypeProfile profile)
-	{
-		profile.Direction = LooktypeDirection.South;
-		profile.AnimationEnabled = false; profile.AnimationPhase = 0; profile.WalkIntervalMs = 0;
-		profile.AutoRotate = false; profile.RotationIntervalMs = 1000;
-	}
-
-	public void ReportFileError(string message) { _serviceMessage = message; RefreshPreview(); }
 
 	private void UpdateAddonOptions()
 	{
@@ -511,7 +416,7 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 
 	private void RefreshPreview()
 	{
-		_working.Name = ProfileName; _working.AnimationPhase = AnimationPhase; _working.Direction = Direction;
+		_working.AnimationPhase = AnimationPhase; _working.Direction = Direction;
 		var pair = SelectedArchivePair?.Pair;
 		var renderProfile = _previewCorpse || _manualPhasePreview ? _working.Clone() : _working;
 		if (_manualPhasePreview) renderProfile.AnimationEnabled = true;
@@ -550,7 +455,6 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 		if (AnimationPhase > FrameMaximum && FrameMaximum >= 0) { _animationPhase = 0; _working.AnimationPhase = 0; OnPropertyChanged(nameof(AnimationPhase)); }
 		var messages = new List<string>(); if (!string.IsNullOrWhiteSpace(_serviceMessage)) messages.Add(_serviceMessage!); messages.AddRange(result.Warnings);
 		Message = string.Join(Environment.NewLine, messages.Distinct()); OnPropertyChanged(nameof(HasMessage));
-		OnPropertyChanged(nameof(GeneratedInterchangeText));
 		if (AnimationEnabled)
 		{
 			var interval = _working.WalkIntervalMs > 0 ? _working.WalkIntervalMs : result.SuggestedDelayMs;
@@ -581,21 +485,8 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	}
 	private void OnLooktypeRendererSettingsChanged() => RefreshPreview();
 
-	private bool SaveLibrary() => LooktypeLibraryService.Save(_library, out _serviceMessage);
-	private void RefillProfiles(Guid? select)
-	{
-		Profiles.Clear(); foreach (var p in _library.Profiles.OrderBy(p => p.Name)) Profiles.Add(p);
-		SelectedProfile = select.HasValue ? Profiles.FirstOrDefault(p => p.Id == select) : null;
-	}
-	private string UniqueName(string requested, Guid? except = null)
-	{
-		var baseName = string.IsNullOrWhiteSpace(requested) ? "Looktype" : requested.Trim(); var name = baseName; var suffix = 2;
-		while (_library.Profiles.Any(p => p.Id != except && p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) name = $"{baseName} {suffix++}";
-		return name;
-	}
 	private void NotifyDirection() { OnPropertyChanged(nameof(IsNorth)); OnPropertyChanged(nameof(IsEast)); OnPropertyChanged(nameof(IsSouth)); OnPropertyChanged(nameof(IsWest)); }
 
-	public string SelectedProfileId => _working.Id.ToString();
 	public string SelectedSpritePath => SelectedArchivePair?.SpritePath ?? string.Empty;
 	public string SelectedThingsPath => SelectedArchivePair?.ThingsPath ?? string.Empty;
 

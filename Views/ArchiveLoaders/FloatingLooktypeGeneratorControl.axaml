@@ -26,47 +26,21 @@
 						<Separator/><MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
 					</ContextMenu>
 				</Border.ContextMenu>
-				<Grid ColumnDefinitions="*,Auto,Auto">
+				<Grid ColumnDefinitions="*,Auto">
 					<TextBlock Text="{Binding Title}" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
-					<TextBlock Grid.Column="1" Text="&#x25CF;" Foreground="#FFB74D" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip.Tip="Unsaved profile changes"/>
-					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0" Background="Transparent" Foreground="#CCC"/>
+					<Button Grid.Column="1" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0" Background="Transparent" Foreground="#CCC"/>
 				</Grid>
 			</Border>
 
 			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}"
 						  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-			<Grid ColumnDefinitions="210,340,*" Width="{Binding PanelContentWidth}" MinWidth="900">
-				<Border Grid.Column="0" BorderBrush="#383838" BorderThickness="0,0,1,0" Padding="10">
-					<Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8">
-						<TextBlock Text="Saved looktypes" Foreground="#EEE" FontWeight="SemiBold"/>
-						<ComboBox Grid.Row="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" DisplayMemberBinding="{Binding Name}" PlaceholderText="No saved profiles"/>
-						<WrapPanel Grid.Row="2"><Button Content="New" Command="{Binding NewCommand}"/><Button Content="Save" Command="{Binding SaveCommand}" Margin="4,0,0,0"/><Button Content="Save As" Command="{Binding SaveAsCommand}" Margin="4,0,0,0"/><Button Content="Delete" Command="{Binding DeleteCommand}" Margin="0,4,0,0"/></WrapPanel>
-						<StackPanel Grid.Row="3" Spacing="4">
-							<TextBlock Text="Name" Classes="label"/>
-							<TextBox Text="{Binding ProfileName}" PlaceholderText="Profile name"/>
-							<CheckBox Content="Include name in export" IsChecked="{Binding IncludeNameInExport}" FontSize="11"
-									  ToolTip.Tip="Include the profile name as optional Nyx metadata in generated and exported Lua/XML."/>
-						</StackPanel>
-						<StackPanel Grid.Row="4" Spacing="7">
-							<TextBlock Text="Archive pair" Classes="label"/>
-							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair"/>
-							<Separator Margin="0,4"/>
-							<TextBlock Text="Import / export files" Foreground="#EEE" FontWeight="SemiBold" FontSize="12"/>
-							<TextBlock Text="Import reads every looktype. Export All creates a document containing the saved library and current profile."
-									   Classes="label" TextWrapping="Wrap"/>
-							<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="5" RowSpacing="5">
-								<Button Grid.Row="0" Grid.Column="0" Content="Import Lua" Command="{Binding ImportLuaCommand}" FontSize="11" ToolTip.Tip="Import one or more Lua outfit tables from a file and save them to the profile library."/>
-								<Button Grid.Row="0" Grid.Column="1" Content="Import XML" Command="{Binding ImportXmlCommand}" FontSize="11" ToolTip.Tip="Import every valid &lt;look&gt; element from an XML file and save it to the profile library."/>
-								<Button Grid.Row="1" Grid.Column="0" Content="Export All Lua" Command="{Binding ExportLuaCommand}" FontSize="11" ToolTip.Tip="Create or replace a Lua document containing all saved profiles and the current profile."/>
-								<Button Grid.Row="1" Grid.Column="1" Content="Export All XML" Command="{Binding ExportXmlCommand}" FontSize="11" ToolTip.Tip="Create or replace an XML looktypes document containing all saved profiles and the current profile."/>
-							</Grid>
-						</StackPanel>
-					</Grid>
-				</Border>
-
-				<Border Grid.Column="1" BorderBrush="#383838" BorderThickness="0,0,1,0" Padding="12">
+			<Grid ColumnDefinitions="340,*" Width="{Binding PanelContentWidth}" MinWidth="700">
+				<Border Grid.Column="0" BorderBrush="#383838" BorderThickness="0,0,1,0" Padding="12">
 					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 					<StackPanel Spacing="10" Margin="0,0,6,0">
+						<TextBlock Text="Archive pair" Classes="label"/>
+						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair"/>
+						<Separator/>
 						<Grid ColumnDefinitions="*,Auto">
 							<TextBlock Text="Preview" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
 							<WrapPanel Grid.Column="1">
@@ -89,22 +63,14 @@
 							<TextBlock Grid.Row="1" Text="Walk interval (ms, 0 = Auto)" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Row="1" Grid.Column="1" MinWidth="150" Value="{Binding WalkIntervalMs}" Minimum="0" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
 							<CheckBox Grid.Row="2" Content="Auto rotate (ms)" IsChecked="{Binding AutoRotate}" VerticalAlignment="Center"/><NumericUpDown Grid.Row="2" Grid.Column="1" MinWidth="150" Value="{Binding RotationIntervalMs}" Minimum="16" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
 						</Grid>
-						<CheckBox Content="Include preview settings when saving or exporting" IsChecked="{Binding IncludePreviewSettings}"
-								  ToolTip.Tip="Include direction, animation phase and interval, auto-rotation, and rotation interval as optional Nyx metadata. Leave unchecked for appearance-only Lua/XML."/>
-						<Separator/>
-						<TextBlock Text="Paste Lua or XML" Foreground="#EEE" FontWeight="SemiBold"/>
-						<TextBlock Text="Paste one outfit fragment or a document containing multiple outfits. Successful entries are added directly to the saved profile library." Classes="label" TextWrapping="Wrap"/>
-						<TextBox Text="{Binding ImportText}" AcceptsReturn="True" Height="130" TextWrapping="Wrap" PlaceholderText="Paste one or more looktypes here..." ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="5">
-							<Button Grid.Column="0" Content="Import pasted Lua" Command="{Binding ImportLuaTextCommand}" FontSize="11" ToolTip.Tip="Parse the text as Lua data without executing it and import every valid outfit table."/>
-							<Button Grid.Column="1" Content="Import pasted XML" Command="{Binding ImportXmlTextCommand}" FontSize="11" ToolTip.Tip="Parse the text as XML and import every valid &lt;look&gt; element."/>
-						</Grid>
+						<CheckBox Content="Include preview settings in Lua/XML" IsChecked="{Binding IncludePreviewSettings}"
+								  ToolTip.Tip="Include direction, animation phase and interval, auto-rotation, and rotation interval as optional Nyx metadata."/>
 						<Border Background="#2B2418" BorderBrush="#6B552A" BorderThickness="1" CornerRadius="4" Padding="8" IsVisible="{Binding HasMessage}"><TextBlock Text="{Binding Message}" Foreground="#E3BE75" FontSize="11" TextWrapping="Wrap"/></Border>
 					</StackPanel>
 					</ScrollViewer>
 				</Border>
 
-				<ScrollViewer Grid.Column="2" Padding="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+				<ScrollViewer Grid.Column="1" Padding="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 					<StackPanel Spacing="10" MaxWidth="500" HorizontalAlignment="Stretch" Margin="0,0,0,36">
 						<TextBlock Text="Appearance" Foreground="#EEE" FontWeight="SemiBold"/>
 						<StackPanel Orientation="Horizontal" Spacing="12"><RadioButton Content="Outfit (lookType)" IsChecked="{Binding IsOutfitMode}"/><RadioButton Content="Item (lookTypeEx)" IsChecked="{Binding IsItemMode}"/></StackPanel>
@@ -115,7 +81,7 @@
 							<ComboBox Grid.Row="3" Width="220" ItemsSource="{Binding MountIds}" SelectedItem="{Binding SelectedMountId}" IsEditable="True" PlaceholderText="No mount"/>
 							<Button Grid.Row="3" Grid.Column="1" Content="Clear" Command="{Binding ClearMountCommand}"/>
 							<TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Corpse item ID (optional)" Classes="label"/>
-							<ComboBox Grid.Row="5" Width="220" ItemsSource="{Binding CorpseIds}" SelectedItem="{Binding SelectedCorpseId}" IsEditable="True" PlaceholderText="No corpse" ToolTip.Tip="Item created when the creature dies. Exports as creature.corpse in Lua and the look corpse attribute in XML."/>
+							<ComboBox Grid.Row="5" Width="220" ItemsSource="{Binding CorpseIds}" SelectedItem="{Binding SelectedCorpseId}" IsEditable="True" PlaceholderText="No corpse" ToolTip.Tip="Item created when the creature dies. Appears as creature.corpse in Lua and the corpse attribute in XML."/>
 							<Button Grid.Row="5" Grid.Column="1" Content="Clear" Command="{Binding ClearCorpseCommand}"/>
 						</Grid>
 						<StackPanel Spacing="9">
@@ -135,17 +101,24 @@
 							</StackPanel>
 							<Separator/>
 							<StackPanel Spacing="5">
-								<WrapPanel><Button Classes="format" Classes.selected="{Binding IsGeneratedLua}" Content="Lua" Command="{Binding ShowGeneratedFormatCommand}" CommandParameter="Lua"/><Button Classes="format" Classes.selected="{Binding IsGeneratedXml}" Content="XML" Command="{Binding ShowGeneratedFormatCommand}" CommandParameter="Xml" Margin="5,0,0,0"/></WrapPanel>
-								<TextBox Text="{Binding GeneratedInterchangeText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" Height="180" MinWidth="0" MaxWidth="500" HorizontalAlignment="Stretch" TextWrapping="Wrap" FontFamily="Consolas,Courier New,monospace" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+								<Grid ColumnDefinitions="*,Auto">
+									<WrapPanel>
+										<Button Classes="format" Classes.selected="{Binding IsAppearanceLua}" Content="Lua" Command="{Binding ShowAppearanceFormatCommand}" CommandParameter="Lua"/>
+										<Button Classes="format" Classes.selected="{Binding IsAppearanceXml}" Content="XML" Command="{Binding ShowAppearanceFormatCommand}" CommandParameter="Xml" Margin="5,0,0,0"/>
+									</WrapPanel>
+									<Button Grid.Column="1" Content="Copy" Click="CopyAppearanceText" Padding="12,4" ToolTip.Tip="Copy the current Lua or XML appearance."/>
+								</Grid>
+								<TextBlock Text="Lua or XML is detected automatically and updates the preview as you edit." Classes="label" TextWrapping="Wrap"/>
+								<TextBox Text="{Binding AppearanceText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="180" MinWidth="0" MaxWidth="500" HorizontalAlignment="Stretch" TextWrapping="Wrap" FontFamily="Consolas,Courier New,monospace" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
 							</StackPanel>
 						</StackPanel>
 					</StackPanel>
 				</ScrollViewer>
 
-				<Border Name="ResizeLeft" Grid.ColumnSpan="3" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
-				<Border Name="ResizeRight" Grid.ColumnSpan="3" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
-				<Border Name="ResizeBottom" Grid.ColumnSpan="3" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
-				<Border Name="ResizeCorner" Grid.ColumnSpan="3" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
+				<Border Name="ResizeLeft" Grid.ColumnSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+				<Border Name="ResizeRight" Grid.ColumnSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+				<Border Name="ResizeBottom" Grid.ColumnSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+				<Border Name="ResizeCorner" Grid.ColumnSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
 			</Grid>
 			</ScrollViewer>
 		</Grid>

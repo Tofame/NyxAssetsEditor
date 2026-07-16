@@ -120,7 +120,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string LinkedSpriteFilePath { get; set; } = "";
 
 			// Looktype-generator-specific
-			public string SelectedLooktypeProfileId { get; set; } = "";
 			public string SelectedLooktypeSpritePath { get; set; } = "";
 			public string SelectedLooktypeThingsPath { get; set; } = "";
 		}
@@ -274,7 +273,6 @@ namespace NyxAssetsEditor.Services.Persistence
 					else if (panel is FloatingLooktypeGeneratorViewModel looktypePanel)
 					{
 						state.Type = "Looktype";
-						state.SelectedLooktypeProfileId = looktypePanel.SelectedProfileId;
 						state.SelectedLooktypeSpritePath = looktypePanel.SelectedSpritePath;
 						state.SelectedLooktypeThingsPath = looktypePanel.SelectedThingsPath;
 					}
@@ -400,14 +398,14 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panelState in looktypeStates)
 				{
-					var panel = new FloatingLooktypeGeneratorViewModel(assetsVm, panelState.SelectedLooktypeProfileId)
+					var panel = new FloatingLooktypeGeneratorViewModel(assetsVm)
 					{
 						DockState = panelState.DockState,
 						IsMinimized = panelState.IsMinimized,
 						PositionX = panelState.PositionX,
 						PositionY = panelState.PositionY,
-						PanelWidth = panelState.PanelWidth <= 0 || Math.Abs(panelState.PanelWidth - 980) < 0.5
-							? 1100
+						PanelWidth = panelState.PanelWidth <= 0 || Math.Abs(panelState.PanelWidth - 980) < 0.5 || Math.Abs(panelState.PanelWidth - 1100) < 0.5
+							? 900
 							: panelState.PanelWidth,
 						ContentHeight = panelState.ContentHeight <= 0 || Math.Abs(panelState.ContentHeight - 720) < 0.5
 							? 800
