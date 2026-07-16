@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NyxAssets.Things;
 using NyxAssetsEditor.Models.Looktypes;
 using NyxAssetsEditor.Services.Looktypes;
 using NyxAssetsEditor.Services.Rendering;
+using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
 
@@ -44,7 +47,7 @@ public sealed class LooktypeAddonOptionViewModel : ObservableObject
 	public LooktypeAddonOptionViewModel(int number, bool selected, Action changed) { Number = number; _isChecked = selected; _changed = changed; }
 }
 
-public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, IDisposable
+public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, IDisposable, IThingFinderContextActionProvider
 {
 	private const int MinimumPreviewIntervalMs = 16;
 	private readonly AssetsViewModel _parent;
@@ -489,6 +492,55 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 
 	public string SelectedSpritePath => SelectedArchivePair?.SpritePath ?? string.Empty;
 	public string SelectedThingsPath => SelectedArchivePair?.ThingsPath ?? string.Empty;
+
+	public IEnumerable<ThingFinderContextAction> GetThingFinderContextActions(
+		FloatingThingsLoaderViewModel source,
+		ThingType thing)
+	{
+		var sourcePair = ArchivePairs.FirstOrDefault(pair => ReferenceEquals(pair.Pair.ThingsPanel, source));
+		if (sourcePair == null) yield break;
+
+		if (thing.Kind == ThingKind.Outfit)
+		{
+			yield return CreateFinderAction("Set as outfit", sourcePair, thing, () =>
+			{
+				IsOutfitMode = true;
+				SelectedAppearanceId = thing.Id;
+			});
+			yield return CreateFinderAction("Set as mount", sourcePair, thing, () => SelectedMountId = thing.Id);
+		}
+		else if (thing.Kind == ThingKind.Item)
+		{
+			yield return CreateFinderAction("Set as corpse", sourcePair, thing, () => SelectedCorpseId = thing.Id);
+		}
+	}
+
+	private ThingFinderContextAction CreateFinderAction(
+		string label,
+		LooktypeArchivePairViewModel sourcePair,
+		ThingType thing,
+		Action assign)
+	{
+		var requiresSwitch = !ReferenceEquals(SelectedArchivePair?.Pair.ThingsPanel, sourcePair.Pair.ThingsPanel)
+			|| !ReferenceEquals(SelectedArchivePair?.Pair.SpritePanel, sourcePair.Pair.SpritePanel);
+		Task Execute()
+		{
+			var isUsingSourcePair = ReferenceEquals(SelectedArchivePair?.Pair.ThingsPanel, sourcePair.Pair.ThingsPanel)
+				&& ReferenceEquals(SelectedArchivePair?.Pair.SpritePanel, sourcePair.Pair.SpritePanel);
+			if (!isUsingSourcePair) SelectedArchivePair = sourcePair;
+			assign();
+			return Task.CompletedTask;
+		}
+
+		return requiresSwitch
+			? new ThingFinderContextAction(
+				label,
+				Execute,
+				"Switch archive pair?",
+				$"The Looktype Generator is using a different archive pair. Switch it to {sourcePair.DisplayName} and {label.ToLowerInvariant()} {thing.Id}?",
+				"Switch and set")
+			: new ThingFinderContextAction(label, Execute);
+	}
 
 	public void Dispose()
 	{

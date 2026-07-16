@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Platform.Storage;
@@ -66,6 +67,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			var handle = this.FindControl<Border>(name);
 			if (handle != null)
 				interaction.RegisterResizeHandle(handle, direction);
+		}
+
+		private async void CopyThingId(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+		{
+			if (sender is not MenuItem { DataContext: ThingItemViewModel thing }) return;
+			var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+			if (clipboard != null) await clipboard.SetTextAsync(thing.DisplayedId.ToString());
 		}
 
 		protected override void OnPointerPressed(PointerPressedEventArgs e)

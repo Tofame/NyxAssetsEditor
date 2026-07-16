@@ -12,22 +12,6 @@
 	</UserControl.KeyBindings>
 
 	<UserControl.Resources>
-		<ControlTheme x:Key="{x:Type local:BatchApplyField}" TargetType="local:BatchApplyField">
-			<Setter Property="Template">
-				<ControlTemplate>
-					<Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-						<CheckBox Grid.Column="0"
-								  IsVisible="{Binding ShowApply, RelativeSource={RelativeSource TemplatedParent}}"
-								  IsChecked="{Binding IsApplied, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-								  ToolTip.Tip="Apply this field to all selected things"
-								  VerticalAlignment="Center"/>
-						<ContentPresenter Grid.Column="1"
-									  Content="{TemplateBinding Content}"
-									  IsEnabled="{Binding IsFieldEnabled, RelativeSource={RelativeSource TemplatedParent}}"/>
-					</Grid>
-				</ControlTemplate>
-			</Setter>
-		</ControlTheme>
 		<ControlTheme x:Key="FlatSliderTheme" TargetType="Slider">
 			<Setter Property="Background" Value="#252525"/>
 			<Setter Property="Foreground" Value="#707070"/>

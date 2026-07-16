@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
+using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Core;
@@ -505,6 +506,37 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			RefreshLooktypeGenerators();
 		}
 
+		public void OpenThingFinder(FloatingThingsLoaderViewModel source)
+		{
+			if (!source.IsArchiveLoaded) return;
+			var existing = ActivePanels.OfType<FloatingThingFinderViewModel>()
+				.FirstOrDefault(panel => ReferenceEquals(panel.SourcePanel, source));
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				if (existing.IsFloating)
+				{
+					FloatingPanels.Remove(existing);
+					FloatingPanels.Add(existing);
+				}
+				return;
+			}
+
+			AddPanel(new FloatingThingFinderViewModel(this, source)
+			{
+				IsVisible = true,
+			});
+		}
+
+		public IReadOnlyList<ThingFinderContextAction> GetThingFinderContextActions(
+			FloatingThingsLoaderViewModel source,
+			NyxAssets.Things.ThingType thing) => ActivePanels
+			.Where(panel => panel.IsVisible)
+			.OfType<IThingFinderContextActionProvider>()
+			.SelectMany(provider => provider.GetThingFinderContextActions(source, thing))
+			.ToList();
+
 		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
 		{
 			var thing = source.GetThingType(thingId);
@@ -750,6 +782,15 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							OnPanelRequestClose(tp);
 						}
 					}
+				}
+			}
+
+			if (panel is FloatingThingsLoaderViewModel sourcePanel)
+			{
+				foreach (var finder in ActivePanels.OfType<FloatingThingFinderViewModel>()
+					.Where(candidate => ReferenceEquals(candidate.SourcePanel, sourcePanel)).ToList())
+				{
+					finder.ClosePanel();
 				}
 			}
 
