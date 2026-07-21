@@ -97,10 +97,8 @@
 					<Button Grid.Column="2" Command="{Binding ToggleViewModeCommand}" Width="28" Height="24" Background="Transparent"
 						BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Toggle List/Grid View">
 						<Panel>
-							<Path Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12" Stroke="#E0E0E0" StrokeThickness="1.5"
-								Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsGridView}"/>
-							<Path Data="M1,1 H6 V6 H1 Z M9,1 H14 V6 H9 Z M1,9 H6 V14 H1 Z M9,9 H14 V14 H9 Z" Fill="#E0E0E0"
-								Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsListView}"/>
+							<Image Source="/Assets/Icons/action_layout_list.png" Width="14" Height="14" IsVisible="{Binding IsGridView}"/>
+							<Image Source="/Assets/Icons/action_layout_grid.png" Width="14" Height="14" IsVisible="{Binding IsListView}"/>
 						</Panel>
 					</Button>
 					<Button Grid.Column="3" Content="—" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0" Background="Transparent" Foreground="#CCC"/>

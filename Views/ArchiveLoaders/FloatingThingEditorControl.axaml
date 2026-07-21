@@ -98,10 +98,10 @@
 				<Grid ColumnDefinitions="*, Auto, Auto">
 					<TextBlock Text="{Binding Title, Mode=OneWay}" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13" VerticalAlignment="Center"/>
 					<Button Grid.Column="1" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" Margin="0,0,4,0">
-						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
 					</Button>
 					<Button Grid.Column="2" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0">
-						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
 					</Button>
 				</Grid>
 			</Border>

@@ -75,30 +75,30 @@
 					<Button Grid.Column="2" Command="{Binding ToggleViewModeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Toggle List/Grid View">
 						<Panel>
 							<!-- List Icon (Visible when GridView is active, because clicking toggles to List) -->
-							<Path Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12" Stroke="#E0E0E0" StrokeThickness="1.5" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsGridView}"/>
+							<Image Source="/Assets/Icons/action_layout_list.png" Width="14" Height="14" IsVisible="{Binding IsGridView}"/>
 							<!-- Grid Icon (Visible when ListView is active, because clicking toggles to Grid) -->
-							<Path Data="M1,1 H6 V6 H1 Z M9,1 H14 V6 H9 Z M1,9 H6 V14 H1 Z M9,9 H14 V14 H9 Z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsListView}"/>
+							<Image Source="/Assets/Icons/action_layout_grid.png" Width="14" Height="14" IsVisible="{Binding IsListView}"/>
 						</Panel>
 					</Button>
 
 					<!-- Undo Button -->
 					<Button Grid.Column="3" Command="{Binding UndoCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Undo (Ctrl+Z)">
-						<Path Data="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_undo.png" Width="14" Height="14"/>
 					</Button>
 
 					<!-- Redo Button -->
 					<Button Grid.Column="4" Command="{Binding RedoCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Redo (Ctrl+Y)">
-						<Path Data="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Minimize Button -->
 					<Button Grid.Column="5" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
-						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Close Button -->
 					<Button Grid.Column="6" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
-						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
 					</Button>
 				</Grid>
 			</Border>
