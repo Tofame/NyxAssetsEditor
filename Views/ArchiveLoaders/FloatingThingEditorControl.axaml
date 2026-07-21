@@ -210,8 +210,7 @@
 											<TextBlock Grid.Column="0" Text="Min:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
 											<NumericUpDown Grid.Column="1" Value="{Binding MinimumDuration}" Minimum="0" Maximum="60000" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
 											<Button Grid.Column="2" Classes="icon-btn" Command="{Binding ApplyDefaultDurationsCommand}" ToolTip.Tip="Default durations" Margin="6,0,0,0">
-												<Path Data="M12,4 L12,2 M12,22 L12,20 M4.93,4.93 L6.34,6.34 M17.66,17.66 L19.07,19.07 M4,12 L2,12 M22,12 L20,12 M4.93,19.07 L6.34,17.66 M17.66,6.34 L19.07,4.93 M12,8 A4,4 0 1,1 12,16 A4,4 0 1,1 12,8"
-													  Stroke="#CCCCCC" StrokeThickness="1.3" Width="14" Height="14" Stretch="Uniform"/>
+												<Image Source="/Assets/Icons/action_editor_default_durations.png" Width="14" Height="14"/>
 											</Button>
 										</Grid>
 
@@ -219,7 +218,7 @@
 											<TextBlock Grid.Column="0" Text="Max:" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
 											<NumericUpDown Grid.Column="1" Value="{Binding MaximumDuration}" Minimum="0" Maximum="60000" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11"/>
 											<Button Grid.Column="2" Classes="icon-btn" Command="{Binding ApplyDurationForAllFramesCommand}" ToolTip.Tip="Set for all frames" Margin="6,0,0,0">
-												<Path Data="M4,6 H16 M4,10 H16 M4,14 H16 M4,18 H10" Stroke="#CCCCCC" StrokeThickness="1.3" Width="14" Height="14" Stretch="Uniform"/>
+												<Image Source="/Assets/Icons/action_editor_apply_all.png" Width="14" Height="14"/>
 											</Button>
 										</Grid>
 									</StackPanel>

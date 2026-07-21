@@ -70,7 +70,7 @@
 					<!-- Empty State Guide -->
 					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsLeftEmpty}">
 						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
-							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/plus_white.png" Width="20" Height="20" HorizontalAlignment="Center"/>
 							<TextBlock Text="Left Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
 						</StackPanel>
 					</Border>
@@ -119,7 +119,7 @@
 					<!-- Empty State Guide -->
 					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsCenterEmpty}">
 						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
-							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/plus_white.png" Width="20" Height="20" HorizontalAlignment="Center"/>
 							<TextBlock Text="Center Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
 						</StackPanel>
 					</Border>
@@ -154,7 +154,7 @@
 							</Transitions>
 						</Border.Transitions>
 						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
-							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#3A7BD5" Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/plus_blue.png" Width="22" Height="22" HorizontalAlignment="Center"/>
 							<TextBlock Text="Dock Center" Foreground="#3A7BD5" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
 						</StackPanel>
 					</Border>
@@ -168,7 +168,7 @@
 					<!-- Empty State Guide -->
 					<Border BorderBrush="#262626" BorderThickness="1.5" Margin="4" CornerRadius="8" Background="#181818" IsVisible="{Binding IsRightEmpty}">
 						<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Opacity="0.4">
-							<Path Data="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" Fill="#FFFFFF" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/plus_white.png" Width="20" Height="20" HorizontalAlignment="Center"/>
 							<TextBlock Text="Right Dock Zone" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
 						</StackPanel>
 					</Border>

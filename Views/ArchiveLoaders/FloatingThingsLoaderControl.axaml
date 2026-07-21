@@ -233,7 +233,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/warning.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Unsupported version" FontWeight="Bold" Foreground="#FF5E5E" FontSize="14" HorizontalAlignment="Center"/>
 							<TextBlock Text="{Binding ErrorMessage}" Foreground="#FF8888" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to try another file" Foreground="#888888" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
@@ -249,7 +249,7 @@
 							Padding="18"
 							Width="340">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/warning.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Sprites Not Loaded" FontWeight="SemiBold" Foreground="#FF5E5E" FontSize="13" HorizontalAlignment="Center"/>
 							<TextBlock Text="You must load a Sprite Archive (.spr / .assets) in the Sprite Loader panel before you can load things." Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 						</StackPanel>
@@ -267,7 +267,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#5E94FF" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/info.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to Load Things" FontWeight="SemiBold" Foreground="#5E94FF" FontSize="13" HorizontalAlignment="Center"/>
 							<TextBlock Text="Supports .dat and .json archives" Foreground="#666666" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 						</StackPanel>

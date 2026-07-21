@@ -17,10 +17,7 @@
 			<Border Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="20,16">
 				<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
 					<Border Width="32" Height="32" CornerRadius="16" Background="#332B1A">
-						<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-							  Fill="#E8A923" Width="18" Height="18"
-							  HorizontalAlignment="Center" VerticalAlignment="Center"
-							  Stretch="Uniform"/>
+						<Image Source="/Assets/Icons/state/warning.png" Width="18" Height="18"/>
 					</Border>
 					<TextBlock Name="TitleText" Text="Unsaved Changes" FontSize="15" FontWeight="SemiBold"
 							   Foreground="#F0F0F0" VerticalAlignment="Center"/>

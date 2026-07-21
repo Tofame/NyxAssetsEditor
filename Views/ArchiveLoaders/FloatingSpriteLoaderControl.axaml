@@ -205,7 +205,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/warning.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Unsupported version" FontWeight="Bold" Foreground="#FF5E5E" FontSize="14" HorizontalAlignment="Center"/>
 							<TextBlock Text="{Binding ErrorMessage}" Foreground="#FF8888" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to try another file" Foreground="#888888" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
@@ -223,7 +223,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M2 17L12 22L22 17M2 12L12 17L22 12M12 2L2 7L12 12L22 7L12 2Z" Fill="Transparent" Stroke="#3A7BD5" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/sprites_stack.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to Load Assets" FontWeight="SemiBold" Foreground="#3A7BD5" FontSize="13" HorizontalAlignment="Center"/>
 							<TextBlock Text="Supports .spr and .assets archives" Foreground="#666666" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 						</StackPanel>
