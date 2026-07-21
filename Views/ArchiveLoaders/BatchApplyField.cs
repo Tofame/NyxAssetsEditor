@@ -14,11 +14,17 @@ public sealed class BatchApplyField : ContentControl
 		AvaloniaProperty.Register<BatchApplyField, bool>(nameof(ShowApply));
 	public static readonly StyledProperty<bool> IsFieldEnabledProperty =
 		AvaloniaProperty.Register<BatchApplyField, bool>(nameof(IsFieldEnabled), true);
+	public static readonly StyledProperty<bool> AlwaysShowApplyProperty =
+		AvaloniaProperty.Register<BatchApplyField, bool>(nameof(AlwaysShowApply));
+	public static readonly StyledProperty<string> ApplyToolTipProperty =
+		AvaloniaProperty.Register<BatchApplyField, string>(nameof(ApplyToolTip), "Apply this field to all selected things");
 
 	public string PropertyName { get => GetValue(PropertyNameProperty); set => SetValue(PropertyNameProperty, value); }
 	public bool IsApplied { get => GetValue(IsAppliedProperty); set => SetValue(IsAppliedProperty, value); }
 	public bool ShowApply { get => GetValue(ShowApplyProperty); private set => SetValue(ShowApplyProperty, value); }
 	public bool IsFieldEnabled { get => GetValue(IsFieldEnabledProperty); private set => SetValue(IsFieldEnabledProperty, value); }
+	public bool AlwaysShowApply { get => GetValue(AlwaysShowApplyProperty); set => SetValue(AlwaysShowApplyProperty, value); }
+	public string ApplyToolTip { get => GetValue(ApplyToolTipProperty); set => SetValue(ApplyToolTipProperty, value); }
 
 	public BatchApplyField()
 	{
@@ -34,11 +40,15 @@ public sealed class BatchApplyField : ContentControl
 				vm.SetBatchOverride(PropertyName, IsApplied);
 			Refresh();
 		}
+		else if (change.Property == AlwaysShowApplyProperty)
+		{
+			Refresh();
+		}
 	}
 
 	private void Refresh()
 	{
-		ShowApply = DataContext is FloatingThingEditorViewModel { IsBatchEditor: true };
+		ShowApply = AlwaysShowApply || DataContext is FloatingThingEditorViewModel { IsBatchEditor: true };
 		IsFieldEnabled = !ShowApply || IsApplied;
 	}
 }

@@ -207,8 +207,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_ => "things",
 		};
 
-		public uint GetDisplayedId(uint id) =>
-			SelectedSection == ThingKind.Item ? id + SettingsViewModel.ThingIdOffset : id;
+		public uint GetDisplayedId(uint id) => GetDisplayedId(SelectedSection, id);
+
+		public uint GetDisplayedId(ThingKind kind, uint id) =>
+			kind == ThingKind.Item ? id + SettingsViewModel.ThingIdOffset : id;
 
 		[RelayCommand]
 		private void SelectItemsSection() => SelectedSection = ThingKind.Item;
@@ -222,6 +224,13 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand]
 		private void SelectMissilesSection() => SelectedSection = ThingKind.Missile;
 
+		[RelayCommand]
+		private void FindThing()
+		{
+			if (IsArchiveLoaded)
+				_parentViewModel?.OpenThingFinder(this);
+		}
+
 		private void NotifySectionProperties()
 		{
 			OnPropertyChanged(nameof(IsItemsSection));
@@ -234,6 +243,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		}
 
 		public event EventHandler<ThingFileRequestEventArgs>? RequestThingFileDialog;
+		public event Action? CatalogChanged;
 
 		public ThingItemViewModel? SelectedThing { get; private set; }
 
@@ -461,6 +471,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			foreach (var item in PagedThings)
 				item.NotifyDisplayedIdChanged();
+			CatalogChanged?.Invoke();
 		}
 
 		private void OnClientVersionChanged(uint newVersion)
@@ -512,6 +523,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				ThingKind.Effect => _catalog.TryGetEffect(id) ?? listed,
 				ThingKind.Missile => _catalog.TryGetMissile(id) ?? listed,
 				_ => listed,
+			};
+		}
+
+		public IReadOnlyList<ThingType> EnumerateThings(ThingKind kind)
+		{
+			if (_catalog == null) return Array.Empty<ThingType>();
+			return kind switch
+			{
+				ThingKind.Item => _catalog.EnumerateItems().ToList(),
+				ThingKind.Outfit => _catalog.EnumerateOutfits().ToList(),
+				ThingKind.Effect => _catalog.EnumerateEffects().ToList(),
+				ThingKind.Missile => _catalog.EnumerateMissiles().ToList(),
+				_ => Array.Empty<ThingType>(),
 			};
 		}
 
@@ -737,6 +761,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			OnPropertyChanged(nameof(HasPreviousPage));
 			UpdatePage();
 			NotifySelectionChanged();
+			CatalogChanged?.Invoke();
 		}
 
 		public async Task CreateNewArchiveAsync(string format, uint clientVersion, bool useExtendedThingIds, bool useFrameAnimations, bool useFrameGroups)
@@ -832,6 +857,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 							ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
 							_catalog = null;
 							OnPropertyChanged(nameof(IsArchiveLoaded));
+							CatalogChanged?.Invoke();
 							return;
 						}
 					}
@@ -919,6 +945,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					);
 				}
 			}
+			CatalogChanged?.Invoke();
 		}
 
 		private static ThingCatalog ReadCatalogFromFile(string path, ClientDataReadOptions options)
@@ -1502,6 +1529,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_undoRedoStack?.Push(_currentAction);
 			_currentAction = null;
 			RefreshUndoRedoCommands();
+			CatalogChanged?.Invoke();
 		}
 
 		[RelayCommand(CanExecute = nameof(CanUndo))]

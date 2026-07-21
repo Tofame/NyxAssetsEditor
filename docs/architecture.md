@@ -79,3 +79,40 @@ Double-click a thing in the Things Archive Viewer to open a floating **Thing Edi
 | **Properties** | Common flags (stackable, rotatable, animate always, etc.) |
 
 Edits apply live to the catalog. A linked sprite archive is required for texture previews.
+
+## Thing finder
+
+Each loaded Things Viewer can open one dockable Thing Finder. Its filter form follows the
+Thing Editor's Properties, Flags, Patterns, and JSON Custom Flags groupings. As in multi-edit mode,
+each field has an explicit enable checkbox; unchecked fields do not create criteria, and boolean values
+remain ordinary on/off switches. The form is rebuilt for Items, Outfits, Effects, or Missiles so
+kind-specific editor fields only appear on relevant tabs. All
+active fields must match. Clipboard copies use the configured displayed item offset; archive
+integrations continue to use raw catalog IDs. Pattern criteria target the selected frame-group
+index, while custom-flag filters are populated from extra properties discovered in the selected kind.
+Results are paged using the same selectable page sizes as Things Viewer and can be displayed as either
+preview tiles or a virtualized list without changing the active filters or result set.
+
+Result context menus always provide **Copy ID**. When a Looktype Generator is open, compatible
+results can also be assigned as its outfit, mount, or corpse. Assigning from another archive pair asks
+before switching the generator. Finder itself remains independent: integrations are supplied through
+generic context-action providers and Finder panels are not persisted between sessions.
+
+## Looktype generator
+
+The Assets toolbar can open a dockable Looktype Generator. It composes outfits or item-based
+appearances from a selected linked archive pair without modifying either archive. Its single editable
+Lua/XML field detects the format automatically: valid changes update the current controls and preview,
+while changes made through the controls update the field. A Copy button places the current text on the
+clipboard; the generator does not save a profile library or provide file import/export.
+Generated Lua uses `creature.outfit` and `creature.corpse`; Lua input accepts any table owner, such as
+`monster.outfit` or `dragon.outfit`. XML uses the `corpse` attribute on `<look>` elements. The preview
+can switch between the configured appearance and corpse item without changing the configured
+appearance mode.
+Preview direction, animation timing, and rotation remain app-local by default. An opt-in includes
+them as Nyx metadata in the Lua/XML field.
+
+Outfit previews use the NyxAssets frame resolver for direction, walking groups, addons, and mounts.
+The renderer generates the 133 Tibia colours mathematically and applies the yellow/head, red/body,
+green/legs, and blue/feet masks. Missing IDs or unsupported addon/mount patterns are reported inside
+the panel and do not prevent the profile from being edited or moved to another archive pair.

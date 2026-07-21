@@ -46,6 +46,9 @@ namespace NyxAssetsEditor.Services.Persistence
 			public uint OutfitAnimationDurationMs { get; set; } = 300;
 			public uint EffectAnimationDurationMs { get; set; } = 100;
 			public uint MissileAnimationDurationMs { get; set; } = 500;
+			public string LooktypeMountAlignment { get; set; } = nameof(MountedOutfitAlignment.OtClientCompatible);
+			public int LooktypeMountedRiderOffsetX { get; set; }
+			public int LooktypeMountedRiderOffsetY { get; set; }
 			public string ThingEditorGridColor { get; set; } = "#B4808080";
 			public int ThingEditorGridLineWidth { get; set; } = 1;
 			public string ThingEditorDragGridColor { get; set; } = "#B4FF69B4";
@@ -92,7 +95,7 @@ namespace NyxAssetsEditor.Services.Persistence
 
 		public class PanelStateModel
 		{
-			public string Type { get; set; } = ""; // "Sprite" or "Things"
+			public string Type { get; set; } = ""; // "Sprite", "Things", or "Looktype"
 			public string DockState { get; set; } = "Floating";
 			public bool IsMinimized { get; set; }
 			public double PositionX { get; set; }
@@ -115,6 +118,10 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool UseFrameAnimations { get; set; } = true;
 			public bool UseFrameGroups { get; set; } = true;
 			public string LinkedSpriteFilePath { get; set; } = "";
+
+			// Looktype-generator-specific
+			public string SelectedLooktypeSpritePath { get; set; } = "";
+			public string SelectedLooktypeThingsPath { get; set; } = "";
 		}
 
 		public static void LoadSettings()
@@ -146,7 +153,10 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.ThingEditorDragHighlightColor,
 							model.MaxRecentCombinations,
 							model.UndoLimit,
-							model.AllowUnknownSignatures);
+							model.AllowUnknownSignatures,
+							model.LooktypeMountAlignment,
+							model.LooktypeMountedRiderOffsetX,
+							model.LooktypeMountedRiderOffsetY);
 					}
 				}
 			}
@@ -174,6 +184,9 @@ namespace NyxAssetsEditor.Services.Persistence
 					OutfitAnimationDurationMs = SettingsViewModel.OutfitAnimationDurationMs,
 					EffectAnimationDurationMs = SettingsViewModel.EffectAnimationDurationMs,
 					MissileAnimationDurationMs = SettingsViewModel.MissileAnimationDurationMs,
+					LooktypeMountAlignment = SettingsViewModel.LooktypeMountAlignment.ToString(),
+					LooktypeMountedRiderOffsetX = SettingsViewModel.LooktypeMountedRiderOffsetX,
+					LooktypeMountedRiderOffsetY = SettingsViewModel.LooktypeMountedRiderOffsetY,
 					ThingEditorGridColor = SettingsViewModel.ThingEditorGridColor,
 					ThingEditorGridLineWidth = SettingsViewModel.ThingEditorGridLineWidth,
 					ThingEditorDragGridColor = SettingsViewModel.ThingEditorDragGridColor,
@@ -218,8 +231,9 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panel in assetsVm.ActivePanels)
 				{
-					// Only persist docked panels
-					if (panel.DockState == "Floating") continue;
+					if (panel is FloatingThingFinderViewModel) continue;
+					// Existing archive panels restore only when docked; the generator is safe to restore floating.
+					if (panel.DockState == "Floating" && panel is not FloatingLooktypeGeneratorViewModel) continue;
 
 					var state = new PanelStateModel
 					{
@@ -257,6 +271,12 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.GuessSettingsFromSignature = thingsPanel.GuessSettingsFromSignature;
 						state.PreferOtfiSettings = thingsPanel.PreferOtfiSettings;
 					}
+					else if (panel is FloatingLooktypeGeneratorViewModel looktypePanel)
+					{
+						state.Type = "Looktype";
+						state.SelectedLooktypeSpritePath = looktypePanel.SelectedSpritePath;
+						state.SelectedLooktypeThingsPath = looktypePanel.SelectedThingsPath;
+					}
 
 					model.Assets.Panels.Add(state);
 				}
@@ -285,11 +305,12 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				var spritePanels = new List<(PanelStateModel state, FloatingSpriteLoaderViewModel panel)>();
 				var thingsPanels = new List<(PanelStateModel state, FloatingThingsLoaderViewModel panel)>();
+				var looktypeStates = new List<PanelStateModel>();
 
 				foreach (var panelState in model.Assets.Panels)
 				{
-					// Only restore docked panels
-					if (panelState.DockState == "Floating" || string.IsNullOrEmpty(panelState.DockState)) continue;
+					// Existing archive panels restore only when docked; the generator may also restore floating.
+					if ((panelState.DockState == "Floating" && panelState.Type != "Looktype") || string.IsNullOrEmpty(panelState.DockState)) continue;
 
 					if (panelState.Type == "Sprite")
 					{
@@ -336,6 +357,10 @@ namespace NyxAssetsEditor.Services.Persistence
 						assetsVm.RestorePanel(panel);
 						thingsPanels.Add((panelState, panel));
 					}
+					else if (panelState.Type == "Looktype")
+					{
+						looktypeStates.Add(panelState);
+					}
 				}
 
 				foreach (var (panelState, panel) in spritePanels)
@@ -370,6 +395,26 @@ namespace NyxAssetsEditor.Services.Persistence
 							Debug.WriteLine($"Failed to load dat/things from state: {ex.Message}");
 						}
 					}
+				}
+
+				foreach (var panelState in looktypeStates)
+				{
+					var panel = new FloatingLooktypeGeneratorViewModel(assetsVm)
+					{
+						DockState = panelState.DockState,
+						IsMinimized = panelState.IsMinimized,
+						PositionX = panelState.PositionX,
+						PositionY = panelState.PositionY,
+						PanelWidth = panelState.PanelWidth <= 0
+							? FloatingLooktypeGeneratorViewModel.DefaultPanelWidth
+							: panelState.PanelWidth,
+						ContentHeight = panelState.ContentHeight <= 0
+							? FloatingLooktypeGeneratorViewModel.DefaultContentHeight
+							: panelState.ContentHeight,
+						IsDefaultPosition = false,
+					};
+					assetsVm.RestorePanel(panel);
+					panel.RefreshArchivePairs(panelState.SelectedLooktypeSpritePath, panelState.SelectedLooktypeThingsPath);
 				}
 			}
 			catch (Exception ex)

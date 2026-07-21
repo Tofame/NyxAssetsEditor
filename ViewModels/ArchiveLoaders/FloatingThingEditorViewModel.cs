@@ -829,63 +829,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		if (!IsAnimationPlaying)
 			return;
 
-		var start = Math.Clamp(AnimationStartFrame, 0, FrameMaximum);
-		var end = FrameMaximum;
-		var next = SelectedFrame + _animationDirection;
-
-		if (IsPingPongStrategy)
-		{
-			if (next > end)
-			{
-				_animationDirection = -1;
-				next = Math.Max(start, end - 1);
-			}
-			else if (next < start)
-			{
-				_animationDirection = 1;
-				next = Math.Min(end, start + 1);
-			}
-		}
-		else if (next > end)
-		{
-			next = start;
-		}
-		else if (next < start)
-		{
-			next = end;
-		}
-
+		var next = ThingAnimationPlayback.GetNextFrame(SelectedFrame, AnimationStartFrame,
+			FrameMaximum, IsPingPongStrategy, ref _animationDirection);
 		SelectedFrame = next;
 		ArmAnimationTimer(next);
 	}
 
 	private uint GetFrameDelayMs(int frameIndex)
-	{
-		var settingsMs = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
-		var timing = GetFrameTiming(frameIndex);
-		if (timing != null)
-		{
-			var avg = (timing.Value.MinimumMilliseconds + timing.Value.MaximumMilliseconds) / 2;
-			if (avg > 0)
-			{
-				if (!ImprovedAnimations || Kind == ThingKind.Outfit)
-				{
-					return Math.Min(avg, settingsMs);
-				}
-				return avg;
-			}
-		}
-
-		return settingsMs;
-	}
-
-	private AnimationFrameTiming? GetFrameTiming(int frameIndex)
-	{
-		if (CurrentFrameGroup.FrameTimings == null || frameIndex < 0 || frameIndex >= CurrentFrameGroup.FrameTimings.Length)
-			return null;
-
-		return CurrentFrameGroup.FrameTimings[frameIndex];
-	}
+		=> ThingAnimationPlayback.GetFrameDelayMs(CurrentFrameGroup, frameIndex,
+			SettingsViewModel.GetDefaultAnimationDurationMs(Kind), ImprovedAnimations, Kind);
 
 	private void SetOutfitDirection(Direction4 direction)
 	{
@@ -1549,6 +1501,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	private static readonly System.Collections.Generic.List<PaletteColor> _paletteColors = GeneratePaletteColors();
 	public System.Collections.Generic.List<PaletteColor> PaletteColors => _paletteColors;
+	public static System.Collections.Generic.IReadOnlyList<PaletteColor> SharedPaletteColors => _paletteColors;
 
 	private static System.Collections.Generic.List<PaletteColor> GeneratePaletteColors()
 	{

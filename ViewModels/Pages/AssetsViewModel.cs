@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
+using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Core;
@@ -160,6 +161,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			foreach (var thingsPanel in ActivePanels.OfType<FloatingThingsLoaderViewModel>())
 				thingsPanel.NotifySpriteLinkChanged();
+			RefreshLooktypeGenerators();
+		}
+
+		public void RefreshLooktypeGenerators()
+		{
+			foreach (var generator in ActivePanels.OfType<FloatingLooktypeGeneratorViewModel>())
+				generator.RefreshArchivePairs();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -463,6 +471,26 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			panel.NotifySpriteLinkChanged();
 		}
 
+		[RelayCommand]
+		private void OpenLooktypeGenerator()
+		{
+			var existing = ActivePanels.OfType<FloatingLooktypeGeneratorViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				existing.RefreshArchivePairs();
+				return;
+			}
+
+			AddPanel(new FloatingLooktypeGeneratorViewModel(this)
+			{
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			});
+		}
+
 		private void AddPanel(PanelViewModelBase panel)
 		{
 			panel.RequestClose += OnPanelRequestClose;
@@ -475,7 +503,44 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			PersistenceService.SaveAppState(this);
 			RefreshCompileCommands();
+			RefreshLooktypeGenerators();
 		}
+
+		public void OpenThingFinder(
+			FloatingThingsLoaderViewModel source,
+			NyxAssets.Things.ThingKind? selectedKind = null)
+		{
+			if (!source.IsArchiveLoaded) return;
+			var existing = ActivePanels.OfType<FloatingThingFinderViewModel>()
+				.FirstOrDefault(panel => ReferenceEquals(panel.SourcePanel, source));
+			if (existing != null)
+			{
+				if (selectedKind.HasValue) existing.SelectedKind = selectedKind.Value;
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				if (existing.IsFloating)
+				{
+					FloatingPanels.Remove(existing);
+					FloatingPanels.Add(existing);
+				}
+				return;
+			}
+
+			var finder = new FloatingThingFinderViewModel(this, source)
+			{
+				IsVisible = true,
+			};
+			if (selectedKind.HasValue) finder.SelectedKind = selectedKind.Value;
+			AddPanel(finder);
+		}
+
+		public IReadOnlyList<ThingFinderContextAction> GetThingFinderContextActions(
+			FloatingThingsLoaderViewModel source,
+			NyxAssets.Things.ThingType thing) => ActivePanels
+			.Where(panel => panel.IsVisible)
+			.OfType<IThingFinderContextActionProvider>()
+			.SelectMany(provider => provider.GetThingFinderContextActions(source, thing))
+			.ToList();
 
 		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
 		{
@@ -599,11 +664,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						thingsPanel.NotifySpriteLinkChanged();
 				}
 				RefreshCompileCommands();
+				RefreshLooktypeGenerators();
 			}
 
 			if (e.PropertyName == nameof(FloatingThingsLoaderViewModel.IsArchiveLoaded))
 			{
 				RefreshCompileCommands();
+				RefreshLooktypeGenerators();
+			}
+
+			if (e.PropertyName == "HasSavedChanges"
+				&& sender is FloatingSpriteLoaderViewModel or FloatingThingsLoaderViewModel)
+			{
+				RefreshLooktypeGenerators();
 			}
 
 			if (e.PropertyName == nameof(PanelViewModelBase.IsMinimized) ||
@@ -717,6 +790,15 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 
+			if (panel is FloatingThingsLoaderViewModel sourcePanel)
+			{
+				foreach (var finder in ActivePanels.OfType<FloatingThingFinderViewModel>()
+					.Where(candidate => ReferenceEquals(candidate.SourcePanel, sourcePanel)).ToList())
+				{
+					finder.ClosePanel();
+				}
+			}
+
 			panel.RequestClose -= OnPanelRequestClose;
 			panel.RequestDockStateChanged -= OnPanelRequestDockStateChanged;
 			panel.PropertyChanged -= OnPanelPropertyChanged;
@@ -734,6 +816,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			UpdateColumnWidths();
 			OnPropertyChanged(nameof(IsSpriteArchiveLoaded));
 			RefreshCompileCommands();
+			RefreshLooktypeGenerators();
 
 			PersistenceService.SaveAppState(this);
 		}

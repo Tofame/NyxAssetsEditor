@@ -2,12 +2,32 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="NyxAssetsEditor.App"
              xmlns:local="using:NyxAssetsEditor"
+             xmlns:loaders="using:NyxAssetsEditor.Views.ArchiveLoaders"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
+
+    <Application.Resources>
+        <ControlTheme x:Key="{x:Type loaders:BatchApplyField}" TargetType="loaders:BatchApplyField">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                        <CheckBox Grid.Column="0"
+                                  IsVisible="{Binding ShowApply, RelativeSource={RelativeSource TemplatedParent}}"
+                                  IsChecked="{Binding IsApplied, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                  ToolTip.Tip="{Binding ApplyToolTip, RelativeSource={RelativeSource TemplatedParent}}"
+                                  VerticalAlignment="Center"/>
+                        <ContentPresenter Grid.Column="1"
+                                          Content="{TemplateBinding Content}"
+                                          IsEnabled="{Binding IsFieldEnabled, RelativeSource={RelativeSource TemplatedParent}}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+    </Application.Resources>
   
     <Application.Styles>
         <FluentTheme />

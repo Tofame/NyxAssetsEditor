@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingLooktypeGeneratorControl"
+			 x:DataType="vm:FloatingLooktypeGeneratorViewModel"
+			 x:CompileBindings="False"
+			 Width="{Binding DisplayWidth}">
+	<UserControl.Styles>
+		<Style Selector="Button.direction.selected"><Setter Property="Background" Value="#335E94FF"/><Setter Property="BorderBrush" Value="#5E94FF"/></Style>
+		<Style Selector="Button.colorpart"><Setter Property="MinWidth" Value="112"/><Setter Property="Padding" Value="8,6"/><Setter Property="HorizontalContentAlignment" Value="Left"/></Style>
+		<Style Selector="Button.colorpart.selected"><Setter Property="Background" Value="#335E94FF"/><Setter Property="BorderBrush" Value="#5E94FF"/></Style>
+		<Style Selector="Button.format.selected"><Setter Property="Background" Value="#335E94FF"/><Setter Property="BorderBrush" Value="#5E94FF"/></Style>
+		<Style Selector="Button.palette"><Setter Property="Width" Value="15"/><Setter Property="Height" Value="15"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="1"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#333"/><Setter Property="CornerRadius" Value="1"/></Style>
+		<Style Selector="Button.palette.selected"><Setter Property="BorderBrush" Value="White"/><Setter Property="BorderThickness" Value="2"/></Style>
+		<Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#999"/><Setter Property="FontSize" Value="11"/></Style>
+	</UserControl.Styles>
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/><MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Content="—" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				</Grid>
+			</Border>
+
+			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}"
+						  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+			<Grid ColumnDefinitions="340,*" Width="{Binding PanelContentWidth}" MinWidth="700">
+				<Border Grid.Column="0" BorderBrush="#383838" BorderThickness="0,0,1,0" Padding="12">
+					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+					<StackPanel Spacing="10" Margin="0,0,6,0">
+						<TextBlock Text="Archive pair" Classes="label"/>
+						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair"/>
+						<Separator/>
+						<Grid ColumnDefinitions="*,Auto">
+							<TextBlock Text="Preview" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+							<WrapPanel Grid.Column="1">
+								<Button Classes="format" Classes.selected="{Binding IsPreviewingAppearance}" Content="Outfit" Command="{Binding ShowPreviewModeCommand}" CommandParameter="Appearance" FontSize="11" ToolTip.Tip="Preview the selected lookType or lookTypeEx appearance."/>
+								<Button Classes="format" Classes.selected="{Binding IsPreviewingCorpse}" Content="Corpse" Command="{Binding ShowPreviewModeCommand}" CommandParameter="Corpse" FontSize="11" Margin="5,0,0,0" ToolTip.Tip="Preview the selected corpse item."/>
+							</WrapPanel>
+						</Grid>
+						<Border Width="220" Height="220" Background="#181818" BorderBrush="#404040" BorderThickness="1" CornerRadius="4">
+							<Image Source="{Binding PreviewImage}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" Margin="8"/>
+						</Border>
+						<WrapPanel HorizontalAlignment="Center">
+							<Button Classes="direction" Classes.selected="{Binding IsNorth}" Content="&#x2191;" Command="{Binding SetDirectionCommand}" CommandParameter="North" ToolTip.Tip="Face north"/>
+							<Button Classes="direction" Classes.selected="{Binding IsEast}" Content="&#x2192;" Command="{Binding SetDirectionCommand}" CommandParameter="East" Margin="4,0" ToolTip.Tip="Face east"/>
+							<Button Classes="direction" Classes.selected="{Binding IsSouth}" Content="&#x2193;" Command="{Binding SetDirectionCommand}" CommandParameter="South" ToolTip.Tip="Face south"/>
+							<Button Classes="direction" Classes.selected="{Binding IsWest}" Content="&#x2190;" Command="{Binding SetDirectionCommand}" CommandParameter="West" Margin="4,0,0,0" ToolTip.Tip="Face west"/>
+						</WrapPanel>
+						<StackPanel Orientation="Horizontal" Spacing="20">
+							<CheckBox Content="Walking Animation" IsChecked="{Binding AnimationEnabled}"/>
+							<CheckBox Content="Show Mount" IsChecked="{Binding ShowMount}"
+									  ToolTip.Tip="Show or hide the selected mount in the preview without changing the exported mount ID."/>
+						</StackPanel>
+						<Grid ColumnDefinitions="*,150" RowDefinitions="Auto,Auto,Auto" RowSpacing="7" ColumnSpacing="12">
+							<TextBlock Text="Animation phase" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Column="1" MinWidth="150" Value="{Binding AnimationPhase}" Minimum="0" Maximum="{Binding FrameMaximum}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ToolTip.Tip="Use the arrow buttons to inspect individual frames. Walking Animation controls automatic stepping only."/>
+							<TextBlock Grid.Row="1" Text="Walk interval (ms, 0 = Auto)" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Row="1" Grid.Column="1" MinWidth="150" Value="{Binding WalkIntervalMs}" Minimum="0" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
+							<CheckBox Grid.Row="2" Content="Auto rotate (ms)" IsChecked="{Binding AutoRotate}" VerticalAlignment="Center"/><NumericUpDown Grid.Row="2" Grid.Column="1" MinWidth="150" Value="{Binding RotationIntervalMs}" Minimum="16" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
+						</Grid>
+						<CheckBox Content="Include preview settings in Lua/XML" IsChecked="{Binding IncludePreviewSettings}"
+								  ToolTip.Tip="Include direction, animation phase and interval, auto-rotation, and rotation interval as optional Nyx metadata."/>
+						<Border Background="#2B2418" BorderBrush="#6B552A" BorderThickness="1" CornerRadius="4" Padding="8" IsVisible="{Binding HasMessage}"><TextBlock Text="{Binding Message}" Foreground="#E3BE75" FontSize="11" TextWrapping="Wrap"/></Border>
+					</StackPanel>
+					</ScrollViewer>
+				</Border>
+
+				<ScrollViewer Grid.Column="1" Padding="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+					<StackPanel Spacing="10" MaxWidth="500" HorizontalAlignment="Stretch" Margin="0,0,0,36">
+						<TextBlock Text="Appearance" Foreground="#EEE" FontWeight="SemiBold"/>
+						<StackPanel Orientation="Horizontal" Spacing="12"><RadioButton Content="Outfit (lookType)" IsChecked="{Binding IsOutfitMode}"/><RadioButton Content="Item (lookTypeEx)" IsChecked="{Binding IsItemMode}"/></StackPanel>
+						<Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="5" RowSpacing="4">
+							<TextBlock Grid.ColumnSpan="3" Text="Outfit / item ID" Classes="label"/>
+							<ComboBox Grid.Row="1" Width="220" ItemsSource="{Binding AppearanceIds}" SelectedItem="{Binding SelectedAppearanceId}" IsEditable="True" PlaceholderText="Select or type an ID"/>
+							<Button Grid.Row="1" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindOutfitCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find outfit">
+								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+							</Button>
+							<TextBlock Grid.Row="2" Grid.ColumnSpan="3" Text="Mount ID (optional)" Classes="label"/>
+							<ComboBox Grid.Row="3" Width="220" ItemsSource="{Binding MountIds}" SelectedItem="{Binding SelectedMountId}" IsEditable="True" PlaceholderText="No mount"/>
+							<Button Grid.Row="3" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindMountCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find mount">
+								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+							</Button>
+							<Button Grid.Row="3" Grid.Column="2" Content="Clear" Command="{Binding ClearMountCommand}"/>
+							<TextBlock Grid.Row="4" Grid.ColumnSpan="3" Text="Corpse item ID (optional)" Classes="label"/>
+							<ComboBox Grid.Row="5" Width="220" ItemsSource="{Binding CorpseIds}" SelectedItem="{Binding SelectedCorpseId}" IsEditable="True" PlaceholderText="No corpse" ToolTip.Tip="Item created when the creature dies. Appears as creature.corpse in Lua and the corpse attribute in XML."/>
+							<Button Grid.Row="5" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindCorpseCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find corpse">
+								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+							</Button>
+							<Button Grid.Row="5" Grid.Column="2" Content="Clear" Command="{Binding ClearCorpseCommand}"/>
+						</Grid>
+						<StackPanel Spacing="9">
+							<StackPanel Spacing="9">
+								<ItemsControl ItemsSource="{Binding AddonOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Number, StringFormat='Addon {0}'}" IsChecked="{Binding IsChecked}" Margin="0,0,12,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+								<Separator/>
+								<WrapPanel Orientation="Horizontal">
+									<Button Classes="colorpart" Classes.selected="{Binding IsHeadPalette}" Command="{Binding ShowColorPaletteCommand}" CommandParameter="Head" Margin="0,0,6,6"><StackPanel Orientation="Horizontal" Spacing="7"><Border Width="18" Height="18" CornerRadius="2" BorderBrush="#777" BorderThickness="1" Background="{Binding HeadColorHex}"/><TextBlock Text="{Binding HeadColorId, StringFormat='Head {0}'}" VerticalAlignment="Center"/></StackPanel></Button>
+									<Button Classes="colorpart" Classes.selected="{Binding IsBodyPalette}" Command="{Binding ShowColorPaletteCommand}" CommandParameter="Body" Margin="0,0,6,6"><StackPanel Orientation="Horizontal" Spacing="7"><Border Width="18" Height="18" CornerRadius="2" BorderBrush="#777" BorderThickness="1" Background="{Binding BodyColorHex}"/><TextBlock Text="{Binding BodyColorId, StringFormat='Body {0}'}" VerticalAlignment="Center"/></StackPanel></Button>
+									<Button Classes="colorpart" Classes.selected="{Binding IsLegsPalette}" Command="{Binding ShowColorPaletteCommand}" CommandParameter="Legs" Margin="0,0,6,6"><StackPanel Orientation="Horizontal" Spacing="7"><Border Width="18" Height="18" CornerRadius="2" BorderBrush="#777" BorderThickness="1" Background="{Binding LegColorHex}"/><TextBlock Text="{Binding LegColorId, StringFormat='Legs {0}'}" VerticalAlignment="Center"/></StackPanel></Button>
+									<Button Classes="colorpart" Classes.selected="{Binding IsFeetPalette}" Command="{Binding ShowColorPaletteCommand}" CommandParameter="Feet" Margin="0,0,0,6"><StackPanel Orientation="Horizontal" Spacing="7"><Border Width="18" Height="18" CornerRadius="2" BorderBrush="#777" BorderThickness="1" Background="{Binding FeetColorHex}"/><TextBlock Text="{Binding FeetColorId, StringFormat='Feet {0}'}" VerticalAlignment="Center"/></StackPanel></Button>
+								</WrapPanel>
+								<StackPanel Spacing="4">
+									<TextBlock Text="{Binding ActiveColorTitle}" Classes="label"/>
+									<ItemsControl ItemsSource="{Binding ActiveColors}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="19" Rows="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Button Classes="palette" Classes.selected="{Binding IsSelected}" Background="{Binding Hex}" ToolTip.Tip="{Binding Id}" Command="{Binding $parent[UserControl].DataContext.SetActiveColorCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+								</StackPanel>
+							</StackPanel>
+							<Separator/>
+							<StackPanel Spacing="5">
+								<Grid ColumnDefinitions="*,Auto">
+									<WrapPanel>
+										<Button Classes="format" Classes.selected="{Binding IsAppearanceLua}" Content="Lua" Command="{Binding ShowAppearanceFormatCommand}" CommandParameter="Lua"/>
+										<Button Classes="format" Classes.selected="{Binding IsAppearanceXml}" Content="XML" Command="{Binding ShowAppearanceFormatCommand}" CommandParameter="Xml" Margin="5,0,0,0"/>
+									</WrapPanel>
+									<Button Grid.Column="1" Content="Copy" Click="CopyAppearanceText" Padding="12,4" ToolTip.Tip="Copy the current Lua or XML appearance."/>
+								</Grid>
+								<TextBlock Text="Lua or XML is detected automatically and updates the preview as you edit." Classes="label" TextWrapping="Wrap"/>
+								<TextBox Text="{Binding AppearanceText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="180" MinWidth="0" MaxWidth="500" HorizontalAlignment="Stretch" TextWrapping="Wrap" FontFamily="Consolas,Courier New,monospace" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+							</StackPanel>
+						</StackPanel>
+					</StackPanel>
+				</ScrollViewer>
+
+				<Border Name="ResizeLeft" Grid.ColumnSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+				<Border Name="ResizeRight" Grid.ColumnSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+				<Border Name="ResizeBottom" Grid.ColumnSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+				<Border Name="ResizeCorner" Grid.ColumnSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
+			</Grid>
+			</ScrollViewer>
+		</Grid>
+	</Border>
+</UserControl>
