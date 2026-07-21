@@ -298,6 +298,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		partial void OnCheckDiagonalsChanged(bool value) => UpdateCanvasPreview();
 
 		[ObservableProperty]
+		private bool _showFillPreview = true;
+
+		partial void OnShowFillPreviewChanged(bool value) => UpdateCanvasPreview();
+
+		[ObservableProperty]
 		private double _zoomLevel = 12.0;
 
 		public double ZoomDimension => 32 * ZoomLevel;
@@ -728,7 +733,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					overlay[idx + 1] = (byte)(overlay[idx + 1] ^ 0x80);
 					overlay[idx + 2] = (byte)(overlay[idx + 2] ^ 0x80);
 				}
-				else if (ActiveTool == PaintTool.Bucket && ActiveLayer != null)
+				else if (ActiveTool == PaintTool.Bucket && ActiveLayer != null && ShowFillPreview)
 				{
 					// Draw a preview of what pixels will be filled using the threshold
 					var pixels = ActiveLayer.Pixels;

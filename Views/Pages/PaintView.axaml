@@ -76,6 +76,7 @@
 							<TextBlock Grid.Column="1" Text="{Binding FillThreshold, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
 						</Grid>
 						<CheckBox Content="Check diagonals" IsChecked="{Binding CheckDiagonals}" Foreground="#FFFFFF" Margin="0,5,0,0"/>
+						<CheckBox Content="Show preview" IsChecked="{Binding ShowFillPreview}" Foreground="#FFFFFF" Margin="0,2,0,0"/>
 					</StackPanel>
 
 					<Separator Margin="0,5" Background="#2D2D2D"/>
