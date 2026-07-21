@@ -60,7 +60,7 @@
 					</StackPanel>
 
 					<!-- Options Dropdown Button -->
-					<Button Grid.Column="2" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}">
+					<Button Grid.Column="2" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Options">
 						<Image Source="/Assets/Icons/action_dots.png" Width="12" Height="12"/>
 						<Button.Flyout>
 							<MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -91,12 +91,12 @@
 					</Button>
 					
 					<!-- Minimize Button -->
-					<Button Grid.Column="6" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
+					<Button Grid.Column="6" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Minimize">
 						<Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Close Button -->
-					<Button Grid.Column="7" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
+					<Button Grid.Column="7" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="Close">
 						<Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
 					</Button>
 				</Grid>
@@ -303,10 +303,10 @@
 					</Grid>
 
 					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
-					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4" Margin="0,0,4,0">
+					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4" Margin="0,0,4,0" ToolTip.Tip="First Page">
 						<Image Source="/Assets/Icons/arrow_m_left2.png" Width="12" Height="12"/>
 					</Button>
-					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4">
+					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4" ToolTip.Tip="Previous Page">
 						<Image Source="/Assets/Icons/arrow_m_left.png" Width="12" Height="12"/>
 					</Button>
 					
@@ -322,13 +322,13 @@
 								<KeyBinding Gesture="Enter" Command="{Binding GoToIdCommand}"/>
 							</TextBox.KeyBindings>
 						</TextBox>
-						<Button Command="{Binding GoToIdCommand}" Content="Go" Padding="8,2" Height="22" FontSize="11"/>
+						<Button Command="{Binding GoToIdCommand}" Content="Go" Padding="8,2" Height="22" FontSize="11" ToolTip.Tip="Jump to ID"/>
 					</StackPanel>
 					
-					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4" Margin="0,0,4,0">
+					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4" Margin="0,0,4,0" ToolTip.Tip="Next Page">
 						<Image Source="/Assets/Icons/arrow_m_right.png" Width="12" Height="12"/>
 					</Button>
-					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4">
+					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4" ToolTip.Tip="Last Page">
 						<Image Source="/Assets/Icons/arrow_m_right2.png" Width="12" Height="12"/>
 					</Button>
 					</Grid>
