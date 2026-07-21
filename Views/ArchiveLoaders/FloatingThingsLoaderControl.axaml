@@ -75,30 +75,30 @@
 					<Button Grid.Column="2" Command="{Binding ToggleViewModeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Toggle List/Grid View">
 						<Panel>
 							<!-- List Icon (Visible when GridView is active, because clicking toggles to List) -->
-							<Path Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12" Stroke="#E0E0E0" StrokeThickness="1.5" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsGridView}"/>
+							<Image Source="/Assets/Icons/action_layout_list.png" Width="14" Height="14" IsVisible="{Binding IsGridView}"/>
 							<!-- Grid Icon (Visible when ListView is active, because clicking toggles to Grid) -->
-							<Path Data="M1,1 H6 V6 H1 Z M9,1 H14 V6 H9 Z M1,9 H6 V14 H1 Z M9,9 H14 V14 H9 Z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsListView}"/>
+							<Image Source="/Assets/Icons/action_layout_grid.png" Width="14" Height="14" IsVisible="{Binding IsListView}"/>
 						</Panel>
 					</Button>
 
 					<!-- Undo Button -->
 					<Button Grid.Column="3" Command="{Binding UndoCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Undo (Ctrl+Z)">
-						<Path Data="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_undo.png" Width="14" Height="14"/>
 					</Button>
 
 					<!-- Redo Button -->
 					<Button Grid.Column="4" Command="{Binding RedoCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Redo (Ctrl+Y)">
-						<Path Data="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" Fill="#E0E0E0" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Minimize Button -->
-					<Button Grid.Column="5" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0">
-						<Path Data="M 0,0 L 8,0" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					<Button Grid.Column="5" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Minimize">
+						<Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Close Button -->
-					<Button Grid.Column="6" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4">
-						<Path Data="M 0,0 L 8,8 M 8,0 L 0,8" Stroke="#E0E0E0" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					<Button Grid.Column="6" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="Close">
+						<Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
 					</Button>
 				</Grid>
 			</Border>
@@ -233,7 +233,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/warning.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Unsupported version" FontWeight="Bold" Foreground="#FF5E5E" FontSize="14" HorizontalAlignment="Center"/>
 							<TextBlock Text="{Binding ErrorMessage}" Foreground="#FF8888" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to try another file" Foreground="#888888" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
@@ -249,7 +249,7 @@
 							Padding="18"
 							Width="340">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#FF5E5E" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/warning.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Sprites Not Loaded" FontWeight="SemiBold" Foreground="#FF5E5E" FontSize="13" HorizontalAlignment="Center"/>
 							<TextBlock Text="You must load a Sprite Archive (.spr / .assets) in the Sprite Loader panel before you can load things." Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 						</StackPanel>
@@ -267,7 +267,7 @@
 							Cursor="Hand"
 							PointerPressed="OnEmptyStateClick">
 						<StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-							<Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" Fill="Transparent" Stroke="#5E94FF" StrokeThickness="1.5" Width="24" Height="24" HorizontalAlignment="Center"/>
+							<Image Source="/Assets/Icons/state/info.png" Width="24" Height="24" HorizontalAlignment="Center"/>
 							<TextBlock Text="Click to Load Things" FontWeight="SemiBold" Foreground="#5E94FF" FontSize="13" HorizontalAlignment="Center"/>
 							<TextBlock Text="Supports .dat and .json archives" Foreground="#666666" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
 						</StackPanel>
@@ -297,32 +297,62 @@
 			<!-- Footer: thing actions + pagination -->
 			<Border Grid.Row="3" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8,6">
 				<StackPanel Spacing="6">
-					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsArchiveLoaded}">
-						<Button Content="New Thing" Command="{Binding NewThingCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Find Thing" Command="{Binding FindThingCommand}" Padding="10,4" FontSize="11"/>
-						<Border Width="1" Height="20" Background="#444444" Margin="2,0"/>
-						<Button Content="Import" Command="{Binding ImportThingCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Export" Padding="10,4" FontSize="11">
-							<Button.Flyout>
-								<MenuFlyout Placement="Top">
-									<MenuItem Header="Spritesheet">
-										<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
-										<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
-										<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
-									</MenuItem>
-									<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
-									<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
-								</MenuFlyout>
-							</Button.Flyout>
-						</Button>
-						<Button Content="Duplicate" Command="{Binding DuplicateSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Remove" Command="{Binding RemoveSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
-						<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasThingSelection}"/>
-					</StackPanel>
+					<Grid ColumnDefinitions="*, *, *" IsVisible="{Binding IsArchiveLoaded}">
+						<!-- Left: New and Find buttons -->
+						<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Left">
+							<Button Command="{Binding NewThingCommand}" ToolTip.Tip="New Thing" Padding="8,4">
+								<Image Source="/Assets/Icons/action_new.png" Width="14" Height="14"/>
+							</Button>
+							<Button Command="{Binding FindThingCommand}" ToolTip.Tip="Find Thing" Padding="8,4">
+								<Image Source="/Assets/Icons/action_search.png" Width="14" Height="14"/>
+							</Button>
+							<Border Width="1" Height="20" Background="#444444" Margin="2,0"/>
+						</StackPanel>
+
+						<!-- Center: Import, Export, Duplicate -->
+						<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+							<Button Command="{Binding ImportThingCommand}" ToolTip.Tip="Import" Padding="8,4">
+								<Image Source="/Assets/Icons/action_import.png" Width="14" Height="14"/>
+							</Button>
+							<Button ToolTip.Tip="Export" Padding="8,4">
+								<Image Source="/Assets/Icons/action_export.png" Width="14" Height="14"/>
+								<Button.Flyout>
+									<MenuFlyout Placement="Top">
+										<MenuItem Header="Spritesheet">
+											<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
+											<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
+											<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
+										</MenuItem>
+										<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
+										<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
+									</MenuFlyout>
+								</Button.Flyout>
+							</Button>
+							<Border Background="Transparent" ToolTip.Tip="Duplicate">
+								<Button Command="{Binding DuplicateSelectedThingsCommand}" Padding="8,4">
+									<Image Source="/Assets/Icons/action_duplicate.png" Width="14" Height="14"/>
+								</Button>
+							</Border>
+						</StackPanel>
+
+						<!-- Right: Remove and selection count -->
+						<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+							<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding HasThingSelection}"/>
+							<Border Background="Transparent" ToolTip.Tip="Remove">
+								<Button Command="{Binding RemoveSelectedThingsCommand}" Padding="8,4">
+									<Image Source="/Assets/Icons/action_delete.png" Width="14" Height="14"/>
+								</Button>
+							</Border>
+						</StackPanel>
+					</Grid>
 
 					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
-					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
-					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;" Padding="8,4" FontSize="11"/>
+					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4" Margin="0,0,4,0" ToolTip.Tip="First Page">
+						<Image Source="/Assets/Icons/arrow_m_left2.png" Width="12" Height="12"/>
+					</Button>
+					<Button Grid.Column="1" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Padding="8,4" ToolTip.Tip="Previous Page">
+						<Image Source="/Assets/Icons/arrow_m_left.png" Width="12" Height="12"/>
+					</Button>
 					
 					<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
 						<TextBlock Text="Page" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
@@ -336,11 +366,15 @@
 								<KeyBinding Gesture="Enter" Command="{Binding GoToIdCommand}"/>
 							</TextBox.KeyBindings>
 						</TextBox>
-						<Button Command="{Binding GoToIdCommand}" Content="Go" Padding="8,2" Height="22" FontSize="11"/>
+						<Button Command="{Binding GoToIdCommand}" Content="Go" Padding="8,2" Height="22" FontSize="11" ToolTip.Tip="Jump to ID"/>
 					</StackPanel>
 					
-					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
-					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Content="&gt;&gt;" Padding="8,4" FontSize="11"/>
+					<Button Grid.Column="3" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4" Margin="0,0,4,0" ToolTip.Tip="Next Page">
+						<Image Source="/Assets/Icons/arrow_m_right.png" Width="12" Height="12"/>
+					</Button>
+					<Button Grid.Column="4" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Padding="8,4" ToolTip.Tip="Last Page">
+						<Image Source="/Assets/Icons/arrow_m_right2.png" Width="12" Height="12"/>
+					</Button>
 					</Grid>
 				</StackPanel>
 			</Border>

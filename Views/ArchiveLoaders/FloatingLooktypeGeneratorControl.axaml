@@ -85,18 +85,18 @@
 							<TextBlock Grid.ColumnSpan="3" Text="Outfit / item ID" Classes="label"/>
 							<ComboBox Grid.Row="1" Width="220" ItemsSource="{Binding AppearanceIds}" SelectedItem="{Binding SelectedAppearanceId}" IsEditable="True" PlaceholderText="Select or type an ID"/>
 							<Button Grid.Row="1" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindOutfitCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find outfit">
-								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
 							</Button>
 							<TextBlock Grid.Row="2" Grid.ColumnSpan="3" Text="Mount ID (optional)" Classes="label"/>
 							<ComboBox Grid.Row="3" Width="220" ItemsSource="{Binding MountIds}" SelectedItem="{Binding SelectedMountId}" IsEditable="True" PlaceholderText="No mount"/>
 							<Button Grid.Row="3" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindMountCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find mount">
-								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
 							</Button>
 							<Button Grid.Row="3" Grid.Column="2" Content="Clear" Command="{Binding ClearMountCommand}"/>
 							<TextBlock Grid.Row="4" Grid.ColumnSpan="3" Text="Corpse item ID (optional)" Classes="label"/>
 							<ComboBox Grid.Row="5" Width="220" ItemsSource="{Binding CorpseIds}" SelectedItem="{Binding SelectedCorpseId}" IsEditable="True" PlaceholderText="No corpse" ToolTip.Tip="Item created when the creature dies. Appears as creature.corpse in Lua and the corpse attribute in XML."/>
 							<Button Grid.Row="5" Grid.Column="1" Width="28" Height="28" Padding="7" Command="{Binding FindCorpseCommand}" IsEnabled="{Binding CanOpenFinder}" ToolTip.Tip="Find corpse">
-								<Path Data="M3.5 0C1.57 0 0 1.57 0 3.5S1.57 7 3.5 7c.59 0 1.17-.14 1.66-.41a1 1 0 0 0 .13.13l1 1a1.02 1.02 0 1 0 1.44-1.44l-1-1a1 1 0 0 0-.16-.13c.27-.49.44-1.06.44-1.66c0-1.93-1.57-3.5-3.5-3.5zm0 1C4.89 1 6 2.11 6 3.5c0 .66-.24 1.27-.66 1.72l-.03.03a1 1 0 0 0-.13.13c-.44.4-1.04.63-1.69.63c-1.39 0-2.5-1.11-2.5-2.5s1.11-2.5 2.5-2.5z" Fill="#CCCCCC" Width="12" Height="12" Stretch="Uniform"/>
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
 							</Button>
 							<Button Grid.Row="5" Grid.Column="2" Content="Clear" Command="{Binding ClearCorpseCommand}"/>
 						</Grid>
