@@ -139,6 +139,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsPickerActive));
 			OnPropertyChanged(nameof(IsBucketActive));
 			OnPropertyChanged(nameof(IsWandActive));
+			NotifyOutlinePropertiesChanged();
 		}
 
 		public bool IsBrushActive
@@ -205,6 +206,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private int _brushSize = 1;
 
+		partial void OnBrushSizeChanged(int value)
+		{
+			UpdateCanvasPreview();
+			NotifyOutlinePropertiesChanged();
+		}
+
 		[ObservableProperty]
 		private LayerViewModel? _activeLayer;
 
@@ -243,10 +250,23 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsSquareBrush));
 			OnPropertyChanged(nameof(IsCircleBrush));
 			UpdateCanvasPreview();
+			NotifyOutlinePropertiesChanged();
 		}
-		partial void OnHoverXChanged(int value) => UpdateCanvasPreview();
-		partial void OnHoverYChanged(int value) => UpdateCanvasPreview();
-		partial void OnIsHoveringChanged(bool value) => UpdateCanvasPreview();
+		partial void OnHoverXChanged(int value)
+		{
+			UpdateCanvasPreview();
+			NotifyOutlinePropertiesChanged();
+		}
+		partial void OnHoverYChanged(int value)
+		{
+			UpdateCanvasPreview();
+			NotifyOutlinePropertiesChanged();
+		}
+		partial void OnIsHoveringChanged(bool value)
+		{
+			UpdateCanvasPreview();
+			NotifyOutlinePropertiesChanged();
+		}
 
 		[ObservableProperty]
 		private bool _copyOnAxisX;
@@ -272,7 +292,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private Color _gradientEndColor = Colors.White;
 
-		partial void OnZoomLevelChanged(double value) => OnPropertyChanged(nameof(ZoomDimension));
+		partial void OnZoomLevelChanged(double value)
+		{
+			OnPropertyChanged(nameof(ZoomDimension));
+			NotifyOutlinePropertiesChanged();
+		}
 
 		[ObservableProperty]
 		private PaletteViewModel? _selectedPalette;
@@ -454,6 +478,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private bool IsWithinBrushShape(int dx, int dy, int radius)
 		{
+			if (dx < -radius || dx > radius || dy < -radius || dy > radius)
+				return false;
 			if (BrushShape == BrushShape.Square)
 				return true;
 			if (radius <= 0)
@@ -652,26 +678,37 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (IsHovering && HoverX >= 0 && HoverX < 32 && HoverY >= 0 && HoverY < 32)
 			{
-				int radius = BrushSize - 1;
-				for (int dy = -radius; dy <= radius; dy++)
+				if (ActiveTool == PaintTool.Brush)
 				{
-					for (int dx = -radius; dx <= radius; dx++)
+					int radius = BrushSize - 1;
+					for (int dy = -radius; dy <= radius; dy++)
 					{
-						if (!IsWithinBrushShape(dx, dy, radius))
-							continue;
-
-						int px = HoverX + dx;
-						int py = HoverY + dy;
-
-						if (px >= 0 && px < 32 && py >= 0 && py < 32)
+						for (int dx = -radius; dx <= radius; dx++)
 						{
-							int idx = (py * 32 + px) * 4;
-							double alpha = 0.50;
-							overlay[idx] = (byte)(overlay[idx] * (1.0 - alpha) + 255 * alpha);
-							overlay[idx + 1] = (byte)(overlay[idx + 1] * (1.0 - alpha) + 255 * alpha);
-							overlay[idx + 2] = (byte)(overlay[idx + 2] * (1.0 - alpha) + 255 * alpha);
+							if (!IsWithinBrushShape(dx, dy, radius))
+								continue;
+
+							int px = HoverX + dx;
+							int py = HoverY + dy;
+
+							if (px >= 0 && px < 32 && py >= 0 && py < 32)
+							{
+								int idx = (py * 32 + px) * 4;
+								overlay[idx] = ActiveColor.R;
+								overlay[idx + 1] = ActiveColor.G;
+								overlay[idx + 2] = ActiveColor.B;
+								overlay[idx + 3] = ActiveColor.A;
+							}
 						}
 					}
+				}
+				else if (ActiveTool == PaintTool.Picker)
+				{
+					// Draw a 1x1 XOR (contrast-inverted) preview on the hovered pixel for Picker (droplet)
+					int idx = (HoverY * 32 + HoverX) * 4;
+					overlay[idx] = (byte)(overlay[idx] ^ 0x80);
+					overlay[idx + 1] = (byte)(overlay[idx + 1] ^ 0x80);
+					overlay[idx + 2] = (byte)(overlay[idx + 2] ^ 0x80);
 				}
 			}
 
@@ -1371,5 +1408,64 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		private bool CanRedo() => _redoStack.Count > 0;
+
+		public string HoverOutlinePathData => GetHoverOutlinePathData();
+
+		private string GetHoverOutlinePathData()
+		{
+			if (!IsHovering || ActiveTool != PaintTool.Eraser)
+				return string.Empty;
+
+			var sb = new System.Text.StringBuilder();
+			int radius = BrushSize - 1;
+			double zoom = ZoomLevel;
+
+			for (int dy = -radius; dy <= radius; dy++)
+			{
+				for (int dx = -radius; dx <= radius; dx++)
+				{
+					if (!IsWithinBrushShape(dx, dy, radius))
+						continue;
+
+					int px = HoverX + dx;
+					int py = HoverY + dy;
+
+					if (px >= 0 && px < 32 && py >= 0 && py < 32)
+					{
+						double left = px * zoom;
+						double top = py * zoom;
+						double right = left + zoom;
+						double bottom = top + zoom;
+
+						// Left edge
+						if (!IsWithinBrushShape(dx - 1, dy, radius) || px == 0)
+						{
+							sb.Append($"M {left},{top} L {left},{bottom} ");
+						}
+						// Right edge
+						if (!IsWithinBrushShape(dx + 1, dy, radius) || px == 31)
+						{
+							sb.Append($"M {right},{top} L {right},{bottom} ");
+						}
+						// Top edge
+						if (!IsWithinBrushShape(dx, dy - 1, radius) || py == 0)
+						{
+							sb.Append($"M {left},{top} L {right},{top} ");
+						}
+						// Bottom edge
+						if (!IsWithinBrushShape(dx, dy + 1, radius) || py == 31)
+						{
+							sb.Append($"M {left},{bottom} L {right},{bottom} ");
+						}
+					}
+				}
+			}
+			return sb.ToString();
+		}
+
+		private void NotifyOutlinePropertiesChanged()
+		{
+			OnPropertyChanged(nameof(HoverOutlinePathData));
+		}
 	}
 }

@@ -114,17 +114,28 @@
 									<MenuItem Header="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}"/>
 								</ContextMenu>
 							</Border.ContextMenu>
-							<Viewbox Stretch="Uniform" Height="{Binding ZoomDimension}" Width="{Binding ZoomDimension}">
-								<Image x:Name="CanvasImage"
-									   Source="{Binding CanvasPreview}"
-									   Width="32" Height="32"
-									   RenderOptions.BitmapInterpolationMode="None"
-									   PointerPressed="OnCanvasPointerPressed"
-									   PointerMoved="OnCanvasPointerMoved"
-									   PointerReleased="OnCanvasPointerReleased"
-									   PointerEntered="OnCanvasPointerEntered"
-									   PointerExited="OnCanvasPointerExited"/>
-							</Viewbox>
+							<Panel>
+								<Viewbox Stretch="Uniform" Height="{Binding ZoomDimension}" Width="{Binding ZoomDimension}">
+									<Image x:Name="CanvasImage"
+										   Source="{Binding CanvasPreview}"
+										   Width="32" Height="32"
+										   RenderOptions.BitmapInterpolationMode="None"
+										   PointerPressed="OnCanvasPointerPressed"
+										   PointerMoved="OnCanvasPointerMoved"
+										   PointerReleased="OnCanvasPointerReleased"
+										   PointerEntered="OnCanvasPointerEntered"
+										   PointerExited="OnCanvasPointerExited"/>
+								</Viewbox>
+								<!-- Slim vector outline overlay for Eraser cursor -->
+								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
+									<!-- Black shadow outline (thickness 3) -->
+									<Path Stroke="#000000" StrokeThickness="3.0"
+										  Data="{Binding HoverOutlinePathData}"/>
+									<!-- White sharp outline (thickness 1) -->
+									<Path Stroke="#FFFFFF" StrokeThickness="1.0"
+										  Data="{Binding HoverOutlinePathData}"/>
+								</Canvas>
+							</Panel>
 						</Border>
 					</Grid>
 
