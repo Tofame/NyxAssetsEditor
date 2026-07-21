@@ -297,28 +297,54 @@
 			<!-- Footer: thing actions + pagination -->
 			<Border Grid.Row="3" Name="BottomBar" IsVisible="{Binding !IsMinimized}" Background="#2D2D2D" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="8,6">
 				<StackPanel Spacing="6">
-					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsArchiveLoaded}">
-						<Button Content="New Thing" Command="{Binding NewThingCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Find Thing" Command="{Binding FindThingCommand}" Padding="10,4" FontSize="11"/>
-						<Border Width="1" Height="20" Background="#444444" Margin="2,0"/>
-						<Button Content="Import" Command="{Binding ImportThingCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Export" Padding="10,4" FontSize="11">
-							<Button.Flyout>
-								<MenuFlyout Placement="Top">
-									<MenuItem Header="Spritesheet">
-										<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
-										<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
-										<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
-									</MenuItem>
-									<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
-									<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
-								</MenuFlyout>
-							</Button.Flyout>
-						</Button>
-						<Button Content="Duplicate" Command="{Binding DuplicateSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
-						<Button Content="Remove" Command="{Binding RemoveSelectedThingsCommand}" Padding="10,4" FontSize="11"/>
-						<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasThingSelection}"/>
-					</StackPanel>
+					<Grid ColumnDefinitions="*, *, *" IsVisible="{Binding IsArchiveLoaded}">
+						<!-- Left: New and Find buttons -->
+						<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Left">
+							<Button Command="{Binding NewThingCommand}" ToolTip.Tip="New Thing" Padding="8,4">
+								<Image Source="/Assets/Icons/action_new.png" Width="14" Height="14"/>
+							</Button>
+							<Button Command="{Binding FindThingCommand}" ToolTip.Tip="Find Thing" Padding="8,4">
+								<Image Source="/Assets/Icons/action_search.png" Width="14" Height="14"/>
+							</Button>
+							<Border Width="1" Height="20" Background="#444444" Margin="2,0"/>
+						</StackPanel>
+
+						<!-- Center: Import, Export, Duplicate -->
+						<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+							<Button Command="{Binding ImportThingCommand}" ToolTip.Tip="Import" Padding="8,4">
+								<Image Source="/Assets/Icons/action_import.png" Width="14" Height="14"/>
+							</Button>
+							<Button ToolTip.Tip="Export" Padding="8,4">
+								<Image Source="/Assets/Icons/action_export.png" Width="14" Height="14"/>
+								<Button.Flyout>
+									<MenuFlyout Placement="Top">
+										<MenuItem Header="Spritesheet">
+											<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
+											<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
+											<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
+										</MenuItem>
+										<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
+										<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
+									</MenuFlyout>
+								</Button.Flyout>
+							</Button>
+							<Border Background="Transparent" ToolTip.Tip="Duplicate">
+								<Button Command="{Binding DuplicateSelectedThingsCommand}" Padding="8,4">
+									<Image Source="/Assets/Icons/action_duplicate.png" Width="14" Height="14"/>
+								</Button>
+							</Border>
+						</StackPanel>
+
+						<!-- Right: Remove and selection count -->
+						<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+							<TextBlock Text="{Binding SelectedThingCount, StringFormat='{}{0} selected'}" Foreground="#888888" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding HasThingSelection}"/>
+							<Border Background="Transparent" ToolTip.Tip="Remove">
+								<Button Command="{Binding RemoveSelectedThingsCommand}" Padding="8,4">
+									<Image Source="/Assets/Icons/action_delete.png" Width="14" Height="14"/>
+								</Button>
+							</Border>
+						</StackPanel>
+					</Grid>
 
 					<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto">
 					<Button Grid.Column="0" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}" Content="&lt;&lt;" Padding="8,4" FontSize="11" Margin="0,0,4,0"/>
