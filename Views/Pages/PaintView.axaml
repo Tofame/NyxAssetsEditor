@@ -67,6 +67,17 @@
 						<RadioButton Content="Circle" IsChecked="{Binding IsCircleBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Width="90" HorizontalContentAlignment="Center"/>
 					</StackPanel>
 
+					<StackPanel Spacing="5" IsVisible="{Binding IsThresholdVisible}">
+						<Separator Margin="0,5" Background="#2D2D2D"/>
+						<TextBlock Text="Bucket" Foreground="#A0A0A0" FontSize="12" FontWeight="SemiBold"/>
+						<TextBlock Text="Fill Threshold" Foreground="#A0A0A0" FontSize="11" Margin="0,5,0,0"/>
+						<Grid ColumnDefinitions="*, Auto">
+							<Slider Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding FillThreshold}" IsSnapToTickEnabled="False"/>
+							<TextBlock Grid.Column="1" Text="{Binding FillThreshold, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
+						</Grid>
+						<CheckBox Content="Check diagonals" IsChecked="{Binding CheckDiagonals}" Foreground="#FFFFFF" Margin="0,5,0,0"/>
+					</StackPanel>
+
 					<Separator Margin="0,5" Background="#2D2D2D"/>
 					<TextBlock Text="Symmetry drawing" Foreground="#A0A0A0" FontSize="12"/>
 					<CheckBox Content="Copy on Axis X" IsChecked="{Binding CopyOnAxisX}" Foreground="#FFFFFF"/>

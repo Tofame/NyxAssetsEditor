@@ -139,8 +139,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsPickerActive));
 			OnPropertyChanged(nameof(IsBucketActive));
 			OnPropertyChanged(nameof(IsWandActive));
+			OnPropertyChanged(nameof(IsThresholdVisible));
 			NotifyOutlinePropertiesChanged();
 		}
+
+		public bool IsThresholdVisible => ActiveTool == PaintTool.Bucket || ActiveTool == PaintTool.Wand;
 
 		public bool IsBrushActive
 		{
@@ -283,6 +286,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		[ObservableProperty]
 		private string _newPaletteName = "";
+
+		[ObservableProperty]
+		private double _fillThreshold = 10.0;
+
+		partial void OnFillThresholdChanged(double value) => UpdateCanvasPreview();
+
+		[ObservableProperty]
+		private bool _checkDiagonals = true;
+
+		partial void OnCheckDiagonalsChanged(bool value) => UpdateCanvasPreview();
 
 		[ObservableProperty]
 		private double _zoomLevel = 12.0;
@@ -537,14 +550,15 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			var pixels = ActiveLayer.Pixels;
 			var targetColor = GetPixelColor(pixels, startX, startY);
-			if (targetColor == fillColor)
-				return;
 
 			var queue = new Queue<(int, int)>();
 			queue.Enqueue((startX, startY));
 
 			var visited = new bool[32, 32];
 			visited[startX, startY] = true;
+
+			int[] dx = CheckDiagonals ? new[] { 0, 0, 1, -1, 1, 1, -1, -1 } : new[] { 0, 0, 1, -1 };
+			int[] dy = CheckDiagonals ? new[] { 1, -1, 0, 0, 1, -1, 1, -1 } : new[] { 1, -1, 0, 0 };
 
 			while (queue.Count > 0)
 			{
@@ -554,17 +568,15 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 				SetPixel(pixels, cx, cy, fillColor);
 
-				int[] dx = { 0, 0, 1, -1 };
-				int[] dy = { 1, -1, 0, 0 };
-
-				for (int i = 0; i < 4; i++)
+				for (int i = 0; i < dx.Length; i++)
 				{
 					int nx = cx + dx[i];
 					int ny = cy + dy[i];
 
 					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
 					{
-						if (GetPixelColor(pixels, nx, ny) == targetColor)
+						var color = GetPixelColor(pixels, nx, ny);
+						if (ColorsAreSimilar(targetColor, color, FillThreshold))
 						{
 							visited[nx, ny] = true;
 							queue.Enqueue((nx, ny));
@@ -590,14 +602,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_selectionMask[startX, startY] = true;
 			HasSelection = true;
 
+			int[] dx = CheckDiagonals ? new[] { 0, 0, 1, -1, 1, 1, -1, -1 } : new[] { 0, 0, 1, -1 };
+			int[] dy = CheckDiagonals ? new[] { 1, -1, 0, 0, 1, -1, 1, -1 } : new[] { 1, -1, 0, 0 };
+
 			while (queue.Count > 0)
 			{
 				var (cx, cy) = queue.Dequeue();
 
-				int[] dx = { 0, 0, 1, -1 };
-				int[] dy = { 1, -1, 0, 0 };
-
-				for (int i = 0; i < 4; i++)
+				for (int i = 0; i < dx.Length; i++)
 				{
 					int nx = cx + dx[i];
 					int ny = cy + dy[i];
@@ -605,7 +617,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !_selectionMask[nx, ny])
 					{
 						var color = GetPixelColor(pixels, nx, ny);
-						if (ColorSimilarity(color, targetColor) < 20) // Simple tolerance
+						if (ColorsAreSimilar(targetColor, color, FillThreshold))
 						{
 							_selectionMask[nx, ny] = true;
 							queue.Enqueue((nx, ny));
@@ -618,6 +630,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private int ColorSimilarity(Color c1, Color c2)
 		{
 			return Math.Abs(c1.R - c2.R) + Math.Abs(c1.G - c2.G) + Math.Abs(c1.B - c2.B) + Math.Abs(c1.A - c2.A);
+		}
+
+		private bool ColorsAreSimilar(Color c1, Color c2, double threshold)
+		{
+			double limit = (threshold / 100.0) * 1020.0;
+			return ColorSimilarity(c1, c2) <= limit;
 		}
 
 		private Color GetPixelColor(byte[] pixels, int x, int y)
@@ -709,6 +727,52 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					overlay[idx] = (byte)(overlay[idx] ^ 0x80);
 					overlay[idx + 1] = (byte)(overlay[idx + 1] ^ 0x80);
 					overlay[idx + 2] = (byte)(overlay[idx + 2] ^ 0x80);
+				}
+				else if (ActiveTool == PaintTool.Bucket && ActiveLayer != null)
+				{
+					// Draw a preview of what pixels will be filled using the threshold
+					var pixels = ActiveLayer.Pixels;
+					var targetColor = GetPixelColor(pixels, HoverX, HoverY);
+					
+					var queue = new Queue<(int, int)>();
+					queue.Enqueue((HoverX, HoverY));
+
+					var visited = new bool[32, 32];
+					visited[HoverX, HoverY] = true;
+
+					double alpha = 0.70;
+
+					while (queue.Count > 0)
+					{
+						var (cx, cy) = queue.Dequeue();
+						if (HasSelection && !_selectionMask[cx, cy])
+							continue;
+
+						int idx = (cy * 32 + cx) * 4;
+						overlay[idx] = (byte)(overlay[idx] * (1.0 - alpha) + ActiveColor.R * alpha);
+						overlay[idx + 1] = (byte)(overlay[idx + 1] * (1.0 - alpha) + ActiveColor.G * alpha);
+						overlay[idx + 2] = (byte)(overlay[idx + 2] * (1.0 - alpha) + ActiveColor.B * alpha);
+						overlay[idx + 3] = (byte)(overlay[idx + 3] * (1.0 - alpha) + ActiveColor.A * alpha);
+
+						int[] dx = CheckDiagonals ? new[] { 0, 0, 1, -1, 1, 1, -1, -1 } : new[] { 0, 0, 1, -1 };
+						int[] dy = CheckDiagonals ? new[] { 1, -1, 0, 0, 1, -1, 1, -1 } : new[] { 1, -1, 0, 0 };
+
+						for (int i = 0; i < dx.Length; i++)
+						{
+							int nx = cx + dx[i];
+							int ny = cy + dy[i];
+
+							if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
+							{
+								var color = GetPixelColor(pixels, nx, ny);
+								if (ColorsAreSimilar(targetColor, color, FillThreshold))
+								{
+									visited[nx, ny] = true;
+									queue.Enqueue((nx, ny));
+								}
+							}
+						}
+					}
 				}
 			}
 
