@@ -177,7 +177,7 @@
 											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding FrameMaximum}" Value="{Binding SelectedFrame}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
 											<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0" VerticalAlignment="Center">
 												<Button Classes="icon-btn" Classes.selected="{Binding IsAnimationPlaying}" Command="{Binding ToggleAnimationPreviewCommand}" ToolTip.Tip="Play animation loop">
-													<Path Data="M8,5 L8,19 L19,12 Z" Fill="#CCCCCC" Width="10" Height="10" Stretch="Uniform"/>
+													<Image Source="/Assets/Icons/action_play.png" Width="10" Height="10"/>
 												</Button>
 												<TextBlock Text="{Binding FrameDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
 											</StackPanel>
