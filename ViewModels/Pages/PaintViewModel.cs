@@ -730,6 +730,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private void AddLayer()
 		{
+			SaveHistoryState();
 			var emptyPixels = new byte[32 * 32 * 4];
 			var newLayer = new LayerViewModel($"Layer {Layers.Count + 1}", emptyPixels);
 			SubscribeLayer(newLayer);
@@ -744,6 +745,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null || Layers.Count <= 1)
 				return;
 
+			SaveHistoryState();
 			int index = Layers.IndexOf(ActiveLayer);
 			UnsubscribeLayer(ActiveLayer);
 			Layers.Remove(ActiveLayer);
@@ -759,6 +761,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int index = Layers.IndexOf(ActiveLayer);
 			if (index > 0)
 			{
+				SaveHistoryState();
 				var current = ActiveLayer;
 				Layers.Move(index, index - 1);
 				ActiveLayer = current;
@@ -774,6 +777,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int index = Layers.IndexOf(ActiveLayer);
 			if (index < Layers.Count - 1)
 			{
+				SaveHistoryState();
 				var current = ActiveLayer;
 				Layers.Move(index, index + 1);
 				ActiveLayer = current;
@@ -787,6 +791,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null)
 				return;
 
+			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
 			for (int y = 0; y < 32; y++)
 			{
@@ -811,6 +816,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null)
 				return;
 
+			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
 			for (int y = 0; y < 16; y++)
 			{
@@ -845,6 +851,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null)
 				return;
 
+			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
 			for (int y = 0; y < 32; y++)
 			{
@@ -1268,5 +1275,101 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				// Ignore save errors
 			}
 		}
+
+		private class PaintHistoryState
+		{
+			public List<(string Name, bool IsVisible, double Opacity, byte[] Pixels)> Layers { get; set; } = new();
+		}
+
+		private readonly Stack<PaintHistoryState> _undoStack = new();
+		private readonly Stack<PaintHistoryState> _redoStack = new();
+
+		private PaintHistoryState CaptureHistoryState()
+		{
+			var state = new PaintHistoryState();
+			foreach (var layer in Layers)
+			{
+				var pixelCopy = new byte[layer.Pixels.Length];
+				Array.Copy(layer.Pixels, pixelCopy, layer.Pixels.Length);
+				state.Layers.Add((layer.Name, layer.IsVisible, layer.Opacity, pixelCopy));
+			}
+			return state;
+		}
+
+		private void RestoreHistoryState(PaintHistoryState state)
+		{
+			foreach (var l in Layers) UnsubscribeLayer(l);
+
+			while (Layers.Count > state.Layers.Count)
+			{
+				Layers.RemoveAt(Layers.Count - 1);
+			}
+			while (Layers.Count < state.Layers.Count)
+			{
+				Layers.Add(new LayerViewModel("", new byte[32 * 32 * 4]));
+			}
+
+			for (int i = 0; i < state.Layers.Count; i++)
+			{
+				var target = Layers[i];
+				var source = state.Layers[i];
+				target.Name = source.Name;
+				target.IsVisible = source.IsVisible;
+				target.Opacity = source.Opacity;
+				Array.Copy(source.Pixels, target.Pixels, source.Pixels.Length);
+				SubscribeLayer(target);
+			}
+
+			if (ActiveLayer == null || !Layers.Contains(ActiveLayer))
+			{
+				ActiveLayer = Layers.FirstOrDefault();
+			}
+			else
+			{
+				var current = ActiveLayer;
+				ActiveLayer = null;
+				ActiveLayer = current;
+			}
+
+			UpdateCanvasPreview();
+		}
+
+		public void SaveHistoryState()
+		{
+			_undoStack.Push(CaptureHistoryState());
+			_redoStack.Clear();
+			UndoCommand.NotifyCanExecuteChanged();
+			RedoCommand.NotifyCanExecuteChanged();
+		}
+
+		[RelayCommand(CanExecute = nameof(CanUndo))]
+		private void Undo()
+		{
+			if (_undoStack.Count > 0)
+			{
+				_redoStack.Push(CaptureHistoryState());
+				var previousState = _undoStack.Pop();
+				RestoreHistoryState(previousState);
+				UndoCommand.NotifyCanExecuteChanged();
+				RedoCommand.NotifyCanExecuteChanged();
+			}
+		}
+
+		private bool CanUndo() => _undoStack.Count > 0;
+
+		[RelayCommand(CanExecute = nameof(CanRedo))]
+		private void Redo()
+		{
+			if (_redoStack.Count > 0)
+			{
+				_undoStack.Push(CaptureHistoryState());
+				var nextState = _redoStack.Pop();
+				RestoreHistoryState(nextState);
+				UndoCommand.NotifyCanExecuteChanged();
+				RedoCommand.NotifyCanExecuteChanged();
+			}
+		}
+
+		private bool CanRedo() => _redoStack.Count > 0;
 	}
 }

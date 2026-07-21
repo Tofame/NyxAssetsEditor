@@ -30,6 +30,8 @@ namespace NyxAssetsEditor.Views.Pages
 			// Only start drawing when clicking directly on the canvas image
 			if (e.Source is Image)
 			{
+				var vm = DataContext as PaintViewModel;
+				vm?.SaveHistoryState();
 				_isDrawing = true;
 				HandlePointer(e);
 			}
@@ -234,6 +236,8 @@ namespace NyxAssetsEditor.Views.Pages
 
 			var listBox = this.FindControl<ListBox>("LayersListBox");
 			if (listBox == null) return;
+
+			vm.SaveHistoryState();
 
 			_isDraggingLayer = true;
 			_draggedLayerVM = layerVM;
