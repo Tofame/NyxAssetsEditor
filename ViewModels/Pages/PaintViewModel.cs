@@ -45,6 +45,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private double _opacity = 1.0;
 
+		[ObservableProperty]
+		private bool _isDragging = false;
+
+		[ObservableProperty]
+		private bool _isEditingName = false;
+
 		public bool IsNotVisible => !IsVisible;
 
 		public decimal OpacityPercent
@@ -753,7 +759,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int index = Layers.IndexOf(ActiveLayer);
 			if (index > 0)
 			{
+				var current = ActiveLayer;
 				Layers.Move(index, index - 1);
+				ActiveLayer = current;
 				UpdateCanvasPreview();
 			}
 		}
@@ -766,7 +774,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int index = Layers.IndexOf(ActiveLayer);
 			if (index < Layers.Count - 1)
 			{
+				var current = ActiveLayer;
 				Layers.Move(index, index + 1);
+				ActiveLayer = current;
 				UpdateCanvasPreview();
 			}
 		}

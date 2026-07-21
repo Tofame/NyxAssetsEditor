@@ -222,8 +222,8 @@ namespace NyxAssetsEditor.Views.Pages
 		}
 
 		// ── Layer drag-to-reorder ────────────────────────────────────────────────
-		private int _dragLayerStartIndex = -1;
 		private bool _isDraggingLayer = false;
+		private LayerViewModel? _draggedLayerVM = null;
 
 		private void OnLayerDragHandlePressed(object? sender, PointerPressedEventArgs e)
 		{
@@ -232,17 +232,54 @@ namespace NyxAssetsEditor.Views.Pages
 			var layerVM = ctrl.DataContext as LayerViewModel;
 			if (layerVM == null) return;
 
-			_dragLayerStartIndex = vm.Layers.IndexOf(layerVM);
-			if (_dragLayerStartIndex < 0) return;
+			var listBox = this.FindControl<ListBox>("LayersListBox");
+			if (listBox == null) return;
 
 			_isDraggingLayer = true;
-			e.Pointer.Capture(ctrl);
+			_draggedLayerVM = layerVM;
+			_draggedLayerVM.IsDragging = true;
+			e.Pointer.Capture(listBox);
 			e.Handled = true;
 		}
 
 		private void OnLayerDragHandleMoved(object? sender, PointerEventArgs e)
 		{
-			if (_isDraggingLayer) e.Handled = true;
+			if (!_isDraggingLayer || _draggedLayerVM == null) return;
+			e.Handled = true;
+
+			var listBox = this.FindControl<ListBox>("LayersListBox");
+			if (listBox == null) return;
+
+			var props = e.GetCurrentPoint(listBox).Properties;
+			if (!props.IsLeftButtonPressed)
+			{
+				_isDraggingLayer = false;
+				e.Pointer.Capture(null);
+				_draggedLayerVM.IsDragging = false;
+				_draggedLayerVM = null;
+				return;
+			}
+
+			var vm = DataContext as PaintViewModel;
+			if (vm != null)
+			{
+				int currentIndex = vm.Layers.IndexOf(_draggedLayerVM);
+				if (currentIndex >= 0)
+				{
+					var pos = e.GetPosition(listBox);
+					int toIndex = GetLayerDropIndex(listBox, pos, vm.Layers.Count);
+					if (toIndex >= 0 && toIndex != currentIndex)
+					{
+						var current = vm.ActiveLayer;
+						vm.Layers.Move(currentIndex, toIndex);
+						if (current != null)
+						{
+							vm.ActiveLayer = current;
+						}
+						vm.UpdateCanvasPreview();
+					}
+				}
+			}
 		}
 
 		private void OnLayerDragHandleReleased(object? sender, PointerReleasedEventArgs e)
@@ -250,24 +287,17 @@ namespace NyxAssetsEditor.Views.Pages
 			if (!_isDraggingLayer) return;
 
 			_isDraggingLayer = false;
-			e.Pointer.Capture(null);
-
-			var vm = DataContext as PaintViewModel;
-			if (vm != null && _dragLayerStartIndex >= 0)
+			var listBox = this.FindControl<ListBox>("LayersListBox");
+			if (listBox != null)
 			{
-				var listBox = this.FindControl<ListBox>("LayersListBox");
-				if (listBox != null)
-				{
-					int toIndex = GetLayerDropIndex(listBox, e.GetPosition(listBox), vm.Layers.Count);
-					if (toIndex >= 0 && toIndex != _dragLayerStartIndex)
-					{
-						vm.Layers.Move(_dragLayerStartIndex, toIndex);
-						vm.UpdateCanvasPreview();
-					}
-				}
+				e.Pointer.Capture(null);
 			}
 
-			_dragLayerStartIndex = -1;
+			if (_draggedLayerVM != null)
+			{
+				_draggedLayerVM.IsDragging = false;
+				_draggedLayerVM = null;
+			}
 			e.Handled = true;
 		}
 
@@ -389,6 +419,62 @@ namespace NyxAssetsEditor.Views.Pages
 				{
 					popup.IsOpen = false;
 				}
+			}
+		}
+
+		private void OnLayerNameDoubleTapped(object? sender, TappedEventArgs e)
+		{
+			var textBlock = sender as TextBlock;
+			if (textBlock?.DataContext is LayerViewModel layerVM)
+			{
+				layerVM.IsEditingName = true;
+				var panel = textBlock.Parent as Panel;
+				if (panel != null)
+				{
+					foreach (var child in panel.Children)
+					{
+						if (child is TextBox textBox)
+						{
+							Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+							{
+								textBox.Focus();
+								textBox.SelectAll();
+							});
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		private void OnLayerNameEditLostFocus(object? sender, RoutedEventArgs e)
+		{
+			var textBox = sender as TextBox;
+			if (textBox?.DataContext is LayerViewModel layerVM)
+			{
+				layerVM.IsEditingName = false;
+			}
+		}
+
+		private void OnLayerNameEditKeyDown(object? sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.Enter)
+			{
+				var textBox = sender as TextBox;
+				if (textBox?.DataContext is LayerViewModel layerVM)
+				{
+					layerVM.IsEditingName = false;
+				}
+				e.Handled = true;
+			}
+			else if (e.Key == Key.Escape)
+			{
+				var textBox = sender as TextBox;
+				if (textBox?.DataContext is LayerViewModel layerVM)
+				{
+					layerVM.IsEditingName = false;
+				}
+				e.Handled = true;
 			}
 		}
 	}

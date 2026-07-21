@@ -19,11 +19,36 @@
 
 				<!-- Tool Selection -->
 				<StackPanel Grid.Row="1" Spacing="8">
-					<RadioButton Content="Brush (Pencil)" IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-					<RadioButton Content="Eraser" IsChecked="{Binding IsEraserActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-					<RadioButton Content="Color Picker" IsChecked="{Binding IsPickerActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-					<RadioButton Content="Fill Bucket" IsChecked="{Binding IsBucketActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-					<RadioButton Content="Magic Wand" IsChecked="{Binding IsWandActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<RadioButton IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/pencil.png" Width="14" Height="14"/>
+							<TextBlock Text="Brush (Pencil)" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsEraserActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/eraser.png" Width="14" Height="14"/>
+							<TextBlock Text="Eraser" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsPickerActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/eyedropper.png" Width="14" Height="14"/>
+							<TextBlock Text="Color Picker" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsBucketActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/bucket.png" Width="14" Height="14"/>
+							<TextBlock Text="Fill Bucket" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsWandActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/wand.png" Width="14" Height="14"/>
+							<TextBlock Text="Magic Wand" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
 				</StackPanel>
 
 				<Separator Grid.Row="2" Margin="0,20" Background="#2D2D2D"/>
@@ -100,7 +125,7 @@
 					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SizeChanged="OnWorkspaceCanvasSizeChanged">
 						<!-- Floating Layers Panel (Top Left) -->
 						<Border x:Name="LayersPanel" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
-								Width="220" Padding="12"
+								Width="310" Padding="12"
 								Canvas.Left="15" Canvas.Top="10"
 								BoxShadow="0 4 12 0 #A0000000"
 								PointerPressed="OnPanelHeaderPointerPressed"
@@ -121,36 +146,52 @@
 								<ListBox x:Name="LayersListBox" Grid.Row="2"
 								 ItemsSource="{Binding Layers}" SelectedItem="{Binding ActiveLayer}"
 								 Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4"
-								 ScrollViewer.VerticalScrollBarVisibility="Auto">
+								 ScrollViewer.VerticalScrollBarVisibility="Auto"
+								 PointerMoved="OnLayerDragHandleMoved"
+								 PointerReleased="OnLayerDragHandleReleased">
 							<ListBox.ItemTemplate>
 								<DataTemplate DataType="{x:Type vm:LayerViewModel}">
-									<Grid ColumnDefinitions="Auto, Auto, *, Auto" Background="Transparent">
+									<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto" Background="Transparent" Classes.dragging="{Binding IsDragging}">
+										<Grid.Styles>
+											<Style Selector="Grid.dragging">
+												<Setter Property="Opacity" Value="0.5"/>
+											</Style>
+										</Grid.Styles>
 										<!-- Drag handle -->
-										<TextBlock Grid.Column="0" Text="⠿" Cursor="Hand"
-												   Foreground="#555555" VerticalAlignment="Center"
-												   Margin="0,0,4,0" FontSize="13"
-												   PointerPressed="OnLayerDragHandlePressed"
-												   PointerMoved="OnLayerDragHandleMoved"
-												   PointerReleased="OnLayerDragHandleReleased"/>
+										<Image Grid.Column="0" Source="/Assets/Icons/action_drag.png" Width="12" Height="12" Cursor="Hand"
+											   VerticalAlignment="Center"
+											   Margin="0,0,4,0"
+											   PointerPressed="OnLayerDragHandlePressed"/>
 										<!-- Visibility eye toggle -->
 										<Button Grid.Column="1" Command="{Binding ToggleVisibilityCommand}"
 												Width="20" Height="20" Padding="0" Margin="0,0,4,0"
 												Background="Transparent" BorderThickness="0"
 												HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
 											<Panel>
-												<TextBlock Text="👁" IsVisible="{Binding IsVisible}"
-														   FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-												<TextBlock Text="⊘" IsVisible="{Binding IsNotVisible}"
-														   FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												<Image Source="/Assets/Icons/eye.png" Width="12" Height="12" IsVisible="{Binding IsVisible}"/>
+												<Image Source="/Assets/Icons/eye_hide.png" Width="12" Height="12" IsVisible="{Binding IsNotVisible}"/>
 											</Panel>
 										</Button>
 										<!-- Layer name -->
-										<TextBlock Grid.Column="2" Text="{Binding Name}"
-												   VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"/>
+										<Panel Grid.Column="2" VerticalAlignment="Center" Margin="5,0">
+											<TextBlock Text="{Binding Name}"
+													   VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"
+													   IsVisible="{Binding !IsEditingName}"
+													   DoubleTapped="OnLayerNameDoubleTapped"/>
+											<TextBox Text="{Binding Name, Mode=TwoWay}"
+													 FontSize="11" Height="22" Padding="4,0" Margin="0"
+													 IsVisible="{Binding IsEditingName}"
+													 LostFocus="OnLayerNameEditLostFocus"
+													 KeyDown="OnLayerNameEditKeyDown"/>
+										</Panel>
 										<!-- Opacity % -->
 										<NumericUpDown Grid.Column="3" Value="{Binding OpacityPercent}"
-													   Minimum="0" Maximum="100" Increment="5"
-													   Width="60" Height="24" FontSize="10" Padding="2,0"/>
+													   Minimum="0" Maximum="100" ShowButtonSpinner="False"
+													   Width="35" Height="24" FontSize="10" Padding="2,0"/>
+										<!-- Transparency State Icon -->
+										<Image Grid.Column="4" Source="/Assets/Icons/paint/transparency_state.png"
+											   Width="12" Height="12" Opacity="{Binding Opacity}"
+											   VerticalAlignment="Center" Margin="6,0,8,0"/>
 									</Grid>
 								</DataTemplate>
 							</ListBox.ItemTemplate>
@@ -176,7 +217,11 @@
 										<ComboBox.ItemTemplate>
 											<DataTemplate DataType="{x:Type vm:PaletteViewModel}">
 												<Grid ColumnDefinitions="*, Auto">
-													<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+													<StackPanel Orientation="Horizontal" Spacing="6">
+														<Image Source="/Assets/Icons/lock.png" Width="12" Height="12" IsVisible="{Binding !IsModifiable}" VerticalAlignment="Center"/>
+														<Image Source="/Assets/Icons/unlock.png" Width="12" Height="12" IsVisible="{Binding IsModifiable}" VerticalAlignment="Center"/>
+														<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+													</StackPanel>
 													<Button Grid.Column="1" Content="✕" 
 															Command="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).DeletePaletteCommand}"
 															CommandParameter="{Binding}"
@@ -280,9 +325,13 @@
 								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
 							</Border.Background>
 							<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-								<Button Content="-" Command="{Binding ZoomOutCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+								<Button Command="{Binding ZoomOutCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+									<Image Source="/Assets/Icons/zoom-out.png" Width="12" Height="12"/>
+								</Button>
 								<TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0}x'}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="4,0" FontSize="10" FontWeight="Bold"/>
-								<Button Content="+" Command="{Binding ZoomInCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+								<Button Command="{Binding ZoomInCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+									<Image Source="/Assets/Icons/zoom-in.png" Width="12" Height="12"/>
+								</Button>
 							</StackPanel>
 						</Border>
 					</Canvas>
