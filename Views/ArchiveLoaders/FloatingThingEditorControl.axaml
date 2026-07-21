@@ -117,11 +117,19 @@
 									<TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
 
 									<!-- Outfit directions -->
-									<Grid IsVisible="{Binding ShowOutfitDirections}" ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto" HorizontalAlignment="Center" Width="120">
-										<Button Grid.Row="0" Grid.Column="1" Classes.selected="{Binding IsDirectionNorth}" Command="{Binding SetDirectionNorthCommand}" Content="^" Width="32" Height="28" Margin="2"/>
-										<Button Grid.Row="1" Grid.Column="0" Classes.selected="{Binding IsDirectionWest}" Command="{Binding SetDirectionWestCommand}" Content="&lt;" Width="32" Height="28" Margin="2"/>
-										<Button Grid.Row="1" Grid.Column="1" Classes.selected="{Binding IsDirectionSouth}" Command="{Binding SetDirectionSouthCommand}" Content="v" Width="32" Height="28" Margin="2"/>
-										<Button Grid.Row="1" Grid.Column="2" Classes.selected="{Binding IsDirectionEast}" Command="{Binding SetDirectionEastCommand}" Content="&gt;" Width="32" Height="28" Margin="2"/>
+									<Grid IsVisible="{Binding ShowOutfitDirections}" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" HorizontalAlignment="Center" Width="120">
+										<Button Grid.Row="0" Grid.Column="1" Classes.selected="{Binding IsDirectionNorth}" Command="{Binding SetDirectionNorthCommand}" Width="32" Height="28" Margin="2" HorizontalAlignment="Center" ToolTip.Tip="Face North">
+											<Image Source="/Assets/Icons/arrow_m_up.png" Width="12" Height="12"/>
+										</Button>
+										<Button Grid.Row="1" Grid.Column="0" Classes.selected="{Binding IsDirectionWest}" Command="{Binding SetDirectionWestCommand}" Width="32" Height="28" Margin="2" HorizontalAlignment="Center" ToolTip.Tip="Face West">
+											<Image Source="/Assets/Icons/arrow_m_left.png" Width="12" Height="12"/>
+										</Button>
+										<Button Grid.Row="1" Grid.Column="1" Classes.selected="{Binding IsDirectionSouth}" Command="{Binding SetDirectionSouthCommand}" Width="32" Height="28" Margin="2" HorizontalAlignment="Center" ToolTip.Tip="Face South">
+											<Image Source="/Assets/Icons/arrow_m_down.png" Width="12" Height="12"/>
+										</Button>
+										<Button Grid.Row="1" Grid.Column="2" Classes.selected="{Binding IsDirectionEast}" Command="{Binding SetDirectionEastCommand}" Width="32" Height="28" Margin="2" HorizontalAlignment="Center" ToolTip.Tip="Face East">
+											<Image Source="/Assets/Icons/arrow_m_right.png" Width="12" Height="12"/>
+										</Button>
 									</Grid>
 
 									<!-- Preview (centered) -->
