@@ -179,6 +179,8 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	public bool AnimationEnabled { get => _animationEnabled; set { if (SetProperty(ref _animationEnabled, value)) { _animationDirection = 1; _manualPhasePreview = false; Changed(p => p.AnimationEnabled = value); if (!value) _animationTimer.Stop(); RefreshPreview(); } } }
 	private bool _autoRotate;
 	public bool AutoRotate { get => _autoRotate; set { if (SetProperty(ref _autoRotate, value)) { Changed(p => p.AutoRotate = value); RestartRotation(); } } }
+	private bool _showMount = true;
+	public bool ShowMount { get => _showMount; set { if (SetProperty(ref _showMount, value)) RefreshPreview(); } }
 	private bool _includePreviewSettings;
 	public bool IncludePreviewSettings
 	{
@@ -447,8 +449,9 @@ public partial class FloatingLooktypeGeneratorViewModel : PanelViewModelBase, ID
 	{
 		_working.AnimationPhase = AnimationPhase; _working.Direction = Direction;
 		var pair = SelectedArchivePair?.Pair;
-		var renderProfile = _previewCorpse || _manualPhasePreview ? _working.Clone() : _working;
+		var renderProfile = _previewCorpse || _manualPhasePreview || !ShowMount ? _working.Clone() : _working;
 		if (_manualPhasePreview) renderProfile.AnimationEnabled = true;
+		if (!ShowMount) renderProfile.Mount = 0;
 		if (_previewCorpse)
 		{
 			renderProfile.AppearanceKind = LooktypeAppearanceKind.Item;
