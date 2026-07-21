@@ -60,11 +60,13 @@
 							<Button Classes="direction" Classes.selected="{Binding IsSouth}" Content="&#x2193;" Command="{Binding SetDirectionCommand}" CommandParameter="South" ToolTip.Tip="Face south"/>
 							<Button Classes="direction" Classes.selected="{Binding IsWest}" Content="&#x2190;" Command="{Binding SetDirectionCommand}" CommandParameter="West" Margin="4,0,0,0" ToolTip.Tip="Face west"/>
 						</WrapPanel>
-						<ToggleSwitch Content="Show mount" IsChecked="{Binding ShowMount}" OnContent="" OffContent=""
-								  ToolTip.Tip="Show or hide the selected mount in the preview without changing the exported mount ID."/>
-						<CheckBox Content="Play walking animation" IsChecked="{Binding AnimationEnabled}"/>
+						<StackPanel Orientation="Horizontal" Spacing="20">
+							<CheckBox Content="Walking Animation" IsChecked="{Binding AnimationEnabled}"/>
+							<CheckBox Content="Show Mount" IsChecked="{Binding ShowMount}"
+									  ToolTip.Tip="Show or hide the selected mount in the preview without changing the exported mount ID."/>
+						</StackPanel>
 						<Grid ColumnDefinitions="*,150" RowDefinitions="Auto,Auto,Auto" RowSpacing="7" ColumnSpacing="12">
-							<TextBlock Text="Animation phase" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Column="1" MinWidth="150" Value="{Binding AnimationPhase}" Minimum="0" Maximum="{Binding FrameMaximum}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ToolTip.Tip="Use the arrow buttons to inspect individual frames. Play walking animation controls automatic stepping only."/>
+							<TextBlock Text="Animation phase" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Column="1" MinWidth="150" Value="{Binding AnimationPhase}" Minimum="0" Maximum="{Binding FrameMaximum}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ToolTip.Tip="Use the arrow buttons to inspect individual frames. Walking Animation controls automatic stepping only."/>
 							<TextBlock Grid.Row="1" Text="Walk interval (ms, 0 = Auto)" Classes="label" VerticalAlignment="Center"/><NumericUpDown Grid.Row="1" Grid.Column="1" MinWidth="150" Value="{Binding WalkIntervalMs}" Minimum="0" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
 							<CheckBox Grid.Row="2" Content="Auto rotate (ms)" IsChecked="{Binding AutoRotate}" VerticalAlignment="Center"/><NumericUpDown Grid.Row="2" Grid.Column="1" MinWidth="150" Value="{Binding RotationIntervalMs}" Minimum="16" Maximum="60000" Increment="10" FormatString="0" ParsingNumberStyle="Integer"/>
 						</Grid>
