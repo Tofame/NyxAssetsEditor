@@ -283,7 +283,8 @@
 									<Button Grid.Column="3" Content="D" Command="{Binding DuplicateSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Duplicate selected palette"/>
 								</Grid>
 								<!-- Color Picker -->
-								<Border Grid.Row="3" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,8">
+								<Border Grid.Row="3" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,8"
+										IsVisible="{Binding SelectedPalette.IsModifiable}">
 									<StackPanel Spacing="6">
 										<ColorPicker Color="{Binding ActiveColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" HorizontalAlignment="Stretch"/>
 										<Button Content="Add to Palette" Command="{Binding AddColorToPaletteCommand}" HorizontalAlignment="Stretch" Height="22" FontSize="10" Padding="0"/>
@@ -291,7 +292,7 @@
 								</Border>
 								<!-- Colors Grid (Aseprite Style) -->
 								<ScrollViewer Grid.Row="4" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="3">
-									<ItemsControl ItemsSource="{Binding PaletteColors}">
+									<ItemsControl x:Name="PaletteColorsItemsControl" ItemsSource="{Binding PaletteColors}">
 										<ItemsControl.ItemsPanel>
 											<ItemsPanelTemplate>
 												<WrapPanel Orientation="Horizontal" MaxWidth="230"/>
@@ -299,7 +300,11 @@
 										</ItemsControl.ItemsPanel>
 										<ItemsControl.ItemTemplate>
 											<DataTemplate DataType="{x:Type Color}">
-												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand" Tapped="OnPaletteColorTapped">
+												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand"
+														Tapped="OnPaletteColorTapped"
+														PointerPressed="OnPaletteColorPointerPressed"
+														PointerMoved="OnPaletteColorPointerMoved"
+														PointerReleased="OnPaletteColorPointerReleased">
 													<Border.BorderBrush>
 														<MultiBinding Converter="{x:Static views:ColorToBrushConverter.Instance}">
 															<Binding/>
@@ -315,8 +320,8 @@
 													<Border.ContextMenu>
 														<ContextMenu>
 															<MenuItem Header="Set Active" Click="OnSetActiveColorClick"/>
-															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick"/>
-															<MenuItem Header="Remove" Click="OnRemoveColorClick"/>
+															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
+															<MenuItem Header="Remove" Click="OnRemoveColorClick" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
 														</ContextMenu>
 													</Border.ContextMenu>
 													<Border.Background>
