@@ -342,10 +342,138 @@ namespace NyxAssetsEditor.Views.Pages
 			return -1;
 		}
 
+		// ── Color drag-to-reorder ────────────────────────────────────────────────
+		private bool _isDraggingColor = false;
+		private Color? _draggedColor = null;
+		private int _draggedColorIndex = -1;
+
+		private void OnPaletteColorPointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			if (vm == null || vm.SelectedPalette == null) return;
+			if (sender is not Border border || border.DataContext is not Color color) return;
+
+			// Set active color immediately on press
+			vm.ActiveColor = color;
+
+			if (!vm.SelectedPalette.IsModifiable) return;
+
+			var itemsControl = this.FindControl<ItemsControl>("PaletteColorsItemsControl");
+			if (itemsControl == null) return;
+
+			int index = -1;
+			for (int i = 0; i < vm.PaletteColors.Count; i++)
+			{
+				var container = itemsControl.ContainerFromIndex(i);
+				if (container != null && (container == border || container == border.Parent || container == border.Parent?.Parent))
+				{
+					index = i;
+					break;
+				}
+			}
+
+			if (index >= 0)
+			{
+				_isDraggingColor = true;
+				_draggedColor = color;
+				_draggedColorIndex = index;
+				vm.DraggedColor = color;
+
+				e.Pointer.Capture(itemsControl);
+				e.Handled = true;
+			}
+		}
+
+		private void OnPaletteColorPointerMoved(object? sender, PointerEventArgs e)
+		{
+			if (!_isDraggingColor || _draggedColorIndex < 0 || _draggedColor == null) return;
+
+			var itemsControl = this.FindControl<ItemsControl>("PaletteColorsItemsControl");
+			if (itemsControl == null) return;
+
+			var props = e.GetCurrentPoint(itemsControl).Properties;
+			if (!props.IsLeftButtonPressed)
+			{
+				e.Pointer.Capture(null);
+				CleanupColorDrag();
+				return;
+			}
+
+			var vm = DataContext as PaintViewModel;
+			if (vm == null || vm.SelectedPalette == null) return;
+
+			var pos = e.GetPosition(itemsControl);
+			int toIndex = GetColorDropIndex(itemsControl, pos, vm.PaletteColors.Count);
+			if (toIndex >= 0 && toIndex < vm.PaletteColors.Count && _draggedColorIndex >= 0 && _draggedColorIndex < vm.PaletteColors.Count && toIndex != _draggedColorIndex)
+			{
+				vm.PaletteColors.Move(_draggedColorIndex, toIndex);
+
+				if (_draggedColorIndex < vm.SelectedPalette.Colors.Count && toIndex < vm.SelectedPalette.Colors.Count)
+				{
+					var color = vm.SelectedPalette.Colors[_draggedColorIndex];
+					vm.SelectedPalette.Colors.RemoveAt(_draggedColorIndex);
+					vm.SelectedPalette.Colors.Insert(toIndex, color);
+				}
+				_draggedColorIndex = toIndex;
+				vm.SavePalettes();
+			}
+			e.Handled = true;
+		}
+
+		private void OnPaletteColorPointerReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			if (_isDraggingColor)
+			{
+				e.Pointer.Capture(null);
+				CleanupColorDrag();
+				e.Handled = true;
+			}
+		}
+
+		private void CleanupColorDrag()
+		{
+			var vm = DataContext as PaintViewModel;
+			if (vm != null)
+			{
+				vm.DraggedColor = null;
+			}
+			_isDraggingColor = false;
+			_draggedColor = null;
+			_draggedColorIndex = -1;
+		}
+
+		private static int GetColorDropIndex(ItemsControl itemsControl, Point posInItemsControl, int totalColors)
+		{
+			if (totalColors == 0) return -1;
+
+			double minDistance = double.MaxValue;
+			int closestIndex = -1;
+
+			for (int i = 0; i < totalColors; i++)
+			{
+				var container = itemsControl.ContainerFromIndex(i) as Control;
+				if (container == null) continue;
+				var topLeft = container.TranslatePoint(new Point(0, 0), itemsControl);
+				if (topLeft == null) continue;
+
+				var center = new Point(topLeft.Value.X + container.Bounds.Width / 2.0, topLeft.Value.Y + container.Bounds.Height / 2.0);
+				double dx = posInItemsControl.X - center.X;
+				double dy = posInItemsControl.Y - center.Y;
+				double distance = dx * dx + dy * dy;
+
+				if (distance < minDistance)
+				{
+					minDistance = distance;
+					closestIndex = i;
+				}
+			}
+			return closestIndex;
+		}
+
 		private void OnSetActiveColorClick(object? sender, RoutedEventArgs e)
 		{
 			var menuItem = sender as MenuItem;
-			if (menuItem?.DataContext is Color color)
+			if (menuItem?.CommandParameter is Border border && border.DataContext is Color color)
 			{
 				var vm = DataContext as PaintViewModel;
 				if (vm != null)
@@ -358,14 +486,25 @@ namespace NyxAssetsEditor.Views.Pages
 		private void OnDuplicateColorClick(object? sender, RoutedEventArgs e)
 		{
 			var menuItem = sender as MenuItem;
-			if (menuItem?.DataContext is Color color)
+			if (menuItem?.CommandParameter is Border border)
 			{
 				var vm = DataContext as PaintViewModel;
-				if (vm != null)
+				var itemsControl = this.FindControl<ItemsControl>("PaletteColorsItemsControl");
+				if (vm != null && itemsControl != null)
 				{
-					if (vm.DuplicateColorCommand.CanExecute(color))
+					int index = -1;
+					for (int i = 0; i < vm.PaletteColors.Count; i++)
 					{
-						vm.DuplicateColorCommand.Execute(color);
+						var container = itemsControl.ContainerFromIndex(i);
+						if (container != null && (container == border || container == border.Parent || container == border.Parent?.Parent))
+						{
+							index = i;
+							break;
+						}
+					}
+					if (index >= 0)
+					{
+						vm.DuplicateColorAtIndex(index);
 					}
 				}
 			}
@@ -374,14 +513,25 @@ namespace NyxAssetsEditor.Views.Pages
 		private void OnRemoveColorClick(object? sender, RoutedEventArgs e)
 		{
 			var menuItem = sender as MenuItem;
-			if (menuItem?.DataContext is Color color)
+			if (menuItem?.CommandParameter is Border border)
 			{
 				var vm = DataContext as PaintViewModel;
-				if (vm != null)
+				var itemsControl = this.FindControl<ItemsControl>("PaletteColorsItemsControl");
+				if (vm != null && itemsControl != null)
 				{
-					if (vm.DeleteColorCommand.CanExecute(color))
+					int index = -1;
+					for (int i = 0; i < vm.PaletteColors.Count; i++)
 					{
-						vm.DeleteColorCommand.Execute(color);
+						var container = itemsControl.ContainerFromIndex(i);
+						if (container != null && (container == border || container == border.Parent || container == border.Parent?.Parent))
+						{
+							index = i;
+							break;
+						}
+					}
+					if (index >= 0)
+					{
+						vm.DeleteColorAtIndex(index);
 					}
 				}
 			}
@@ -536,6 +686,23 @@ namespace NyxAssetsEditor.Views.Pages
 				}
 			}
 			return new Thickness(1);
+		}
+	}
+
+	public class ColorToOpacityConverter : IMultiValueConverter
+	{
+		public static readonly ColorToOpacityConverter Instance = new();
+
+		public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+		{
+			if (values.Count >= 2 && values[0] is Color itemColor && values[1] is Color draggedColor)
+			{
+				if (itemColor == draggedColor)
+				{
+					return 0.5;
+				}
+			}
+			return 1.0;
 		}
 	}
 }

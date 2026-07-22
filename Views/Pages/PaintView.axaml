@@ -292,7 +292,9 @@
 								</Border>
 								<!-- Colors Grid (Aseprite Style) -->
 								<ScrollViewer Grid.Row="4" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="3">
-									<ItemsControl x:Name="PaletteColorsItemsControl" ItemsSource="{Binding PaletteColors}">
+									<ItemsControl x:Name="PaletteColorsItemsControl" ItemsSource="{Binding PaletteColors}"
+												  PointerMoved="OnPaletteColorPointerMoved"
+												  PointerReleased="OnPaletteColorPointerReleased">
 										<ItemsControl.ItemsPanel>
 											<ItemsPanelTemplate>
 												<WrapPanel Orientation="Horizontal" MaxWidth="230"/>
@@ -302,9 +304,7 @@
 											<DataTemplate DataType="{x:Type Color}">
 												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand"
 														Tapped="OnPaletteColorTapped"
-														PointerPressed="OnPaletteColorPointerPressed"
-														PointerMoved="OnPaletteColorPointerMoved"
-														PointerReleased="OnPaletteColorPointerReleased">
+														PointerPressed="OnPaletteColorPointerPressed">
 													<Border.BorderBrush>
 														<MultiBinding Converter="{x:Static views:ColorToBrushConverter.Instance}">
 															<Binding/>
@@ -317,11 +317,17 @@
 															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).ActiveColor"/>
 														</MultiBinding>
 													</Border.BorderThickness>
+													<Border.Opacity>
+														<MultiBinding Converter="{x:Static views:ColorToOpacityConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).DraggedColor"/>
+														</MultiBinding>
+													</Border.Opacity>
 													<Border.ContextMenu>
 														<ContextMenu>
-															<MenuItem Header="Set Active" Click="OnSetActiveColorClick"/>
-															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
-															<MenuItem Header="Remove" Click="OnRemoveColorClick" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
+															<MenuItem Header="Set Active" Click="OnSetActiveColorClick" CommandParameter="{Binding $parent[Border]}"/>
+															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick" CommandParameter="{Binding $parent[Border]}" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
+															<MenuItem Header="Remove" Click="OnRemoveColorClick" CommandParameter="{Binding $parent[Border]}" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
 														</ContextMenu>
 													</Border.ContextMenu>
 													<Border.Background>

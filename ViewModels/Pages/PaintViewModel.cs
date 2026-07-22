@@ -257,6 +257,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private int _hoverX = -1;
 
 		[ObservableProperty]
+		private Color? _draggedColor;
+
+		[ObservableProperty]
 		private int _hoverY = -1;
 
 		[ObservableProperty]
@@ -1043,6 +1046,30 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		public void DeleteColorAtIndex(int index)
+		{
+			if (index >= 0 && index < PaletteColors.Count)
+			{
+				PaletteColors.RemoveAt(index);
+				if (SelectedPalette != null && SelectedPalette.IsModifiable && index < SelectedPalette.Colors.Count)
+				{
+					SelectedPalette.Colors.RemoveAt(index);
+					SavePalettes();
+				}
+			}
+		}
+
+		public void DuplicateColorAtIndex(int index)
+		{
+			if (index >= 0 && index < PaletteColors.Count && SelectedPalette != null && SelectedPalette.IsModifiable)
+			{
+				var color = PaletteColors[index];
+				PaletteColors.Insert(index + 1, color);
+				SelectedPalette.Colors.Insert(index + 1, color);
+				SavePalettes();
+			}
+		}
+
 		[RelayCommand]
 		private void DuplicateSelectedPalette()
 		{
@@ -1377,7 +1404,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			SelectedPalette = CustomPalettes.FirstOrDefault();
 		}
 
-		private void SavePalettes()
+		public void SavePalettes()
 		{
 			try
 			{
