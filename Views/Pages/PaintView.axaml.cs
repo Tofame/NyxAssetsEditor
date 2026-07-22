@@ -197,7 +197,8 @@ namespace NyxAssetsEditor.Views.Pages
 			{
 				var props = e.GetCurrentPoint(img).Properties;
 				bool isRightClick = props.IsRightButtonPressed;
-				vm.HandleCanvasClick(x, y, isRightClick);
+				bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+				vm.HandleCanvasClick(x, y, isRightClick, keepExisting);
 			}
 		}
 
@@ -217,6 +218,15 @@ namespace NyxAssetsEditor.Views.Pages
 
 			bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
 			vm.ApplySelectionBox(_selectStartX, _selectStartY, currentX, currentY, _selectionBeforeDrag, keepExisting);
+		}
+
+		private void OnWorkspacePointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			if (vm != null)
+			{
+				vm.ClearSelection();
+			}
 		}
 
 		private void HandleMoveDrag(PointerEventArgs e)

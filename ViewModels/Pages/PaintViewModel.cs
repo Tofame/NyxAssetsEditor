@@ -479,7 +479,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
-		public void HandleCanvasClick(int x, int y, bool isRightClick)
+		public void HandleCanvasClick(int x, int y, bool isRightClick, bool merge = false)
 		{
 			if (ActiveLayer == null)
 				return;
@@ -506,7 +506,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					ApplyBucketFill(x, y, isRightClick ? Colors.Transparent : ActiveColor);
 					break;
 				case PaintTool.Wand:
-					ApplyWandSelection(x, y);
+					ApplyWandSelection(x, y, merge);
 					break;
 			}
 
@@ -640,13 +640,17 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
-		private void ApplyWandSelection(int startX, int startY)
+		private void ApplyWandSelection(int startX, int startY, bool merge)
 		{
 			if (ActiveLayer == null)
 				return;
 
-			ClearSelection();
+			if (!merge)
+			{
+				ClearSelection();
+			}
 
+			var visited = new bool[32, 32];
 			var pixels = ActiveLayer.Pixels;
 			var targetColor = GetPixelColor(pixels, startX, startY);
 
@@ -654,6 +658,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			queue.Enqueue((startX, startY));
 
 			_selectionMask[startX, startY] = true;
+			visited[startX, startY] = true;
 			HasSelection = true;
 
 			int[] dx = CheckDiagonals ? new[] { 0, 0, 1, -1, 1, 1, -1, -1 } : new[] { 0, 0, 1, -1 };
@@ -668,12 +673,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int nx = cx + dx[i];
 					int ny = cy + dy[i];
 
-					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !_selectionMask[nx, ny])
+					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
 					{
 						var color = GetPixelColor(pixels, nx, ny);
 						if (ColorsAreSimilar(targetColor, color, FillThreshold))
 						{
 							_selectionMask[nx, ny] = true;
+							visited[nx, ny] = true;
 							queue.Enqueue((nx, ny));
 						}
 					}
@@ -1248,29 +1254,82 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				return;
 
 			var pixels = ActiveLayer.Pixels;
-			Array.Clear(pixels, 0, pixels.Length);
 
+			bool hadSelection = false;
 			for (int y = 0; y < 32; y++)
 			{
 				for (int x = 0; x < 32; x++)
 				{
-					int srcIdx = (y * 32 + x) * 4;
-					byte r = originalPixels[srcIdx];
-					byte g = originalPixels[srcIdx + 1];
-					byte b = originalPixels[srcIdx + 2];
-					byte a = originalPixels[srcIdx + 3];
+					if (originalSelectionMask[x, y])
+					{
+						hadSelection = true;
+						break;
+					}
+				}
+			}
 
-					if (a > 0)
+			if (hadSelection)
+			{
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
+					{
+						int idx = (y * 32 + x) * 4;
+						if (originalSelectionMask[x, y])
+						{
+							pixels[idx] = 0;
+							pixels[idx + 1] = 0;
+							pixels[idx + 2] = 0;
+							pixels[idx + 3] = 0;
+						}
+						else
+						{
+							pixels[idx] = originalPixels[idx];
+							pixels[idx + 1] = originalPixels[idx + 1];
+							pixels[idx + 2] = originalPixels[idx + 2];
+							pixels[idx + 3] = originalPixels[idx + 3];
+						}
+					}
+				}
+
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
+					{
+						if (originalSelectionMask[x, y])
+						{
+							int newX = x + dx;
+							int newY = y + dy;
+							if (newX >= 0 && newX < 32 && newY >= 0 && newY < 32)
+							{
+								int srcIdx = (y * 32 + x) * 4;
+								int destIdx = (newY * 32 + newX) * 4;
+								pixels[destIdx] = originalPixels[srcIdx];
+								pixels[destIdx + 1] = originalPixels[srcIdx + 1];
+								pixels[destIdx + 2] = originalPixels[srcIdx + 2];
+								pixels[destIdx + 3] = originalPixels[srcIdx + 3];
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				Array.Clear(pixels, 0, pixels.Length);
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
 					{
 						int newX = x + dx;
 						int newY = y + dy;
 						if (newX >= 0 && newX < 32 && newY >= 0 && newY < 32)
 						{
+							int srcIdx = (y * 32 + x) * 4;
 							int destIdx = (newY * 32 + newX) * 4;
-							pixels[destIdx] = r;
-							pixels[destIdx + 1] = g;
-							pixels[destIdx + 2] = b;
-							pixels[destIdx + 3] = a;
+							pixels[destIdx] = originalPixels[srcIdx];
+							pixels[destIdx + 1] = originalPixels[srcIdx + 1];
+							pixels[destIdx + 2] = originalPixels[srcIdx + 2];
+							pixels[destIdx + 3] = originalPixels[srcIdx + 3];
 						}
 					}
 				}

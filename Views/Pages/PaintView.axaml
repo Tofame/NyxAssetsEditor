@@ -139,7 +139,7 @@
 			</Border>
 
 			<!-- Canvas Workspace Layout with Centered Drawing and Absolute Overlays -->
-			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True" PointerWheelChanged="OnPointerWheelChanged">
+			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True" PointerWheelChanged="OnPointerWheelChanged" PointerPressed="OnWorkspacePointerPressed">
 				<Panel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 					<!-- Transparent checkerboard background simulation -->
 					<Image Source="/Assets/avalonia-logo.ico" Opacity="0.03" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
