@@ -31,7 +31,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 	public enum BrushShape
 	{
 		Square,
-		Circle
+		Circle,
+		Diamond,
+		Cross
 	}
 
 	public partial class LayerViewModel : ViewModelBase
@@ -239,6 +241,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set { if (value) BrushShape = BrushShape.Circle; }
 		}
 
+		public bool IsDiamondBrush
+		{
+			get => BrushShape == BrushShape.Diamond;
+			set { if (value) BrushShape = BrushShape.Diamond; }
+		}
+
+		public bool IsCrossBrush
+		{
+			get => BrushShape == BrushShape.Cross;
+			set { if (value) BrushShape = BrushShape.Cross; }
+		}
+
 		[ObservableProperty]
 		private int _hoverX = -1;
 
@@ -252,6 +266,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			OnPropertyChanged(nameof(IsSquareBrush));
 			OnPropertyChanged(nameof(IsCircleBrush));
+			OnPropertyChanged(nameof(IsDiamondBrush));
+			OnPropertyChanged(nameof(IsCrossBrush));
 			UpdateCanvasPreview();
 			NotifyOutlinePropertiesChanged();
 		}
@@ -501,7 +517,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				return true;
 			if (radius <= 0)
 				return true;
-			return (dx * dx + dy * dy) <= (radius * radius);
+			if (BrushShape == BrushShape.Circle)
+				return (dx * dx + dy * dy) <= (radius * radius);
+			if (BrushShape == BrushShape.Diamond)
+				return (Math.Abs(dx) + Math.Abs(dy)) <= radius;
+			if (BrushShape == BrushShape.Cross)
+				return dx == 0 || dy == 0;
+			return true;
 		}
 
 		private void DrawPixelWithSymmetry(int x, int y, Color color)
@@ -1089,6 +1111,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			foreach (var c in SelectedPalette.Colors)
 			{
 				PaletteColors.Add(c);
+			}
+		}
+
+		[RelayCommand]
+		private void SetBrushSize(object parameter)
+		{
+			if (parameter is string s && int.TryParse(s, out int size))
+			{
+				BrushSize = size;
+			}
+			else if (parameter is int sz)
+			{
+				BrushSize = sz;
 			}
 		}
 

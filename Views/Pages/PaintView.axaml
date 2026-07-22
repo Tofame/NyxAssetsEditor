@@ -60,12 +60,23 @@
 						<Slider Grid.Column="0" Minimum="1" Maximum="8" Value="{Binding BrushSize}" IsSnapToTickEnabled="True" TickFrequency="1"/>
 						<TextBlock Grid.Column="1" Text="{Binding BrushSize}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
 					</Grid>
+					<!-- Quick Size Presets -->
+					<Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*, *, *" RowSpacing="4" ColumnSpacing="4" Margin="0,-4,0,0">
+						<Button Grid.Row="0" Grid.Column="0" Content="1" Command="{Binding SetBrushSizeCommand}" CommandParameter="1" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="0" Grid.Column="1" Content="2" Command="{Binding SetBrushSizeCommand}" CommandParameter="2" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="0" Grid.Column="2" Content="3" Command="{Binding SetBrushSizeCommand}" CommandParameter="3" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="0" Content="4" Command="{Binding SetBrushSizeCommand}" CommandParameter="4" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="1" Content="5" Command="{Binding SetBrushSizeCommand}" CommandParameter="5" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="2" Content="8" Command="{Binding SetBrushSizeCommand}" CommandParameter="8" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+					</Grid>
 
 					<TextBlock Text="Brush Shape" Foreground="#A0A0A0" FontSize="12" Margin="0,5,0,0"/>
-					<StackPanel Spacing="5" Orientation="Horizontal">
-						<RadioButton Content="Square" IsChecked="{Binding IsSquareBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Width="90" HorizontalContentAlignment="Center"/>
-						<RadioButton Content="Circle" IsChecked="{Binding IsCircleBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Width="90" HorizontalContentAlignment="Center"/>
-					</StackPanel>
+					<Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4">
+						<RadioButton Grid.Column="0" Content="■" IsChecked="{Binding IsSquareBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Square Brush"/>
+						<RadioButton Grid.Column="1" Content="●" IsChecked="{Binding IsCircleBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Circle Brush"/>
+						<RadioButton Grid.Column="2" Content="◆" IsChecked="{Binding IsDiamondBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Diamond Brush"/>
+						<RadioButton Grid.Column="3" Content="✚" IsChecked="{Binding IsCrossBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Cross Brush"/>
+					</Grid>
 
 					<StackPanel Spacing="5" IsVisible="{Binding IsThresholdVisible}">
 						<Separator Margin="0,5" Background="#2D2D2D"/>
