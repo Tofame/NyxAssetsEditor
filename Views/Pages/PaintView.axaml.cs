@@ -16,6 +16,9 @@ namespace NyxAssetsEditor.Views.Pages
 	{
 		private bool _isDrawing = false;
 		private bool _palettePositionInitialized = false;
+		private int _selectStartX = -1;
+		private int _selectStartY = -1;
+		private readonly bool[,] _selectionBeforeDrag = new bool[32, 32];
 
 		public PaintView()
 		{
@@ -28,12 +31,36 @@ namespace NyxAssetsEditor.Views.Pages
 			if (!props.IsLeftButtonPressed)
 				return;
 			// Only start drawing when clicking directly on the canvas image
-			if (e.Source is Image)
+			if (e.Source is Image img)
 			{
 				var vm = DataContext as PaintViewModel;
-				vm?.SaveHistoryState();
-				_isDrawing = true;
-				HandlePointer(e);
+				if (vm != null)
+				{
+					vm.SaveHistoryState();
+					_isDrawing = true;
+
+					if (vm.ActiveTool == PaintTool.Select)
+					{
+						var pos = e.GetPosition(img);
+						_selectStartX = (int)(pos.X / img.Bounds.Width * 32);
+						_selectStartY = (int)(pos.Y / img.Bounds.Height * 32);
+
+						Array.Copy(vm.GetSelectionMask(), _selectionBeforeDrag, _selectionBeforeDrag.Length);
+
+						bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+						if (!keepExisting)
+						{
+							vm.ClearSelection();
+							Array.Clear(_selectionBeforeDrag, 0, _selectionBeforeDrag.Length);
+						}
+
+						vm.ApplySelectionBox(_selectStartX, _selectStartY, _selectStartX, _selectStartY, _selectionBeforeDrag, keepExisting);
+					}
+					else
+					{
+						HandlePointer(e);
+					}
+				}
 			}
 			e.Handled = true;
 		}
@@ -43,7 +70,15 @@ namespace NyxAssetsEditor.Views.Pages
 			UpdateHoverPosition(e);
 			if (_isDrawing)
 			{
-				HandlePointer(e);
+				var vm = DataContext as PaintViewModel;
+				if (vm?.ActiveTool == PaintTool.Select)
+				{
+					HandleSelectDrag(e);
+				}
+				else
+				{
+					HandlePointer(e);
+				}
 				e.Handled = true;
 			}
 		}
@@ -142,6 +177,24 @@ namespace NyxAssetsEditor.Views.Pages
 				bool isRightClick = props.IsRightButtonPressed;
 				vm.HandleCanvasClick(x, y, isRightClick);
 			}
+		}
+
+		private void HandleSelectDrag(PointerEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			var img = this.FindControl<Image>("CanvasImage");
+			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0)
+				return;
+
+			var pos = e.GetPosition(img);
+			int currentX = (int)(pos.X / img.Bounds.Width * 32);
+			int currentY = (int)(pos.Y / img.Bounds.Height * 32);
+
+			currentX = Math.Clamp(currentX, 0, 31);
+			currentY = Math.Clamp(currentY, 0, 31);
+
+			bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+			vm.ApplySelectionBox(_selectStartX, _selectStartY, currentX, currentY, _selectionBeforeDrag, keepExisting);
 		}
 
 		private void OnPaletteColorTapped(object sender, TappedEventArgs e)

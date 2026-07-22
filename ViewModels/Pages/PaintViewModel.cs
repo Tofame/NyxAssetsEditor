@@ -25,7 +25,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		Eraser,
 		Picker,
 		Bucket,
-		Wand
+		Wand,
+		Select
 	}
 
 	public enum BrushShape
@@ -141,6 +142,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsPickerActive));
 			OnPropertyChanged(nameof(IsBucketActive));
 			OnPropertyChanged(nameof(IsWandActive));
+			OnPropertyChanged(nameof(IsSelectActive));
 			OnPropertyChanged(nameof(IsThresholdVisible));
 			NotifyOutlinePropertiesChanged();
 		}
@@ -175,6 +177,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			get => ActiveTool == PaintTool.Wand;
 			set { if (value) ActiveTool = PaintTool.Wand; }
+		}
+
+		public bool IsSelectActive
+		{
+			get => ActiveTool == PaintTool.Select;
+			set { if (value) ActiveTool = PaintTool.Select; }
 		}
 
 		[ObservableProperty]
@@ -219,6 +227,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		[ObservableProperty]
 		private LayerViewModel? _activeLayer;
+
+		partial void OnActiveLayerChanged(LayerViewModel? value)
+		{
+			UpdateCanvasPreview();
+		}
 
 		[ObservableProperty]
 		private WriteableBitmap? _canvasPreview;
@@ -343,6 +356,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private readonly bool[,] _selectionMask = new bool[32, 32];
 		private static readonly string PalettesFilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "paint", "paint_palletes.toml");
 		private DateTime _lastStateSave = DateTime.MinValue;
+		private static byte[]? _copyBuffer;
+		private static int _copyBufferWidth;
+		private static int _copyBufferHeight;
+		private static bool[,]? _copyBufferMask;
 
 		public PaintViewModel(MainWindowViewModel mainWindow)
 		{
@@ -797,6 +814,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 
+			NotifyOutlinePropertiesChanged();
 			CanvasPreview = _renderer.Convert(overlay);
 
 			var _now = DateTime.UtcNow;
@@ -915,17 +933,54 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
-			for (int y = 0; y < 32; y++)
-			{
-				for (int x = 0; x < 16; x++)
-				{
-					int targetX = 31 - x;
-					if (HasSelection && (!_selectionMask[x, y] || !_selectionMask[targetX, y]))
-						continue;
 
-					var temp = GetPixelColor(pixels, x, y);
-					SetPixel(pixels, x, y, GetPixelColor(pixels, targetX, y));
-					SetPixel(pixels, targetX, y, temp);
+			if (HasSelection)
+			{
+				int minX = 32, maxX = -1, minY = 32, maxY = -1;
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
+					{
+						if (_selectionMask[x, y])
+						{
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							if (y < minY) minY = y;
+							if (y > maxY) maxY = y;
+						}
+					}
+				}
+				if (maxX >= minX && maxY >= minY)
+				{
+					int w = maxX - minX + 1;
+					for (int y = minY; y <= maxY; y++)
+					{
+						for (int dx = 0; dx < w / 2; dx++)
+						{
+							int x1 = minX + dx;
+							int x2 = maxX - dx;
+							var temp = GetPixelColor(pixels, x1, y);
+							SetPixel(pixels, x1, y, GetPixelColor(pixels, x2, y));
+							SetPixel(pixels, x2, y, temp);
+
+							var tempMask = _selectionMask[x1, y];
+							_selectionMask[x1, y] = _selectionMask[x2, y];
+							_selectionMask[x2, y] = tempMask;
+						}
+					}
+				}
+			}
+			else
+			{
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 16; x++)
+					{
+						int targetX = 31 - x;
+						var temp = GetPixelColor(pixels, x, y);
+						SetPixel(pixels, x, y, GetPixelColor(pixels, targetX, y));
+						SetPixel(pixels, targetX, y, temp);
+					}
 				}
 			}
 
@@ -940,19 +995,241 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
-			for (int y = 0; y < 16; y++)
-			{
-				int targetY = 31 - y;
-				for (int x = 0; x < 32; x++)
-				{
-					if (HasSelection && (!_selectionMask[x, y] || !_selectionMask[x, targetY]))
-						continue;
 
-					var temp = GetPixelColor(pixels, x, y);
-					SetPixel(pixels, x, y, GetPixelColor(pixels, x, targetY));
-					SetPixel(pixels, x, targetY, temp);
+			if (HasSelection)
+			{
+				int minX = 32, maxX = -1, minY = 32, maxY = -1;
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
+					{
+						if (_selectionMask[x, y])
+						{
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							if (y < minY) minY = y;
+							if (y > maxY) maxY = y;
+						}
+					}
+				}
+				if (maxX >= minX && maxY >= minY)
+				{
+					int h = maxY - minY + 1;
+					for (int dy = 0; dy < h / 2; dy++)
+					{
+						int y1 = minY + dy;
+						int y2 = maxY - dy;
+						for (int x = minX; x <= maxX; x++)
+						{
+							var temp = GetPixelColor(pixels, x, y1);
+							SetPixel(pixels, x, y1, GetPixelColor(pixels, x, y2));
+							SetPixel(pixels, x, y2, temp);
+
+							var tempMask = _selectionMask[x, y1];
+							_selectionMask[x, y1] = _selectionMask[x, y2];
+							_selectionMask[x, y2] = tempMask;
+						}
+					}
 				}
 			}
+			else
+			{
+				for (int y = 0; y < 16; y++)
+				{
+					int targetY = 31 - y;
+					for (int x = 0; x < 32; x++)
+					{
+						var temp = GetPixelColor(pixels, x, y);
+						SetPixel(pixels, x, y, GetPixelColor(pixels, x, targetY));
+						SetPixel(pixels, x, targetY, temp);
+					}
+				}
+			}
+
+			UpdateCanvasPreview();
+		}
+
+		public bool[,] GetSelectionMask() => _selectionMask;
+
+		public void ApplySelectionBox(int startX, int startY, int endX, int endY, bool[,] baseMask, bool merge)
+		{
+			int x1 = Math.Min(startX, endX);
+			int x2 = Math.Max(startX, endX);
+			int y1 = Math.Min(startY, endY);
+			int y2 = Math.Max(startY, endY);
+
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (merge)
+					{
+						_selectionMask[x, y] = baseMask[x, y] || (x >= x1 && x <= x2 && y >= y1 && y <= y2);
+					}
+					else
+					{
+						_selectionMask[x, y] = x >= x1 && x <= x2 && y >= y1 && y <= y2;
+					}
+				}
+			}
+
+			bool hasSel = false;
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (_selectionMask[x, y])
+					{
+						hasSel = true;
+						break;
+					}
+				}
+			}
+			HasSelection = hasSel;
+			UpdateCanvasPreview();
+		}
+
+		[RelayCommand]
+		private void DeleteSelection()
+		{
+			if (ActiveLayer == null || !HasSelection)
+				return;
+
+			SaveHistoryState();
+			var pixels = ActiveLayer.Pixels;
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (_selectionMask[x, y])
+					{
+						SetPixel(pixels, x, y, Colors.Transparent);
+					}
+				}
+			}
+			UpdateCanvasPreview();
+		}
+
+		[RelayCommand]
+		private void CopySelection()
+		{
+			if (ActiveLayer == null || !HasSelection)
+				return;
+
+			int minX = 32, maxX = -1, minY = 32, maxY = -1;
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (_selectionMask[x, y])
+					{
+						if (x < minX) minX = x;
+						if (x > maxX) maxX = x;
+						if (y < minY) minY = y;
+						if (y > maxY) maxY = y;
+					}
+				}
+			}
+
+			if (maxX >= minX && maxY >= minY)
+			{
+				_copyBufferWidth = maxX - minX + 1;
+				_copyBufferHeight = maxY - minY + 1;
+				_copyBuffer = new byte[_copyBufferWidth * _copyBufferHeight * 4];
+				_copyBufferMask = new bool[_copyBufferWidth, _copyBufferHeight];
+
+				var pixels = ActiveLayer.Pixels;
+				for (int y = minY; y <= maxY; y++)
+				{
+					for (int x = minX; x <= maxX; x++)
+					{
+						int localX = x - minX;
+						int localY = y - minY;
+						int destIdx = (localY * _copyBufferWidth + localX) * 4;
+
+						if (_selectionMask[x, y])
+						{
+							var color = GetPixelColor(pixels, x, y);
+							_copyBuffer[destIdx] = color.R;
+							_copyBuffer[destIdx + 1] = color.G;
+							_copyBuffer[destIdx + 2] = color.B;
+							_copyBuffer[destIdx + 3] = color.A;
+							_copyBufferMask[localX, localY] = true;
+						}
+						else
+						{
+							_copyBuffer[destIdx + 3] = 0;
+						}
+					}
+				}
+			}
+		}
+
+		[RelayCommand]
+		private void PasteSelection()
+		{
+			if (ActiveLayer == null || _copyBuffer == null || _copyBufferWidth <= 0 || _copyBufferHeight <= 0)
+				return;
+
+			SaveHistoryState();
+
+			var pastedPixels = new byte[32 * 32 * 4];
+
+			int pasteX = 0;
+			int pasteY = 0;
+
+			if (HasSelection)
+			{
+				for (int y = 0; y < 32; y++)
+				{
+					for (int x = 0; x < 32; x++)
+					{
+						if (_selectionMask[x, y])
+						{
+							pasteX = x;
+							pasteY = y;
+							goto FoundPasteStart;
+						}
+					}
+				}
+			}
+		FoundPasteStart:
+
+			for (int y = 0; y < _copyBufferHeight; y++)
+			{
+				for (int x = 0; x < _copyBufferWidth; x++)
+				{
+					int canvasX = pasteX + x;
+					int canvasY = pasteY + y;
+
+					if (canvasX >= 0 && canvasX < 32 && canvasY >= 0 && canvasY < 32)
+					{
+						if (_copyBufferMask[x, y])
+						{
+							int srcIdx = (y * _copyBufferWidth + x) * 4;
+							int destIdx = (canvasY * 32 + canvasX) * 4;
+							pastedPixels[destIdx] = _copyBuffer[srcIdx];
+							pastedPixels[destIdx + 1] = _copyBuffer[srcIdx + 1];
+							pastedPixels[destIdx + 2] = _copyBuffer[srcIdx + 2];
+							pastedPixels[destIdx + 3] = _copyBuffer[srcIdx + 3];
+						}
+					}
+				}
+			}
+
+			var newLayer = new LayerViewModel("Pasted Layer", pastedPixels);
+			SubscribeLayer(newLayer);
+			Layers.Insert(0, newLayer);
+			ActiveLayer = newLayer;
+
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					_selectionMask[x, y] = (x >= pasteX && x < pasteX + _copyBufferWidth && y >= pasteY && y < pasteY + _copyBufferHeight) && _copyBufferMask[x - pasteX, y - pasteY];
+				}
+			}
+			HasSelection = true;
 
 			UpdateCanvasPreview();
 		}
@@ -1615,9 +1892,93 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			return sb.ToString();
 		}
 
+		public string SelectionOutlinePathData => GetSelectionOutlinePathData();
+
+		private string GetSelectionOutlinePathData()
+		{
+			if (!HasSelection)
+				return string.Empty;
+
+			var sb = new System.Text.StringBuilder();
+			double zoom = ZoomLevel;
+
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (_selectionMask[x, y])
+					{
+						double left = x * zoom;
+						double top = y * zoom;
+						double right = left + zoom;
+						double bottom = top + zoom;
+
+						if (x == 0 || !_selectionMask[x - 1, y])
+						{
+							sb.Append($"M {left},{top} L {left},{bottom} ");
+						}
+						if (x == 31 || !_selectionMask[x + 1, y])
+						{
+							sb.Append($"M {right},{top} L {right},{bottom} ");
+						}
+						if (y == 0 || !_selectionMask[x, y - 1])
+						{
+							sb.Append($"M {left},{top} L {right},{top} ");
+						}
+						if (y == 31 || !_selectionMask[x, y + 1])
+						{
+							sb.Append($"M {left},{bottom} L {right},{bottom} ");
+						}
+					}
+				}
+			}
+			return sb.ToString();
+		}
+
+		public string ActiveLayerOutlinePathData => GetActiveLayerOutlinePathData();
+
+		private string GetActiveLayerOutlinePathData()
+		{
+			if (ActiveLayer == null)
+				return string.Empty;
+
+			int minX = 32, maxX = -1, minY = 32, maxY = -1;
+			var pixels = ActiveLayer.Pixels;
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					int idx = (y * 32 + x) * 4;
+					if (pixels[idx + 3] > 0)
+					{
+						if (x < minX) minX = x;
+						if (x > maxX) maxX = x;
+						if (y < minY) minY = y;
+						if (y > maxY) maxY = y;
+					}
+				}
+			}
+
+			if (maxX < minX || maxY < minY)
+				return string.Empty;
+
+			var sb = new System.Text.StringBuilder();
+			double zoom = ZoomLevel;
+
+			double left = minX * zoom;
+			double top = minY * zoom;
+			double right = (maxX + 1) * zoom;
+			double bottom = (maxY + 1) * zoom;
+
+			sb.Append($"M {left},{top} L {right},{top} L {right},{bottom} L {left},{bottom} Z");
+			return sb.ToString();
+		}
+
 		private void NotifyOutlinePropertiesChanged()
 		{
 			OnPropertyChanged(nameof(HoverOutlinePathData));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
+			OnPropertyChanged(nameof(ActiveLayerOutlinePathData));
 		}
 	}
 }

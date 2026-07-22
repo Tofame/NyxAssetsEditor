@@ -19,6 +19,12 @@
 
 				<!-- Tool Selection -->
 				<StackPanel Grid.Row="1" Spacing="8">
+					<RadioButton IsChecked="{Binding IsSelectActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/select.png" Width="14" Height="14"/>
+							<TextBlock Text="Selection" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
 					<RadioButton IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
 						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
 							<Image Source="/Assets/Icons/paint/pencil.png" Width="14" Height="14"/>
@@ -117,6 +123,9 @@
 						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
 					</StackPanel>
 					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+						<Button Command="{Binding CopySelectionCommand}" HotKey="Ctrl+C" IsVisible="False"/>
+						<Button Command="{Binding PasteSelectionCommand}" HotKey="Ctrl+V" IsVisible="False"/>
+						<Button Command="{Binding DeleteSelectionCommand}" HotKey="Delete" IsVisible="False"/>
 						<Button Content="Copy to Clipboard" Command="{Binding CopyToClipboardCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
 						<Button Content="Cancel" Command="{Binding CancelCommand}"/>
 					</StackPanel>
@@ -157,6 +166,24 @@
 									<!-- White sharp outline (thickness 1) -->
 									<Path Stroke="#FFFFFF" StrokeThickness="1.0"
 										  Data="{Binding HoverOutlinePathData}"/>
+								</Canvas>
+								<!-- Slim vector outline overlay for Selection (Marching Ants / Dashed) -->
+								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
+									<!-- Black dashed background stroke (thickness 1.5) -->
+									<Path Stroke="#000000" StrokeThickness="1.5"
+										  Data="{Binding SelectionOutlinePathData}"/>
+									<!-- White dashed foreground stroke (thickness 1.5) with DashArray -->
+									<Path Stroke="#FFFFFF" StrokeThickness="1.5" StrokeDashArray="4,4"
+										  Data="{Binding SelectionOutlinePathData}"/>
+								</Canvas>
+								<!-- Slim vector outline overlay for Active Layer (GIMP style golden dashed) -->
+								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
+									<!-- Black dashed background stroke (thickness 1.0) -->
+									<Path Stroke="#000000" StrokeThickness="1.0"
+										  Data="{Binding ActiveLayerOutlinePathData}"/>
+									<!-- Golden dashed foreground stroke (thickness 1.0) with DashArray -->
+									<Path Stroke="#FFD700" StrokeThickness="1.0" StrokeDashArray="4,4"
+										  Data="{Binding ActiveLayerOutlinePathData}"/>
 								</Canvas>
 							</Panel>
 						</Border>
