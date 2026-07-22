@@ -452,11 +452,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					ApplyBrush(x, y, Colors.Transparent);
 					break;
 				case PaintTool.Picker:
-					var pickerColor = GetPixelColor(ActiveLayer.Pixels, x, y);
+					var pickerColor = GetPixelColor(GetCompositePixels(), x, y);
 					if (pickerColor.A > 0)
 					{
 						ActiveColor = pickerColor;
-						ActiveTool = PaintTool.Brush;
 					}
 					break;
 				case PaintTool.Bucket:
@@ -724,14 +723,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							}
 						}
 					}
-				}
-				else if (ActiveTool == PaintTool.Picker)
-				{
-					// Draw a 1x1 XOR (contrast-inverted) preview on the hovered pixel for Picker (droplet)
-					int idx = (HoverY * 32 + HoverX) * 4;
-					overlay[idx] = (byte)(overlay[idx] ^ 0x80);
-					overlay[idx + 1] = (byte)(overlay[idx + 1] ^ 0x80);
-					overlay[idx + 2] = (byte)(overlay[idx + 2] ^ 0x80);
 				}
 				else if (ActiveTool == PaintTool.Bucket && ActiveLayer != null && ShowFillPreview)
 				{
@@ -1482,12 +1473,29 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private string GetHoverOutlinePathData()
 		{
-			if (!IsHovering || ActiveTool != PaintTool.Eraser)
+			if (!IsHovering)
+				return string.Empty;
+
+			if (ActiveTool != PaintTool.Eraser && ActiveTool != PaintTool.Picker)
 				return string.Empty;
 
 			var sb = new System.Text.StringBuilder();
-			int radius = BrushSize - 1;
 			double zoom = ZoomLevel;
+
+			if (ActiveTool == PaintTool.Picker)
+			{
+				if (HoverX >= 0 && HoverX < 32 && HoverY >= 0 && HoverY < 32)
+				{
+					double left = HoverX * zoom;
+					double top = HoverY * zoom;
+					double right = left + zoom;
+					double bottom = top + zoom;
+					sb.Append($"M {left},{top} L {right},{top} L {right},{bottom} L {left},{bottom} Z");
+				}
+				return sb.ToString();
+			}
+
+			int radius = BrushSize - 1;
 
 			for (int dy = -radius; dy <= radius; dy++)
 			{
