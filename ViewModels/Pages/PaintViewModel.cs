@@ -26,7 +26,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		Picker,
 		Bucket,
 		Wand,
-		Select
+		Select,
+		Move
 	}
 
 	public enum BrushShape
@@ -143,6 +144,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsBucketActive));
 			OnPropertyChanged(nameof(IsWandActive));
 			OnPropertyChanged(nameof(IsSelectActive));
+			OnPropertyChanged(nameof(IsMoveActive));
 			OnPropertyChanged(nameof(IsThresholdVisible));
 			NotifyOutlinePropertiesChanged();
 		}
@@ -183,6 +185,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			get => ActiveTool == PaintTool.Select;
 			set { if (value) ActiveTool = PaintTool.Select; }
+		}
+
+		public bool IsMoveActive
+		{
+			get => ActiveTool == PaintTool.Move;
+			set { if (value) ActiveTool = PaintTool.Move; }
 		}
 
 		[ObservableProperty]
@@ -1230,6 +1238,74 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 			HasSelection = true;
+
+			UpdateCanvasPreview();
+		}
+
+		public void ShiftLayerAndSelection(int dx, int dy, byte[] originalPixels, bool[,] originalSelectionMask)
+		{
+			if (ActiveLayer == null)
+				return;
+
+			var pixels = ActiveLayer.Pixels;
+			Array.Clear(pixels, 0, pixels.Length);
+
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					int srcIdx = (y * 32 + x) * 4;
+					byte r = originalPixels[srcIdx];
+					byte g = originalPixels[srcIdx + 1];
+					byte b = originalPixels[srcIdx + 2];
+					byte a = originalPixels[srcIdx + 3];
+
+					if (a > 0)
+					{
+						int newX = x + dx;
+						int newY = y + dy;
+						if (newX >= 0 && newX < 32 && newY >= 0 && newY < 32)
+						{
+							int destIdx = (newY * 32 + newX) * 4;
+							pixels[destIdx] = r;
+							pixels[destIdx + 1] = g;
+							pixels[destIdx + 2] = b;
+							pixels[destIdx + 3] = a;
+						}
+					}
+				}
+			}
+
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					int oldX = x - dx;
+					int oldY = y - dy;
+					if (oldX >= 0 && oldX < 32 && oldY >= 0 && oldY < 32)
+					{
+						_selectionMask[x, y] = originalSelectionMask[oldX, oldY];
+					}
+					else
+					{
+						_selectionMask[x, y] = false;
+					}
+				}
+			}
+
+			bool hasSel = false;
+			for (int y = 0; y < 32; y++)
+			{
+				for (int x = 0; x < 32; x++)
+				{
+					if (_selectionMask[x, y])
+					{
+						hasSel = true;
+						break;
+					}
+				}
+			}
+			HasSelection = hasSel;
 
 			UpdateCanvasPreview();
 		}

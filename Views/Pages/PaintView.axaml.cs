@@ -19,6 +19,10 @@ namespace NyxAssetsEditor.Views.Pages
 		private int _selectStartX = -1;
 		private int _selectStartY = -1;
 		private readonly bool[,] _selectionBeforeDrag = new bool[32, 32];
+		private int _moveStartX = -1;
+		private int _moveStartY = -1;
+		private byte[]? _moveStartPixels;
+		private bool[,]? _moveStartSelectionMask;
 
 		public PaintView()
 		{
@@ -56,6 +60,20 @@ namespace NyxAssetsEditor.Views.Pages
 
 						vm.ApplySelectionBox(_selectStartX, _selectStartY, _selectStartX, _selectStartY, _selectionBeforeDrag, keepExisting);
 					}
+					else if (vm.ActiveTool == PaintTool.Move)
+					{
+						var pos = e.GetPosition(img);
+						_moveStartX = (int)(pos.X / img.Bounds.Width * 32);
+						_moveStartY = (int)(pos.Y / img.Bounds.Height * 32);
+
+						if (vm.ActiveLayer != null)
+						{
+							_moveStartPixels = new byte[vm.ActiveLayer.Pixels.Length];
+							Array.Copy(vm.ActiveLayer.Pixels, _moveStartPixels, _moveStartPixels.Length);
+						}
+						_moveStartSelectionMask = new bool[32, 32];
+						Array.Copy(vm.GetSelectionMask(), _moveStartSelectionMask, _moveStartSelectionMask.Length);
+					}
 					else
 					{
 						HandlePointer(e);
@@ -74,6 +92,10 @@ namespace NyxAssetsEditor.Views.Pages
 				if (vm?.ActiveTool == PaintTool.Select)
 				{
 					HandleSelectDrag(e);
+				}
+				else if (vm?.ActiveTool == PaintTool.Move)
+				{
+					HandleMoveDrag(e);
 				}
 				else
 				{
@@ -195,6 +217,23 @@ namespace NyxAssetsEditor.Views.Pages
 
 			bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
 			vm.ApplySelectionBox(_selectStartX, _selectStartY, currentX, currentY, _selectionBeforeDrag, keepExisting);
+		}
+
+		private void HandleMoveDrag(PointerEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			var img = this.FindControl<Image>("CanvasImage");
+			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0 || _moveStartPixels == null || _moveStartSelectionMask == null)
+				return;
+
+			var pos = e.GetPosition(img);
+			int currentX = (int)(pos.X / img.Bounds.Width * 32);
+			int currentY = (int)(pos.Y / img.Bounds.Height * 32);
+
+			int dx = currentX - _moveStartX;
+			int dy = currentY - _moveStartY;
+
+			vm.ShiftLayerAndSelection(dx, dy, _moveStartPixels, _moveStartSelectionMask);
 		}
 
 		private void OnPaletteColorTapped(object sender, TappedEventArgs e)

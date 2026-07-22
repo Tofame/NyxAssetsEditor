@@ -25,6 +25,12 @@
 							<TextBlock Text="Selection" VerticalAlignment="Center"/>
 						</StackPanel>
 					</RadioButton>
+					<RadioButton IsChecked="{Binding IsMoveActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/action_drag.png" Width="14" Height="14"/>
+							<TextBlock Text="Move Layer" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
 					<RadioButton IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
 						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
 							<Image Source="/Assets/Icons/paint/pencil.png" Width="14" Height="14"/>
