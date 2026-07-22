@@ -72,6 +72,28 @@ namespace NyxAssetsEditor.Views.Pages
 			}
 		}
 
+		private void OnPointerWheelChanged(object sender, PointerWheelEventArgs e)
+		{
+			if (e.KeyModifiers == KeyModifiers.Control)
+			{
+				var vm = DataContext as PaintViewModel;
+				if (vm != null)
+				{
+					if (e.Delta.Y > 0)
+					{
+						if (vm.ZoomInCommand.CanExecute(null))
+							vm.ZoomInCommand.Execute(null);
+					}
+					else if (e.Delta.Y < 0)
+					{
+						if (vm.ZoomOutCommand.CanExecute(null))
+							vm.ZoomOutCommand.Execute(null);
+					}
+				}
+				e.Handled = true;
+			}
+		}
+
 		private void UpdateHoverPosition(PointerEventArgs e)
 		{
 			var vm = DataContext as PaintViewModel;

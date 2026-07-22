@@ -124,7 +124,7 @@
 			</Border>
 
 			<!-- Canvas Workspace Layout with Centered Drawing and Absolute Overlays -->
-			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True">
+			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True" PointerWheelChanged="OnPointerWheelChanged">
 				<Panel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 					<!-- Transparent checkerboard background simulation -->
 					<Image Source="/Assets/avalonia-logo.ico" Opacity="0.03" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -359,21 +359,22 @@
 
 						<!-- Floating Zoom HUD Panel (Bottom Left, below Layers) -->
 						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
-								Height="38" Padding="6"
+								Width="240" Height="55" Padding="6"
 								Canvas.Right="15" Canvas.Top="15"
 								BoxShadow="0 4 12 0 #A0000000">
 							<Border.Background>
 								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
 							</Border.Background>
-							<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-								<Button Command="{Binding ZoomOutCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+							<Grid ColumnDefinitions="Auto, *, Auto, Auto" VerticalAlignment="Center">
+								<Button Grid.Column="0" Command="{Binding ZoomOutCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center">
 									<Image Source="/Assets/Icons/zoom-out.png" Width="12" Height="12"/>
 								</Button>
-								<TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0}x'}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="4,0" FontSize="10" FontWeight="Bold"/>
-								<Button Command="{Binding ZoomInCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+								<Slider Grid.Column="1" Minimum="1" Maximum="64" Value="{Binding ZoomLevel}" Margin="8,0" VerticalAlignment="Center"/>
+								<Button Grid.Column="2" Command="{Binding ZoomInCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center">
 									<Image Source="/Assets/Icons/zoom-in.png" Width="12" Height="12"/>
 								</Button>
-							</StackPanel>
+								<TextBlock Grid.Column="3" Text="{Binding ZoomLevel, StringFormat='{}{0:F0}x'}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="10" FontWeight="Bold" Width="30" TextAlignment="Right"/>
+							</Grid>
 						</Border>
 					</Canvas>
 				</Panel>

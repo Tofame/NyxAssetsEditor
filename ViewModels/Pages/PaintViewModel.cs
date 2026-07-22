@@ -1130,18 +1130,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private void ZoomIn()
 		{
-			if (ZoomLevel < 24.0)
+			if (ZoomLevel < 64.0)
 			{
-				ZoomLevel += 2.0;
+				ZoomLevel = Math.Min(64.0, ZoomLevel + 1.0);
 			}
 		}
 
 		[RelayCommand]
 		private void ZoomOut()
 		{
-			if (ZoomLevel > 4.0)
+			if (ZoomLevel > 1.0)
 			{
-				ZoomLevel -= 2.0;
+				ZoomLevel = Math.Max(1.0, ZoomLevel - 1.0);
 			}
 		}
 
