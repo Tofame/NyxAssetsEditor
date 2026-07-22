@@ -1316,6 +1316,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				(byte)Math.Clamp(state.ColorB, 0, 255));
 			CopyOnAxisX = state.CopyOnAxisX;
 			CopyOnAxisY = state.CopyOnAxisY;
+			FillThreshold = state.FillThreshold;
+			CheckDiagonals = state.CheckDiagonals;
+			ShowFillPreview = state.ShowFillPreview;
 
 			// Rebuild original-colors palette from the bottom layer
 			var existingOriginal = CustomPalettes.FirstOrDefault(p => p.Name == "Original colors");
@@ -1337,7 +1340,17 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			foreach (var color in originalColors.OrderBy(c => c.ToString()))
 				origPalette.Colors.Add(color);
 			CustomPalettes.Insert(0, origPalette);
+
 			SelectedPalette = origPalette;
+			if (!string.IsNullOrEmpty(state.SelectedPaletteName))
+			{
+				var matchedPalette = CustomPalettes.FirstOrDefault(p => p.Name == state.SelectedPaletteName);
+				if (matchedPalette != null)
+				{
+					SelectedPalette = matchedPalette;
+				}
+			}
+			ApplySelectedPalette();
 
 			ClearSelection();
 		}

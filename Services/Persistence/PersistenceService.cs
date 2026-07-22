@@ -588,6 +588,10 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int ColorB { get; set; } = 255;
 			public bool CopyOnAxisX { get; set; }
 			public bool CopyOnAxisY { get; set; }
+			public double FillThreshold { get; set; } = 10.0;
+			public bool CheckDiagonals { get; set; } = true;
+			public bool ShowFillPreview { get; set; } = true;
+			public string SelectedPaletteName { get; set; } = "";
 		}
 
 		private static readonly string PaintStatePath = Path.Combine(AppContext.BaseDirectory, "paint_state.toml");
@@ -614,7 +618,11 @@ namespace NyxAssetsEditor.Services.Persistence
 					ColorG = vm.ActiveColor.G,
 					ColorB = vm.ActiveColor.B,
 					CopyOnAxisX = vm.CopyOnAxisX,
-					CopyOnAxisY = vm.CopyOnAxisY
+					CopyOnAxisY = vm.CopyOnAxisY,
+					FillThreshold = vm.FillThreshold,
+					CheckDiagonals = vm.CheckDiagonals,
+					ShowFillPreview = vm.ShowFillPreview,
+					SelectedPaletteName = vm.SelectedPalette?.Name ?? ""
 				};
 
 				foreach (var layer in vm.Layers)
