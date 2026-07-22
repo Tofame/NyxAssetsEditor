@@ -132,6 +132,13 @@
 						<Button Command="{Binding CopySelectionCommand}" HotKey="Ctrl+C" IsVisible="False"/>
 						<Button Command="{Binding PasteSelectionCommand}" HotKey="Ctrl+V" IsVisible="False"/>
 						<Button Command="{Binding DeleteSelectionCommand}" HotKey="Delete" IsVisible="False"/>
+						<Button Command="{Binding SelectSelectToolCommand}" HotKey="R" IsVisible="False"/>
+						<Button Command="{Binding SelectMoveToolCommand}" HotKey="M" IsVisible="False"/>
+						<Button Command="{Binding SelectBrushToolCommand}" HotKey="P" IsVisible="False"/>
+						<Button Command="{Binding SelectEraserToolCommand}" HotKey="Shift+E" IsVisible="False"/>
+						<Button Command="{Binding SelectPickerToolCommand}" HotKey="O" IsVisible="False"/>
+						<Button Command="{Binding SelectBucketToolCommand}" HotKey="Shift+B" IsVisible="False"/>
+						<Button Command="{Binding SelectWandToolCommand}" HotKey="U" IsVisible="False"/>
 						<Button Content="Copy to Clipboard" Command="{Binding CopyToClipboardCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
 						<Button Content="Cancel" Command="{Binding CancelCommand}"/>
 					</StackPanel>

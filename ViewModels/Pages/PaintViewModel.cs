@@ -2115,5 +2115,26 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(SelectionOutlinePathData));
 			OnPropertyChanged(nameof(ActiveLayerOutlinePathData));
 		}
+
+		[RelayCommand]
+		private void SelectSelectTool() => ActiveTool = PaintTool.Select;
+
+		[RelayCommand]
+		private void SelectBrushTool() => ActiveTool = PaintTool.Brush;
+
+		[RelayCommand]
+		private void SelectEraserTool() => ActiveTool = PaintTool.Eraser;
+
+		[RelayCommand]
+		private void SelectPickerTool() => ActiveTool = PaintTool.Picker;
+
+		[RelayCommand]
+		private void SelectBucketTool() => ActiveTool = PaintTool.Bucket;
+
+		[RelayCommand]
+		private void SelectWandTool() => ActiveTool = PaintTool.Wand;
+
+		[RelayCommand]
+		private void SelectMoveTool() => ActiveTool = PaintTool.Move;
 	}
 }
