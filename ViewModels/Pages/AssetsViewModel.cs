@@ -43,6 +43,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
+		public Action<double, double>? PositionWebExportHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 
 		public System.Collections.Generic.IReadOnlyList<LinkedArchivePair> GetCompilePairs()
@@ -168,6 +169,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			foreach (var generator in ActivePanels.OfType<FloatingLooktypeGeneratorViewModel>())
 				generator.RefreshArchivePairs();
+			foreach (var export in ActivePanels.OfType<FloatingWebExportViewModel>())
+				export.RefreshArchivePairs();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -491,6 +494,40 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				PositionY = 60,
 				IsVisible = true,
 			});
+		}
+
+		[RelayCommand]
+		private void OpenWebExport()
+		{
+			var existing = ActivePanels.OfType<FloatingWebExportViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				existing.RefreshArchivePairs();
+				return;
+			}
+
+			if (PositionWebExportHandler != null)
+			{
+				PositionWebExportHandler(550, 600);
+				return;
+			}
+
+			AddPanel(new FloatingWebExportViewModel(this)
+			{
+				DockState = "Floating",
+				PanelWidth = 550,
+				ContentHeight = 600,
+				PositionX = 450,
+				PositionY = 120,
+				IsVisible = true,
+			});
+		}
+
+		public void AddPanelFromView(PanelViewModelBase panel)
+		{
+			AddPanel(panel);
 		}
 
 		private void AddPanel(PanelViewModelBase panel)

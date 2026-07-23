@@ -20,11 +20,17 @@ namespace NyxAssetsEditor.Views.Pages
 		private void OnDataContextChanged(object? sender, EventArgs e)
 		{
 			if (_viewModel != null)
+			{
 				_viewModel.CompileAsHandler = null;
+				_viewModel.PositionWebExportHandler = null;
+			}
 
 			_viewModel = DataContext as AssetsViewModel;
 			if (_viewModel != null)
+			{
 				_viewModel.CompileAsHandler = ShowCompileAsDialogAsync;
+				_viewModel.PositionWebExportHandler = PositionAndOpenWebExport;
+			}
 		}
 
 		private async Task ShowCompileAsDialogAsync()
@@ -90,6 +96,37 @@ namespace NyxAssetsEditor.Views.Pages
 					pair.ThingsPanel.ErrorMessage = $"Compile As failed: {ex.Message}";
 				}
 			}
+		}
+
+		private void PositionAndOpenWebExport(double panelW, double panelH)
+		{
+			if (_viewModel == null) return;
+
+			double posX = 450;
+			double posY = 120;
+
+			var centerGrid = this.FindControl<Grid>("CenterDockColumn");
+			if (centerGrid != null)
+			{
+				var bounds = centerGrid.Bounds;
+				if (bounds.Width > 0 && bounds.Height > 0)
+				{
+					posX = bounds.X + (bounds.Width - panelW) / 2;
+					posY = bounds.Y + (bounds.Height - panelH) / 2;
+				}
+			}
+
+			var panel = new NyxAssetsEditor.ViewModels.ArchiveLoaders.FloatingWebExportViewModel(_viewModel)
+			{
+				DockState = "Floating",
+				PanelWidth = panelW,
+				ContentHeight = panelH,
+				PositionX = Math.Max(0, posX),
+				PositionY = Math.Max(0, posY),
+				IsVisible = true,
+			};
+
+			_viewModel.AddPanelFromView(panel);
 		}
 	}
 }
