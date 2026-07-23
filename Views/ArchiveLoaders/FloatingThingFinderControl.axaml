@@ -20,60 +20,7 @@
 		</Style>
 		<Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#999"/><Setter Property="FontSize" Value="11"/></Style>
 	</UserControl.Styles>
-	<UserControl.Resources>
-		<DataTemplate x:Key="FinderFieldTemplate" x:DataType="vm:ThingFinderFieldViewModel">
-			<local:BatchApplyField PropertyName="{Binding Descriptor.Key}" IsApplied="{Binding IsActive, Mode=TwoWay}"
-				AlwaysShowApply="True" ApplyToolTip="Use this field as a filter" Margin="0,1">
-				<Grid ColumnDefinitions="170,*" MinHeight="30">
-					<ToggleSwitch Grid.ColumnSpan="2" Content="{Binding DisplayName}" IsChecked="{Binding BooleanValue}"
-						OnContent="" OffContent="" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding IsBoolean}"/>
-					<TextBlock Text="{Binding DisplayName, StringFormat='{}{0}:'}" Foreground="#888" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding UsesValue}"/>
-					<NumericUpDown Grid.Column="1" Value="{Binding NumericValue}"
-						Minimum="{Binding NumericMinimum}" Maximum="{Binding NumericMaximum}" Increment="{Binding NumericIncrement}"
-						FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="True"
-						Height="28" MinWidth="150" Padding="4,0" FontSize="11" IsVisible="{Binding UsesStandardIntegerInput}"/>
-					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsPaletteColor}">
-						<NumericUpDown Value="{Binding NumericValue}"
-							Minimum="{Binding NumericMinimum}" Maximum="{Binding NumericMaximum}" Increment="{Binding NumericIncrement}"
-							FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="True"
-							Height="28" MinWidth="120" Padding="4,0" FontSize="11"/>
-						<Button Width="20" Height="20" Margin="4,0,0,0" VerticalAlignment="Center" BorderBrush="#444" BorderThickness="1"
-							Background="{Binding PaletteColorBrush}" ToolTip.Tip="{Binding PalettePickerToolTip}">
-							<Button.Flyout>
-								<Flyout Placement="BottomEdgeAlignedRight">
-									<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6" Width="268" Height="236">
-										<ItemsControl ItemsSource="{Binding PaletteColors}" x:CompileBindings="False">
-											<ItemsControl.ItemsPanel>
-												<ItemsPanelTemplate>
-													<UniformGrid Columns="16" Rows="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-												</ItemsPanelTemplate>
-											</ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate>
-												<DataTemplate x:DataType="vm:FloatingThingEditorViewModel+PaletteColor">
-													<Button Width="14" Height="14" Margin="1" Padding="0" CornerRadius="0" BorderThickness="0"
-														Background="{Binding Hex}"
-														Command="{Binding $parent[ItemsControl].DataContext.SelectPaletteColorCommand}"
-														CommandParameter="{Binding Index}"/>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</Border>
-								</Flyout>
-							</Button.Flyout>
-						</Button>
-					</StackPanel>
-					<NumericUpDown Grid.Column="1" Value="{Binding NumericValue}"
-						Minimum="{Binding NumericMinimum}" Maximum="{Binding NumericMaximum}" Increment="{Binding NumericIncrement}"
-						FormatString="0.###" ParsingNumberStyle="Number" ClipValueToMinMax="True"
-						Height="28" MinWidth="150" Padding="4,0" FontSize="11" IsVisible="{Binding IsDecimal}"/>
-					<ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" PlaceholderText="Select value"
-						Height="28" MinWidth="150" FontSize="11" IsVisible="{Binding IsChoice}"/>
-					<TextBox Grid.Column="1" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Enter value"
-						Height="28" MinWidth="150" Padding="6,4" FontSize="11" IsVisible="{Binding UsesTextValue}"/>
-				</Grid>
-			</local:BatchApplyField>
-		</DataTemplate>
-	</UserControl.Resources>
+
 
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
 		<Grid RowDefinitions="Auto,*">

@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingWebExportControl"
+			 x:DataType="vm:FloatingWebExportViewModel"
+			 Width="{Binding DisplayWidth}">
+	<UserControl.Styles>
+		<Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#999"/><Setter Property="FontSize" Value="11"/></Style>
+	</UserControl.Styles>
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<!-- Title Bar -->
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/><MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Content="—" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Content Area -->
+			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}"
+						  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+				<StackPanel Spacing="12" Margin="12">
+					
+					<!-- Archive Pair Dropdown -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Archive Pair" Classes="label"/>
+						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" HorizontalAlignment="Stretch" PlaceholderText="No compatible pair"/>
+					</StackPanel>
+					<Separator Height="1" Background="#383838"/>
+				
+				<!-- Export Items Settings -->
+				<StackPanel Spacing="6">
+					<CheckBox IsChecked="{Binding ExportItems, Mode=TwoWay}" Content="Export Items"/>
+					
+					<StackPanel Spacing="4" Margin="20,0,0,0" IsEnabled="{Binding ExportItems}">
+						<TextBlock Text="{Binding ItemFilterText}" Classes="label"/>
+						<Button Content="Set Item Filter..." Command="{Binding OpenItemFilterCommand}"
+							Padding="10,5" FontSize="11" HorizontalAlignment="Left"/>
+					</StackPanel>
+				</StackPanel>
+				
+					<Separator Height="1" Background="#383838"/>
+					
+					<!-- Export Outfits Settings -->
+					<StackPanel Spacing="6">
+						<CheckBox IsChecked="{Binding ExportOutfits, Mode=TwoWay}" Content="Export Outfits"/>
+						
+						<StackPanel Spacing="6" Margin="20,0,0,0" IsEnabled="{Binding ExportOutfits}">
+							<TextBlock Text="Outfit Mode" Classes="label"/>
+							<ComboBox SelectedItem="{Binding OutfitMode, Mode=TwoWay}" HorizontalAlignment="Stretch" Height="28">
+								<ComboBox.Items>
+									<x:String>FirstFrame</x:String>
+									<x:String>Spritesheet</x:String>
+								</ComboBox.Items>
+							</ComboBox>
+							
+							<StackPanel Spacing="4" IsVisible="{Binding IsOutfitFirstFrameMode}">
+								<TextBlock Text="First Frame Direction" Classes="label"/>
+								<ComboBox SelectedItem="{Binding OutfitDirection, Mode=TwoWay}" HorizontalAlignment="Stretch" Height="28">
+									<ComboBox.Items>
+										<x:String>South</x:String>
+										<x:String>East</x:String>
+										<x:String>North</x:String>
+										<x:String>West</x:String>
+									</ComboBox.Items>
+								</ComboBox>
+							</StackPanel>
+						</StackPanel>
+					</StackPanel>
+					
+					<Separator Height="1" Background="#383838"/>
+					
+					<!-- Export Effects & Missiles Settings -->
+					<StackPanel Spacing="6">
+						<CheckBox IsChecked="{Binding ExportEffects, Mode=TwoWay}" Content="Export Effects"/>
+						<CheckBox IsChecked="{Binding ExportMissiles, Mode=TwoWay}" Content="Export Missiles"/>
+					</StackPanel>
+					
+					<Separator Height="1" Background="#383838"/>
+					
+					<!-- Target Settings -->
+					<StackPanel Spacing="8">
+						<TextBlock Text="Export Folder" Classes="label"/>
+						<Grid ColumnDefinitions="*, Auto">
+							<TextBox Grid.Column="0" Text="{Binding ExportPath, Mode=TwoWay}" PlaceholderText="Select folder..." Height="28" VerticalContentAlignment="Center"/>
+							<Button Grid.Column="1" Content="Browse..." Margin="6,0,0,0" Padding="10,6" FontSize="11" Click="OnBrowseFolderClick"/>
+						</Grid>
+						
+						<Grid ColumnDefinitions="*, *">
+							<StackPanel Grid.Column="0" Spacing="4" Margin="0,0,6,0">
+								<TextBlock Text="Output Format" Classes="label"/>
+								<ComboBox SelectedItem="{Binding OutputFormat, Mode=TwoWay}" HorizontalAlignment="Stretch" Height="28">
+									<ComboBox.Items>
+										<x:String>webp</x:String>
+										<x:String>png</x:String>
+										<x:String>jpg</x:String>
+										<x:String>bmp</x:String>
+									</ComboBox.Items>
+								</ComboBox>
+							</StackPanel>
+							
+							<StackPanel Grid.Column="1" Spacing="4" Margin="6,0,0,0">
+								<TextBlock Text="Compression Level (0-9)" Classes="label"/>
+								<NumericUpDown Value="{Binding CompressionLevel, Mode=TwoWay}" Minimum="0" Maximum="9" FormatString="0" ParsingNumberStyle="Integer" Height="28"/>
+							</StackPanel>
+						</Grid>
+						<CheckBox IsChecked="{Binding OptimizeWithOxiPng, Mode=TwoWay}" Content="Optimize PNGs with OxiPNG" IsVisible="{Binding IsPngFormat}" Margin="0,6,0,0" FontSize="11"/>
+						<StackPanel Spacing="2" Margin="18,2,0,0" IsVisible="{Binding ShowOxiPngOptions}">
+							<CheckBox IsChecked="{Binding OxiPngMaxLevel, Mode=TwoWay}" Content="OxiPNG max (-o max, slower)" FontSize="11"/>
+							<CheckBox IsChecked="{Binding OxiPngZopfli, Mode=TwoWay}" Content="Zopfli (--zopfli, slowest / smaller)" FontSize="11"/>
+							<TextBlock Text="Pick one (or neither = default -o 3)" FontSize="10" Foreground="#888" Margin="0,2,0,0"/>
+						</StackPanel>
+					</StackPanel>
+					
+					<Separator Height="1" Background="#383838"/>
+					
+					<!-- Progress and Action Buttons -->
+					<StackPanel Spacing="8" Margin="0,6,0,0">
+						<ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Height="14" IsVisible="{Binding IsExporting}"/>
+						<TextBlock Text="{Binding StatusText}" HorizontalAlignment="Center" FontSize="12" Foreground="#CCC"/>
+						
+						<Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="0,4,0,0">
+							<Button Grid.Column="0" Content="Export" Command="{Binding ExportCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1A3A1A" BorderBrush="#3A6A3A" BorderThickness="1" Foreground="#88CC88" Padding="12,8" CornerRadius="4"/>
+							<Button Grid.Column="1" Content="Cancel" Command="{Binding CancelCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" Foreground="#AAAAAA" Padding="12,8" CornerRadius="4"/>
+						</Grid>
+					</StackPanel>
+					
+				</StackPanel>
+			</ScrollViewer>
+		</Grid>
+	</Border>
+</UserControl>
