@@ -10,6 +10,27 @@
 			x:DataType="vm:PaintViewModel"
 			Background="#141414">
 
+	<UserControl.Styles>
+		<Style Selector="Grid.CanvasContainer Border.ResizeHandle">
+			<Setter Property="Opacity" Value="0.0"/>
+			<Setter Property="Background" Value="#3A7BD5"/>
+			<Setter Property="BorderBrush" Value="#FFFFFF"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+				</Transitions>
+			</Setter>
+		</Style>
+		<Style Selector="Grid.CanvasContainer:pointerover Border.ResizeHandle">
+			<Setter Property="Opacity" Value="0.6"/>
+		</Style>
+		<Style Selector="Grid.CanvasContainer Border.ResizeHandle:pointerover">
+			<Setter Property="Opacity" Value="1.0"/>
+			<Setter Property="Background" Value="#00FFCC"/>
+		</Style>
+	</UserControl.Styles>
+
 	<Grid ColumnDefinitions="220, *" Margin="10">
 		<!-- Left Toolbar -->
 		<Border Grid.Column="0" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="15" Margin="0,0,10,0">
@@ -127,6 +148,17 @@
 						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
 						<Button Content="Mirror Horizontal" Command="{Binding MirrorHorizontalCommand}"/>
 						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
+						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
+						<CheckBox Content="Handles" IsChecked="{Binding ShowResizeHandles}" VerticalAlignment="Center" FontSize="11" Margin="0,0,5,0"/>
+						<Button Content="Resize..." Click="OnResizeCanvasMenuClick" FontSize="11" Padding="8,4"/>
+						<Button Content="Fit to Layers" Command="{Binding FitCanvasToContentCommand}" FontSize="11" Padding="8,4"/>
+						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
+						<CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" VerticalAlignment="Center" FontSize="11" Margin="0,0,5,0"/>
+						<TextBlock Text="Grid Size:" VerticalAlignment="Center" FontSize="11" Foreground="#A0A0A0"/>
+						<NumericUpDown Value="{Binding GridWidth}" Minimum="1" Maximum="128" Width="70" Height="24" FontSize="11"/>
+						<TextBlock Text="x" VerticalAlignment="Center" FontSize="11" Foreground="#A0A0A0"/>
+						<NumericUpDown Value="{Binding GridHeight}" Minimum="1" Maximum="128" Width="70" Height="24" FontSize="11"/>
+						<ColorPicker Color="{Binding GridColor}" Width="45" Height="24" Margin="5,0,0,0"/>
 					</StackPanel>
 					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
 						<Button Command="{Binding CopySelectionCommand}" HotKey="Ctrl+C" IsVisible="False"/>
@@ -151,56 +183,90 @@
 					<!-- Transparent checkerboard background simulation -->
 					<Image Source="/Assets/avalonia-logo.ico" Opacity="0.03" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-					<!-- Centered Sprite Canvas Drawing Area -->
-					<Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-						<Border BorderBrush="#444444" BorderThickness="1" Background="#141414">
-							<Border.ContextMenu>
-								<ContextMenu>
-									<MenuItem Header="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}"/>
-								</ContextMenu>
-							</Border.ContextMenu>
-							<Panel>
-								<Viewbox Stretch="Uniform" Height="{Binding ZoomDimension}" Width="{Binding ZoomDimension}">
-									<Image x:Name="CanvasImage"
-										   Source="{Binding CanvasPreview}"
-										   Width="32" Height="32"
-										   RenderOptions.BitmapInterpolationMode="None"
-										   PointerPressed="OnCanvasPointerPressed"
-										   PointerMoved="OnCanvasPointerMoved"
-										   PointerReleased="OnCanvasPointerReleased"
-										   PointerEntered="OnCanvasPointerEntered"
-										   PointerExited="OnCanvasPointerExited"/>
-								</Viewbox>
-								<!-- Slim vector outline overlay for Eraser cursor -->
-								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
-									<!-- Black shadow outline (thickness 3) -->
-									<Path Stroke="#000000" StrokeThickness="3.0"
-										  Data="{Binding HoverOutlinePathData}"/>
-									<!-- White sharp outline (thickness 1) -->
-									<Path Stroke="#FFFFFF" StrokeThickness="1.0"
-										  Data="{Binding HoverOutlinePathData}"/>
-								</Canvas>
-								<!-- Slim vector outline overlay for Selection (Marching Ants / Dashed) -->
-								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
-									<!-- Black dashed background stroke (thickness 1.5) -->
-									<Path Stroke="#000000" StrokeThickness="1.5"
-										  Data="{Binding SelectionOutlinePathData}"/>
-									<!-- White dashed foreground stroke (thickness 1.5) with DashArray -->
-									<Path Stroke="#FFFFFF" StrokeThickness="1.5" StrokeDashArray="4,4"
-										  Data="{Binding SelectionOutlinePathData}"/>
-								</Canvas>
-								<!-- Slim vector outline overlay for Active Layer (GIMP style golden dashed) -->
-								<Canvas Width="{Binding ZoomDimension}" Height="{Binding ZoomDimension}" IsHitTestVisible="False">
-									<!-- Black dashed background stroke (thickness 1.0) -->
-									<Path Stroke="#000000" StrokeThickness="1.0"
-										  Data="{Binding ActiveLayerOutlinePathData}"/>
-									<!-- Golden dashed foreground stroke (thickness 1.0) with DashArray -->
-									<Path Stroke="#FFD700" StrokeThickness="1.0" StrokeDashArray="4,4"
-										  Data="{Binding ActiveLayerOutlinePathData}"/>
-								</Canvas>
-							</Panel>
-						</Border>
-					</Grid>
+					<!-- Centered Sprite Canvas Drawing Area & Dimensions -->
+					<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
+						<!-- Dimensions Label (e.g. 32 x 32) -->
+						<TextBlock HorizontalAlignment="Center" Foreground="#A0A0A0" FontSize="11" FontWeight="SemiBold">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="{}{0} x {1}">
+									<Binding Path="CanvasWidth"/>
+									<Binding Path="CanvasHeight"/>
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+
+						<!-- Resizable Canvas Container -->
+						<Grid Classes="CanvasContainer" RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, Auto, Auto">
+							
+							<!-- Resize Handles Row 0 -->
+							<Border Grid.Row="0" Grid.Column="0" Width="8" Height="8" Classes="ResizeHandle" Cursor="TopLeftCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top Left" Name="Handle_TL" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="0" Grid.Column="1" Width="8" Height="8" HorizontalAlignment="Center" Classes="ResizeHandle" Cursor="SizeNorthSouth" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top" Name="Handle_T" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="0" Grid.Column="2" Width="8" Height="8" Classes="ResizeHandle" Cursor="TopRightCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top Right" Name="Handle_TR" IsVisible="{Binding ShowResizeHandles}"/>
+
+							<!-- Resize Handles Row 1 (Left and Right) -->
+							<Border Grid.Row="1" Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center" Classes="ResizeHandle" Cursor="SizeWestEast" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Left" Name="Handle_L" IsVisible="{Binding ShowResizeHandles}"/>
+							
+							<!-- Central Canvas Border -->
+							<Border Grid.Row="1" Grid.Column="1" BorderBrush="#444444" BorderThickness="1" Background="#141414">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}"/>
+										<MenuItem Header="Resize Canvas..." Click="OnResizeCanvasMenuClick"/>
+										<MenuItem Header="Fit Canvas to Layers" Command="{Binding FitCanvasToContentCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
+								<Panel>
+									<Viewbox Stretch="Uniform" Height="{Binding ZoomHeight}" Width="{Binding ZoomWidth}">
+										<Image x:Name="CanvasImage"
+											   Source="{Binding CanvasPreview}"
+											   Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}"
+											   RenderOptions.BitmapInterpolationMode="None"
+											   PointerPressed="OnCanvasPointerPressed"
+											   PointerMoved="OnCanvasPointerMoved"
+											   PointerReleased="OnCanvasPointerReleased"
+											   PointerEntered="OnCanvasPointerEntered"
+											   PointerExited="OnCanvasPointerExited"/>
+									</Viewbox>
+									<!-- Slim vector grid overlay -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<Path Stroke="{Binding GridBrush}" StrokeThickness="0.75" Opacity="0.8" Data="{Binding GridPathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Eraser cursor -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black shadow outline (thickness 3) -->
+										<Path Stroke="#000000" StrokeThickness="3.0"
+											  Data="{Binding HoverOutlinePathData}"/>
+										<!-- White sharp outline (thickness 1) -->
+										<Path Stroke="#FFFFFF" StrokeThickness="1.0"
+											  Data="{Binding HoverOutlinePathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Selection (Marching Ants / Dashed) -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black dashed background stroke (thickness 1.5) -->
+										<Path Stroke="#000000" StrokeThickness="1.5"
+											  Data="{Binding SelectionOutlinePathData}"/>
+										<!-- White dashed foreground stroke (thickness 1.5) with DashArray -->
+										<Path Stroke="#FFFFFF" StrokeThickness="1.5" StrokeDashArray="4,4"
+											  Data="{Binding SelectionOutlinePathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Active Layer (GIMP style golden dashed) -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black dashed background stroke (thickness 1.0) -->
+										<Path Stroke="#000000" StrokeThickness="1.0"
+											  Data="{Binding ActiveLayerOutlinePathData}"/>
+										<!-- Golden dashed foreground stroke (thickness 1.0) with DashArray -->
+										<Path Stroke="#FFD700" StrokeThickness="1.0" StrokeDashArray="4,4"
+											  Data="{Binding ActiveLayerOutlinePathData}"/>
+									</Canvas>
+								</Panel>
+							</Border>
+
+							<!-- Resize Handles Row 2 -->
+							<Border Grid.Row="2" Grid.Column="0" Width="8" Height="8" Classes="ResizeHandle" Cursor="BottomLeftCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom Left" Name="Handle_BL" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="2" Grid.Column="1" Width="8" Height="8" HorizontalAlignment="Center" Classes="ResizeHandle" Cursor="SizeNorthSouth" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom" Name="Handle_B" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="2" Grid.Column="2" Width="8" Height="8" Classes="ResizeHandle" Cursor="BottomRightCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom Right" Name="Handle_BR" IsVisible="{Binding ShowResizeHandles}"/>
+						</Grid>
+					</StackPanel>
 
 					<!-- Overlay Canvas for Draggable Controls (Null background allows clicks to pass through) -->
 					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SizeChanged="OnWorkspaceCanvasSizeChanged">

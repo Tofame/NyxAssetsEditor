@@ -18,7 +18,7 @@ namespace NyxAssetsEditor.Views.Pages
 		private bool _palettePositionInitialized = false;
 		private int _selectStartX = -1;
 		private int _selectStartY = -1;
-		private readonly bool[,] _selectionBeforeDrag = new bool[32, 32];
+		private bool[,]? _selectionBeforeDrag;
 		private int _moveStartX = -1;
 		private int _moveStartY = -1;
 		private byte[]? _moveStartPixels;
@@ -46,9 +46,10 @@ namespace NyxAssetsEditor.Views.Pages
 					if (vm.ActiveTool == PaintTool.Select)
 					{
 						var pos = e.GetPosition(img);
-						_selectStartX = (int)(pos.X / img.Bounds.Width * 32);
-						_selectStartY = (int)(pos.Y / img.Bounds.Height * 32);
+						_selectStartX = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+						_selectStartY = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
+						_selectionBeforeDrag = new bool[vm.CanvasWidth, vm.CanvasHeight];
 						Array.Copy(vm.GetSelectionMask(), _selectionBeforeDrag, _selectionBeforeDrag.Length);
 
 						bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -63,15 +64,15 @@ namespace NyxAssetsEditor.Views.Pages
 					else if (vm.ActiveTool == PaintTool.Move)
 					{
 						var pos = e.GetPosition(img);
-						_moveStartX = (int)(pos.X / img.Bounds.Width * 32);
-						_moveStartY = (int)(pos.Y / img.Bounds.Height * 32);
+						_moveStartX = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+						_moveStartY = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
 						if (vm.ActiveLayer != null)
 						{
 							_moveStartPixels = new byte[vm.ActiveLayer.Pixels.Length];
 							Array.Copy(vm.ActiveLayer.Pixels, _moveStartPixels, _moveStartPixels.Length);
 						}
-						_moveStartSelectionMask = new bool[32, 32];
+						_moveStartSelectionMask = new bool[vm.CanvasWidth, vm.CanvasHeight];
 						Array.Copy(vm.GetSelectionMask(), _moveStartSelectionMask, _moveStartSelectionMask.Length);
 					}
 					else
@@ -162,10 +163,10 @@ namespace NyxAssetsEditor.Views.Pages
 				return;
 
 			var pos = e.GetPosition(img);
-			int x = (int)(pos.X / img.Bounds.Width * 32);
-			int y = (int)(pos.Y / img.Bounds.Height * 32);
+			int x = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+			int y = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
-			if (x >= 0 && x < 32 && y >= 0 && y < 32)
+			if (x >= 0 && x < vm.CanvasWidth && y >= 0 && y < vm.CanvasHeight)
 			{
 				vm.HoverX = x;
 				vm.HoverY = y;
@@ -189,11 +190,10 @@ namespace NyxAssetsEditor.Views.Pages
 
 			var pos = e.GetPosition(img);
 			
-			// Map pointer position on image bounds to 32x32 grid
-			int x = (int)(pos.X / img.Bounds.Width * 32);
-			int y = (int)(pos.Y / img.Bounds.Height * 32);
+			int x = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+			int y = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
-			if (x >= 0 && x < 32 && y >= 0 && y < 32)
+			if (x >= 0 && x < vm.CanvasWidth && y >= 0 && y < vm.CanvasHeight)
 			{
 				var props = e.GetCurrentPoint(img).Properties;
 				bool isRightClick = props.IsRightButtonPressed;
@@ -206,15 +206,15 @@ namespace NyxAssetsEditor.Views.Pages
 		{
 			var vm = DataContext as PaintViewModel;
 			var img = this.FindControl<Image>("CanvasImage");
-			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0)
+			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0 || _selectionBeforeDrag == null)
 				return;
 
 			var pos = e.GetPosition(img);
-			int currentX = (int)(pos.X / img.Bounds.Width * 32);
-			int currentY = (int)(pos.Y / img.Bounds.Height * 32);
+			int currentX = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+			int currentY = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
-			currentX = Math.Clamp(currentX, 0, 31);
-			currentY = Math.Clamp(currentY, 0, 31);
+			currentX = Math.Clamp(currentX, 0, vm.CanvasWidth - 1);
+			currentY = Math.Clamp(currentY, 0, vm.CanvasHeight - 1);
 
 			bool keepExisting = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
 			vm.ApplySelectionBox(_selectStartX, _selectStartY, currentX, currentY, _selectionBeforeDrag, keepExisting);
@@ -237,8 +237,8 @@ namespace NyxAssetsEditor.Views.Pages
 				return;
 
 			var pos = e.GetPosition(img);
-			int currentX = (int)(pos.X / img.Bounds.Width * 32);
-			int currentY = (int)(pos.Y / img.Bounds.Height * 32);
+			int currentX = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
+			int currentY = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
 			int dx = currentX - _moveStartX;
 			int dy = currentY - _moveStartY;
@@ -753,6 +753,155 @@ namespace NyxAssetsEditor.Views.Pages
 					layerVM.IsEditingName = false;
 				}
 				e.Handled = true;
+			}
+		}
+
+		private bool _isResizingCanvas = false;
+		private string? _activeResizeHandle = null;
+		private Avalonia.Point _resizeStartPointerPos;
+		private int _resizeStartWidth;
+		private int _resizeStartHeight;
+		private List<byte[]>? _resizeStartLayersPixels;
+		private bool[,]? _resizeStartSelectionMask;
+
+		private void OnResizeHandlePointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			var border = sender as Border;
+			if (border == null) return;
+
+			var vm = DataContext as PaintViewModel;
+			if (vm == null) return;
+
+			vm.SaveHistoryState();
+
+			_isResizingCanvas = true;
+			_activeResizeHandle = border.Name;
+			_resizeStartPointerPos = e.GetPosition(this);
+			_resizeStartWidth = vm.CanvasWidth;
+			_resizeStartHeight = vm.CanvasHeight;
+
+			_resizeStartLayersPixels = new List<byte[]>();
+			foreach (var layer in vm.Layers)
+			{
+				var copy = new byte[layer.Pixels.Length];
+				Array.Copy(layer.Pixels, copy, layer.Pixels.Length);
+				_resizeStartLayersPixels.Add(copy);
+			}
+
+			_resizeStartSelectionMask = new bool[_resizeStartWidth, _resizeStartHeight];
+			Array.Copy(vm.GetSelectionMask(), _resizeStartSelectionMask, _resizeStartSelectionMask.Length);
+
+			e.Pointer.Capture(border);
+			e.Handled = true;
+		}
+
+		private void OnResizeHandlePointerMoved(object sender, PointerEventArgs e)
+		{
+			if (!_isResizingCanvas || _activeResizeHandle == null || _resizeStartLayersPixels == null || _resizeStartSelectionMask == null)
+				return;
+
+			var vm = DataContext as PaintViewModel;
+			if (vm == null) return;
+
+			var currentPos = e.GetPosition(this);
+			double deltaX = (currentPos.X - _resizeStartPointerPos.X) / vm.ZoomLevel;
+			double deltaY = (currentPos.Y - _resizeStartPointerPos.Y) / vm.ZoomLevel;
+
+			bool isCtrlHeld = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+			if (isCtrlHeld)
+			{
+				deltaX = Math.Round(deltaX / 16.0) * 16.0;
+				deltaY = Math.Round(deltaY / 16.0) * 16.0;
+			}
+			else
+			{
+				deltaX = Math.Round(deltaX);
+				deltaY = Math.Round(deltaY);
+			}
+
+			int newWidth = _resizeStartWidth;
+			int newHeight = _resizeStartHeight;
+			int offsetX = 0;
+			int offsetY = 0;
+
+			switch (_activeResizeHandle)
+			{
+				case "Handle_R":
+					newWidth = _resizeStartWidth + (int)deltaX;
+					break;
+				case "Handle_L":
+					newWidth = _resizeStartWidth - (int)deltaX;
+					offsetX = -(int)deltaX;
+					break;
+				case "Handle_B":
+					newHeight = _resizeStartHeight + (int)deltaY;
+					break;
+				case "Handle_T":
+					newHeight = _resizeStartHeight - (int)deltaY;
+					offsetY = -(int)deltaY;
+					break;
+				case "Handle_TL":
+					newWidth = _resizeStartWidth - (int)deltaX;
+					offsetX = -(int)deltaX;
+					newHeight = _resizeStartHeight - (int)deltaY;
+					offsetY = -(int)deltaY;
+					break;
+				case "Handle_TR":
+					newWidth = _resizeStartWidth + (int)deltaX;
+					newHeight = _resizeStartHeight - (int)deltaY;
+					offsetY = -(int)deltaY;
+					break;
+				case "Handle_BL":
+					newWidth = _resizeStartWidth - (int)deltaX;
+					offsetX = -(int)deltaX;
+					newHeight = _resizeStartHeight + (int)deltaY;
+					break;
+				case "Handle_BR":
+					newWidth = _resizeStartWidth + (int)deltaX;
+					newHeight = _resizeStartHeight + (int)deltaY;
+					break;
+			}
+
+			newWidth = Math.Clamp(newWidth, 1, 512);
+			newHeight = Math.Clamp(newHeight, 1, 512);
+
+			vm.ResizeCanvasFromState(newWidth, newHeight, offsetX, offsetY, _resizeStartLayersPixels, _resizeStartSelectionMask, _resizeStartWidth, _resizeStartHeight);
+
+			e.Handled = true;
+		}
+
+		private void OnResizeHandlePointerReleased(object sender, PointerReleasedEventArgs e)
+		{
+			if (_isResizingCanvas)
+			{
+				var border = sender as Border;
+				if (border != null)
+				{
+					e.Pointer.Capture(null);
+				}
+				_isResizingCanvas = false;
+				_activeResizeHandle = null;
+				_resizeStartLayersPixels = null;
+				_resizeStartSelectionMask = null;
+				e.Handled = true;
+			}
+		}
+
+		private async void OnResizeCanvasMenuClick(object? sender, RoutedEventArgs e)
+		{
+			var vm = DataContext as PaintViewModel;
+			if (vm == null) return;
+
+			var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+			if (desktop?.MainWindow is not Window mainWindow) return;
+
+			var dialog = new ResizeCanvasDialog(vm.CanvasWidth, vm.CanvasHeight);
+			await dialog.ShowDialog(mainWindow);
+
+			if (dialog.IsConfirmed)
+			{
+				vm.SaveHistoryState();
+				vm.ResizeCanvas(dialog.TargetWidth, dialog.TargetHeight, 0, 0);
 			}
 		}
 	}

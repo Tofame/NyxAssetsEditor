@@ -345,23 +345,76 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private double _zoomLevel = 12.0;
 
-		public double ZoomDimension => 32 * ZoomLevel;
+		[ObservableProperty]
+		private int _canvasWidth = 32;
 
 		[ObservableProperty]
-		private Color _gradientEndColor = Colors.White;
+		private int _canvasHeight = 32;
 
-		partial void OnZoomLevelChanged(double value)
+		[ObservableProperty]
+		private bool _showResizeHandles = true;
+
+		[ObservableProperty]
+		private bool _showGrid = false;
+
+		[ObservableProperty]
+		private int _gridWidth = 16;
+
+		[ObservableProperty]
+		private int _gridHeight = 16;
+
+		[ObservableProperty]
+		private Color _gridColor = Colors.Black;
+
+		partial void OnGridColorChanged(Color value)
 		{
-			OnPropertyChanged(nameof(ZoomDimension));
-			NotifyOutlinePropertiesChanged();
+			OnPropertyChanged(nameof(GridBrush));
 		}
+
+		public IBrush GridBrush => new SolidColorBrush(GridColor);
+
+		public double ZoomWidth => CanvasWidth * ZoomLevel;
+		public double ZoomHeight => CanvasHeight * ZoomLevel;
+
+		public double ZoomDimension => ZoomWidth;
 
 		[ObservableProperty]
 		private PaletteViewModel? _selectedPalette;
 
+		partial void OnZoomLevelChanged(double value)
+		{
+			OnPropertyChanged(nameof(ZoomWidth));
+			OnPropertyChanged(nameof(ZoomHeight));
+			OnPropertyChanged(nameof(ZoomDimension));
+			OnPropertyChanged(nameof(GridPathData));
+			NotifyOutlinePropertiesChanged();
+		}
+
+		partial void OnCanvasWidthChanged(int value)
+		{
+			OnPropertyChanged(nameof(ZoomWidth));
+			OnPropertyChanged(nameof(ZoomDimension));
+			OnPropertyChanged(nameof(GridPathData));
+			NotifyOutlinePropertiesChanged();
+		}
+
+		partial void OnCanvasHeightChanged(int value)
+		{
+			OnPropertyChanged(nameof(ZoomHeight));
+			OnPropertyChanged(nameof(GridPathData));
+			NotifyOutlinePropertiesChanged();
+		}
+
+		partial void OnShowGridChanged(bool value) => OnPropertyChanged(nameof(GridPathData));
+		partial void OnGridWidthChanged(int value) => OnPropertyChanged(nameof(GridPathData));
+		partial void OnGridHeightChanged(int value) => OnPropertyChanged(nameof(GridPathData));
+
 		partial void OnSelectedPaletteChanged(PaletteViewModel? value) => ApplySelectedPalette();
 
-		private readonly bool[,] _selectionMask = new bool[32, 32];
+		[ObservableProperty]
+		private Color _gradientEndColor = Colors.White;
+
+		private bool[,] _selectionMask = new bool[32, 32];
 		private static readonly string PalettesFilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "paint", "paint_palletes.toml");
 		private DateTime _lastStateSave = DateTime.MinValue;
 		private static byte[]? _copyBuffer;
@@ -373,12 +426,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			_mainWindow = mainWindow;
 			LoadDefaultPalettes();
+			OnPropertyChanged(nameof(ZoomWidth));
+			OnPropertyChanged(nameof(ZoomHeight));
+			OnPropertyChanged(nameof(ZoomDimension));
 		}
 
 		public void InitializeWithSprite(SpriteViewModel sprite, FloatingSpriteLoaderViewModel panel)
 		{
 			Sprite = sprite;
 			Panel = panel;
+
+			CanvasWidth = 32;
+			CanvasHeight = 32;
+			_selectionMask = new bool[32, 32];
 
 			foreach (var l in Layers) UnsubscribeLayer(l);
 			Layers.Clear();
@@ -426,11 +486,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public void ClearSelection()
 		{
-			for (int y = 0; y < 32; y++)
+			if (_selectionMask.GetLength(0) != CanvasWidth || _selectionMask.GetLength(1) != CanvasHeight)
 			{
-				for (int x = 0; x < 32; x++)
+				_selectionMask = new bool[CanvasWidth, CanvasHeight];
+			}
+			else
+			{
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					_selectionMask[x, y] = false;
+					for (int x = 0; x < CanvasWidth; x++)
+					{
+						_selectionMask[x, y] = false;
+					}
 				}
 			}
 			HasSelection = false;
@@ -439,7 +506,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public bool IsSelected(int x, int y)
 		{
-			if (x < 0 || x >= 32 || y < 0 || y >= 32)
+			if (x < 0 || x >= CanvasWidth || y < 0 || y >= CanvasHeight)
 				return false;
 			return _selectionMask[x, y];
 		}
@@ -484,7 +551,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null)
 				return;
 
-			if (x < 0 || x >= 32 || y < 0 || y >= 32)
+			if (x < 0 || x >= CanvasWidth || y < 0 || y >= CanvasHeight)
 				return;
 
 			switch (ActiveTool)
@@ -529,7 +596,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int x = cx + dx;
 					int y = cy + dy;
 
-					if (x >= 0 && x < 32 && y >= 0 && y < 32)
+					if (x >= 0 && x < CanvasWidth && y >= 0 && y < CanvasHeight)
 					{
 						DrawPixelWithSymmetry(x, y, color);
 					}
@@ -565,21 +632,21 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				SetPixel(ActiveLayer.Pixels, x, y, color);
 			}
 
-			// Copy on Axis X (mirrors horizontal: x -> 31 - x)
+			// Copy on Axis X (mirrors horizontal: x -> CanvasWidth - 1 - x)
 			if (CopyOnAxisX)
 			{
-				int mx = 31 - x;
-				if (mx >= 0 && mx < 32 && (!HasSelection || _selectionMask[mx, y]))
+				int mx = CanvasWidth - 1 - x;
+				if (mx >= 0 && mx < CanvasWidth && (!HasSelection || _selectionMask[mx, y]))
 				{
 					SetPixel(ActiveLayer.Pixels, mx, y, color);
 				}
 			}
 
-			// Copy on Axis Y (mirrors vertical: y -> 31 - y)
+			// Copy on Axis Y (mirrors vertical: y -> CanvasHeight - 1 - y)
 			if (CopyOnAxisY)
 			{
-				int my = 31 - y;
-				if (my >= 0 && my < 32 && (!HasSelection || _selectionMask[x, my]))
+				int my = CanvasHeight - 1 - y;
+				if (my >= 0 && my < CanvasHeight && (!HasSelection || _selectionMask[x, my]))
 				{
 					SetPixel(ActiveLayer.Pixels, x, my, color);
 				}
@@ -588,9 +655,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			// Both
 			if (CopyOnAxisX && CopyOnAxisY)
 			{
-				int mx = 31 - x;
-				int my = 31 - y;
-				if (mx >= 0 && mx < 32 && my >= 0 && my < 32 && (!HasSelection || _selectionMask[mx, my]))
+				int mx = CanvasWidth - 1 - x;
+				int my = CanvasHeight - 1 - y;
+				if (mx >= 0 && mx < CanvasWidth && my >= 0 && my < CanvasHeight && (!HasSelection || _selectionMask[mx, my]))
 				{
 					SetPixel(ActiveLayer.Pixels, mx, my, color);
 				}
@@ -608,7 +675,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			var queue = new Queue<(int, int)>();
 			queue.Enqueue((startX, startY));
 
-			var visited = new bool[32, 32];
+			var visited = new bool[CanvasWidth, CanvasHeight];
 			visited[startX, startY] = true;
 
 			int[] dx = CheckDiagonals ? new[] { 0, 0, 1, -1, 1, 1, -1, -1 } : new[] { 0, 0, 1, -1 };
@@ -627,7 +694,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int nx = cx + dx[i];
 					int ny = cy + dy[i];
 
-					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
+					if (nx >= 0 && nx < CanvasWidth && ny >= 0 && ny < CanvasHeight && !visited[nx, ny])
 					{
 						var color = GetPixelColor(pixels, nx, ny);
 						if (ColorsAreSimilar(targetColor, color, FillThreshold))
@@ -650,7 +717,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				ClearSelection();
 			}
 
-			var visited = new bool[32, 32];
+			var visited = new bool[CanvasWidth, CanvasHeight];
 			var pixels = ActiveLayer.Pixels;
 			var targetColor = GetPixelColor(pixels, startX, startY);
 
@@ -673,7 +740,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int nx = cx + dx[i];
 					int ny = cy + dy[i];
 
-					if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
+					if (nx >= 0 && nx < CanvasWidth && ny >= 0 && ny < CanvasHeight && !visited[nx, ny])
 					{
 						var color = GetPixelColor(pixels, nx, ny);
 						if (ColorsAreSimilar(targetColor, color, FillThreshold))
@@ -700,13 +767,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private Color GetPixelColor(byte[] pixels, int x, int y)
 		{
-			int idx = (y * 32 + x) * 4;
+			int idx = (y * CanvasWidth + x) * 4;
 			return Color.FromArgb(pixels[idx + 3], pixels[idx], pixels[idx + 1], pixels[idx + 2]);
 		}
 
 		private void SetPixel(byte[] pixels, int x, int y, Color color)
 		{
-			int idx = (y * 32 + x) * 4;
+			int idx = (y * CanvasWidth + x) * 4;
 			pixels[idx] = color.R;
 			pixels[idx + 1] = color.G;
 			pixels[idx + 2] = color.B;
@@ -716,18 +783,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public void UpdateCanvasPreview()
 		{
 			var composite = GetCompositePixels();
-			var overlay = new byte[32 * 32 * 4];
+			var overlay = new byte[CanvasWidth * CanvasHeight * 4];
 			Array.Copy(composite, overlay, composite.Length);
 
 			if (HasSelection)
 			{
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						if (_selectionMask[x, y])
 						{
-							int idx = (y * 32 + x) * 4;
+							int idx = (y * CanvasWidth + x) * 4;
 							overlay[idx] = (byte)Math.Clamp(overlay[idx] + 40, 0, 255);
 							overlay[idx + 1] = (byte)Math.Clamp(overlay[idx + 1] + 40, 0, 255);
 							overlay[idx + 2] = (byte)Math.Clamp(overlay[idx + 2] + 100, 0, 255);
@@ -738,23 +805,27 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (CopyOnAxisX)
 			{
-				for (int y = 0; y < 32; y++)
+				int mid1 = CanvasWidth / 2 - 1;
+				int mid2 = CanvasWidth / 2;
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					BlendGuidePixel(overlay, 15, y, Colors.Red);
-					BlendGuidePixel(overlay, 16, y, Colors.Red);
+					BlendGuidePixel(overlay, mid1, y, Colors.Red);
+					BlendGuidePixel(overlay, mid2, y, Colors.Red);
 				}
 			}
 
 			if (CopyOnAxisY)
 			{
-				for (int x = 0; x < 32; x++)
+				int mid1 = CanvasHeight / 2 - 1;
+				int mid2 = CanvasHeight / 2;
+				for (int x = 0; x < CanvasWidth; x++)
 				{
-					BlendGuidePixel(overlay, x, 15, Colors.Red);
-					BlendGuidePixel(overlay, x, 16, Colors.Red);
+					BlendGuidePixel(overlay, x, mid1, Colors.Red);
+					BlendGuidePixel(overlay, x, mid2, Colors.Red);
 				}
 			}
 
-			if (IsHovering && HoverX >= 0 && HoverX < 32 && HoverY >= 0 && HoverY < 32)
+			if (IsHovering && HoverX >= 0 && HoverX < CanvasWidth && HoverY >= 0 && HoverY < CanvasHeight)
 			{
 				if (ActiveTool == PaintTool.Brush)
 				{
@@ -769,9 +840,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							int px = HoverX + dx;
 							int py = HoverY + dy;
 
-							if (px >= 0 && px < 32 && py >= 0 && py < 32)
+							if (px >= 0 && px < CanvasWidth && py >= 0 && py < CanvasHeight)
 							{
-								int idx = (py * 32 + px) * 4;
+								int idx = (py * CanvasWidth + px) * 4;
 								overlay[idx] = ActiveColor.R;
 								overlay[idx + 1] = ActiveColor.G;
 								overlay[idx + 2] = ActiveColor.B;
@@ -789,7 +860,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					var queue = new Queue<(int, int)>();
 					queue.Enqueue((HoverX, HoverY));
 
-					var visited = new bool[32, 32];
+					var visited = new bool[CanvasWidth, CanvasHeight];
 					visited[HoverX, HoverY] = true;
 
 					double alpha = 0.70;
@@ -800,7 +871,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						if (HasSelection && !_selectionMask[cx, cy])
 							continue;
 
-						int idx = (cy * 32 + cx) * 4;
+						int idx = (cy * CanvasWidth + cx) * 4;
 						overlay[idx] = (byte)(overlay[idx] * (1.0 - alpha) + ActiveColor.R * alpha);
 						overlay[idx + 1] = (byte)(overlay[idx + 1] * (1.0 - alpha) + ActiveColor.G * alpha);
 						overlay[idx + 2] = (byte)(overlay[idx + 2] * (1.0 - alpha) + ActiveColor.B * alpha);
@@ -814,7 +885,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							int nx = cx + dx[i];
 							int ny = cy + dy[i];
 
-							if (nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && !visited[nx, ny])
+							if (nx >= 0 && nx < CanvasWidth && ny >= 0 && ny < CanvasHeight && !visited[nx, ny])
 							{
 								var color = GetPixelColor(pixels, nx, ny);
 								if (ColorsAreSimilar(targetColor, color, FillThreshold))
@@ -829,7 +900,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 
 			NotifyOutlinePropertiesChanged();
-			CanvasPreview = _renderer.Convert(overlay);
+			CanvasPreview = _renderer.ConvertRgba(CanvasWidth, CanvasHeight, overlay);
 
 			var _now = DateTime.UtcNow;
 			if (Sprite != null && (_now - _lastStateSave).TotalMilliseconds >= 500)
@@ -841,7 +912,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private void BlendGuidePixel(byte[] pixels, int x, int y, Color guideColor)
 		{
-			int idx = (y * 32 + x) * 4;
+			int idx = (y * CanvasWidth + x) * 4;
 			double alpha = 0.40;
 			pixels[idx] = (byte)(pixels[idx] * (1.0 - alpha) + guideColor.R * alpha);
 			pixels[idx + 1] = (byte)(pixels[idx + 1] * (1.0 - alpha) + guideColor.G * alpha);
@@ -850,7 +921,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public byte[] GetCompositePixels()
 		{
-			var composite = new byte[32 * 32 * 4];
+			var composite = new byte[CanvasWidth * CanvasHeight * 4];
 
 			// Process layers from bottom to top
 			for (int l = Layers.Count - 1; l >= 0; l--)
@@ -885,7 +956,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private void AddLayer()
 		{
 			SaveHistoryState();
-			var emptyPixels = new byte[32 * 32 * 4];
+			var emptyPixels = new byte[CanvasWidth * CanvasHeight * 4];
 			var newLayer = new LayerViewModel($"Layer {Layers.Count + 1}", emptyPixels);
 			SubscribeLayer(newLayer);
 			Layers.Insert(0, newLayer); // Insert on top
@@ -950,10 +1021,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (HasSelection)
 			{
-				int minX = 32, maxX = -1, minY = 32, maxY = -1;
-				for (int y = 0; y < 32; y++)
+				int minX = CanvasWidth, maxX = -1, minY = CanvasHeight, maxY = -1;
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						if (_selectionMask[x, y])
 						{
@@ -986,11 +1057,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 			else
 			{
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 16; x++)
+					for (int x = 0; x < CanvasWidth / 2; x++)
 					{
-						int targetX = 31 - x;
+						int targetX = CanvasWidth - 1 - x;
 						var temp = GetPixelColor(pixels, x, y);
 						SetPixel(pixels, x, y, GetPixelColor(pixels, targetX, y));
 						SetPixel(pixels, targetX, y, temp);
@@ -1012,10 +1083,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (HasSelection)
 			{
-				int minX = 32, maxX = -1, minY = 32, maxY = -1;
-				for (int y = 0; y < 32; y++)
+				int minX = CanvasWidth, maxX = -1, minY = CanvasHeight, maxY = -1;
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						if (_selectionMask[x, y])
 						{
@@ -1048,10 +1119,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 			else
 			{
-				for (int y = 0; y < 16; y++)
+				for (int y = 0; y < CanvasHeight / 2; y++)
 				{
-					int targetY = 31 - y;
-					for (int x = 0; x < 32; x++)
+					int targetY = CanvasHeight - 1 - y;
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						var temp = GetPixelColor(pixels, x, y);
 						SetPixel(pixels, x, y, GetPixelColor(pixels, x, targetY));
@@ -1072,9 +1143,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int y1 = Math.Min(startY, endY);
 			int y2 = Math.Max(startY, endY);
 
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (merge)
 					{
@@ -1088,9 +1159,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 
 			bool hasSel = false;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (_selectionMask[x, y])
 					{
@@ -1111,9 +1182,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (_selectionMask[x, y])
 					{
@@ -1130,10 +1201,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null || !HasSelection)
 				return;
 
-			int minX = 32, maxX = -1, minY = 32, maxY = -1;
-			for (int y = 0; y < 32; y++)
+			int minX = CanvasWidth, maxX = -1, minY = CanvasHeight, maxY = -1;
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (_selectionMask[x, y])
 					{
@@ -1187,16 +1258,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			SaveHistoryState();
 
-			var pastedPixels = new byte[32 * 32 * 4];
+			var pastedPixels = new byte[CanvasWidth * CanvasHeight * 4];
 
 			int pasteX = 0;
 			int pasteY = 0;
 
 			if (HasSelection)
 			{
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						if (_selectionMask[x, y])
 						{
@@ -1216,12 +1287,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int canvasX = pasteX + x;
 					int canvasY = pasteY + y;
 
-					if (canvasX >= 0 && canvasX < 32 && canvasY >= 0 && canvasY < 32)
+					if (canvasX >= 0 && canvasX < CanvasWidth && canvasY >= 0 && canvasY < CanvasHeight)
 					{
 						if (_copyBufferMask[x, y])
 						{
 							int srcIdx = (y * _copyBufferWidth + x) * 4;
-							int destIdx = (canvasY * 32 + canvasX) * 4;
+							int destIdx = (canvasY * CanvasWidth + canvasX) * 4;
 							pastedPixels[destIdx] = _copyBuffer[srcIdx];
 							pastedPixels[destIdx + 1] = _copyBuffer[srcIdx + 1];
 							pastedPixels[destIdx + 2] = _copyBuffer[srcIdx + 2];
@@ -1236,9 +1307,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			Layers.Insert(0, newLayer);
 			ActiveLayer = newLayer;
 
-			for (int y = 0; y < 32; y++)
+			_selectionMask = new bool[CanvasWidth, CanvasHeight];
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					_selectionMask[x, y] = (x >= pasteX && x < pasteX + _copyBufferWidth && y >= pasteY && y < pasteY + _copyBufferHeight) && _copyBufferMask[x - pasteX, y - pasteY];
 				}
@@ -1256,9 +1328,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			var pixels = ActiveLayer.Pixels;
 
 			bool hadSelection = false;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (originalSelectionMask[x, y])
 					{
@@ -1270,11 +1342,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (hadSelection)
 			{
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
-						int idx = (y * 32 + x) * 4;
+						int idx = (y * CanvasWidth + x) * 4;
 						if (originalSelectionMask[x, y])
 						{
 							pixels[idx] = 0;
@@ -1292,18 +1364,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					}
 				}
 
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						if (originalSelectionMask[x, y])
 						{
 							int newX = x + dx;
 							int newY = y + dy;
-							if (newX >= 0 && newX < 32 && newY >= 0 && newY < 32)
+							if (newX >= 0 && newX < CanvasWidth && newY >= 0 && newY < CanvasHeight)
 							{
-								int srcIdx = (y * 32 + x) * 4;
-								int destIdx = (newY * 32 + newX) * 4;
+								int srcIdx = (y * CanvasWidth + x) * 4;
+								int destIdx = (newY * CanvasWidth + newX) * 4;
 								pixels[destIdx] = originalPixels[srcIdx];
 								pixels[destIdx + 1] = originalPixels[srcIdx + 1];
 								pixels[destIdx + 2] = originalPixels[srcIdx + 2];
@@ -1316,16 +1388,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			else
 			{
 				Array.Clear(pixels, 0, pixels.Length);
-				for (int y = 0; y < 32; y++)
+				for (int y = 0; y < CanvasHeight; y++)
 				{
-					for (int x = 0; x < 32; x++)
+					for (int x = 0; x < CanvasWidth; x++)
 					{
 						int newX = x + dx;
 						int newY = y + dy;
-						if (newX >= 0 && newX < 32 && newY >= 0 && newY < 32)
+						if (newX >= 0 && newX < CanvasWidth && newY >= 0 && newY < CanvasHeight)
 						{
-							int srcIdx = (y * 32 + x) * 4;
-							int destIdx = (newY * 32 + newX) * 4;
+							int srcIdx = (y * CanvasWidth + x) * 4;
+							int destIdx = (newY * CanvasWidth + newX) * 4;
 							pixels[destIdx] = originalPixels[srcIdx];
 							pixels[destIdx + 1] = originalPixels[srcIdx + 1];
 							pixels[destIdx + 2] = originalPixels[srcIdx + 2];
@@ -1335,13 +1407,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					int oldX = x - dx;
 					int oldY = y - dy;
-					if (oldX >= 0 && oldX < 32 && oldY >= 0 && oldY < 32)
+					if (oldX >= 0 && oldX < CanvasWidth && oldY >= 0 && oldY < CanvasHeight)
 					{
 						_selectionMask[x, y] = originalSelectionMask[oldX, oldY];
 					}
@@ -1353,9 +1425,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 
 			bool hasSel = false;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (_selectionMask[x, y])
 					{
@@ -1387,9 +1459,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			SaveHistoryState();
 			var pixels = ActiveLayer.Pixels;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (HasSelection && !_selectionMask[x, y])
 						continue;
@@ -1634,12 +1706,210 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			SavePalettes();
 		}
 
+		public string GridPathData => GetGridPathData();
+
+		private string GetGridPathData()
+		{
+			if (!ShowGrid || GridWidth <= 0 || GridHeight <= 0)
+				return string.Empty;
+
+			var sb = new System.Text.StringBuilder();
+			double zoom = ZoomLevel;
+			double w = CanvasWidth * zoom;
+			double h = CanvasHeight * zoom;
+
+			for (int x = GridWidth; x < CanvasWidth; x += GridWidth)
+			{
+				double lx = x * zoom;
+				sb.Append($"M {lx},0 L {lx},{h} ");
+			}
+
+			for (int y = GridHeight; y < CanvasHeight; y += GridHeight)
+			{
+				double ly = y * zoom;
+				sb.Append($"M 0,{ly} L {w},{ly} ");
+			}
+
+			return sb.ToString();
+		}
+
+		private byte[] GetCompositePixels32()
+		{
+			var composite = GetCompositePixels();
+			if (CanvasWidth == 32 && CanvasHeight == 32)
+				return composite;
+
+			var result = new byte[32 * 32 * 4];
+			int startX = (CanvasWidth - 32) / 2;
+			int startY = (CanvasHeight - 32) / 2;
+
+			for (int y = 0; y < 32; y++)
+			{
+				int srcY = startY + y;
+				if (srcY < 0 || srcY >= CanvasHeight) continue;
+
+				for (int x = 0; x < 32; x++)
+				{
+					int srcX = startX + x;
+					if (srcX < 0 || srcX >= CanvasWidth) continue;
+
+					int srcIdx = (srcY * CanvasWidth + srcX) * 4;
+					int destIdx = (y * 32 + x) * 4;
+					Array.Copy(composite, srcIdx, result, destIdx, 4);
+				}
+			}
+			return result;
+		}
+
+		public void ResizeCanvas(int newWidth, int newHeight, int offsetX, int offsetY)
+		{
+			if (newWidth <= 0 || newHeight <= 0)
+				return;
+
+			var oldWidth = CanvasWidth;
+			var oldHeight = CanvasHeight;
+
+			var newMask = new bool[newWidth, newHeight];
+			for (int y = 0; y < oldHeight; y++)
+			{
+				int ny = y + offsetY;
+				if (ny < 0 || ny >= newHeight) continue;
+				for (int x = 0; x < oldWidth; x++)
+				{
+					int nx = x + offsetX;
+					if (nx < 0 || nx >= newWidth) continue;
+					newMask[nx, ny] = _selectionMask[x, y];
+				}
+			}
+			_selectionMask = newMask;
+
+			foreach (var layer in Layers)
+			{
+				var newPixels = new byte[newWidth * newHeight * 4];
+				for (int y = 0; y < oldHeight; y++)
+				{
+					int ny = y + offsetY;
+					if (ny < 0 || ny >= newHeight) continue;
+					for (int x = 0; x < oldWidth; x++)
+					{
+						int nx = x + offsetX;
+						if (nx < 0 || nx >= newWidth) continue;
+						int srcIdx = (y * oldWidth + x) * 4;
+						int destIdx = (ny * newWidth + nx) * 4;
+						Array.Copy(layer.Pixels, srcIdx, newPixels, destIdx, 4);
+					}
+				}
+				layer.Pixels = newPixels;
+			}
+
+			CanvasWidth = newWidth;
+			CanvasHeight = newHeight;
+			UpdateCanvasPreview();
+		}
+
+		public void ResizeCanvasFromState(int newWidth, int newHeight, int offsetX, int offsetY, List<byte[]> startLayersPixels, bool[,] startSelectionMask, int startWidth, int startHeight)
+		{
+			if (newWidth <= 0 || newHeight <= 0)
+				return;
+
+			var newMask = new bool[newWidth, newHeight];
+			for (int y = 0; y < startHeight; y++)
+			{
+				int ny = y + offsetY;
+				if (ny < 0 || ny >= newHeight) continue;
+				for (int x = 0; x < startWidth; x++)
+				{
+					int nx = x + offsetX;
+					if (nx < 0 || nx >= newWidth) continue;
+					newMask[nx, ny] = startSelectionMask[x, y];
+				}
+			}
+			_selectionMask = newMask;
+
+			for (int i = 0; i < Layers.Count; i++)
+			{
+				if (i >= startLayersPixels.Count) continue;
+				var layer = Layers[i];
+				var startPixels = startLayersPixels[i];
+
+				var newPixels = new byte[newWidth * newHeight * 4];
+				for (int y = 0; y < startHeight; y++)
+				{
+					int ny = y + offsetY;
+					if (ny < 0 || ny >= newHeight) continue;
+					for (int x = 0; x < startWidth; x++)
+					{
+						int nx = x + offsetX;
+						if (nx < 0 || nx >= newWidth) continue;
+						int srcIdx = (y * startWidth + x) * 4;
+						int destIdx = (ny * newWidth + nx) * 4;
+						Array.Copy(startPixels, srcIdx, newPixels, destIdx, 4);
+					}
+				}
+				layer.Pixels = newPixels;
+			}
+
+			CanvasWidth = newWidth;
+			CanvasHeight = newHeight;
+			UpdateCanvasPreview();
+		}
+
+		[RelayCommand]
+		public void FitCanvasToContent()
+		{
+			int minX = CanvasWidth;
+			int maxX = -1;
+			int minY = CanvasHeight;
+			int maxY = -1;
+
+			bool found = false;
+			foreach (var layer in Layers)
+			{
+				var pixels = layer.Pixels;
+				for (int y = 0; y < CanvasHeight; y++)
+				{
+					for (int x = 0; x < CanvasWidth; x++)
+					{
+						int idx = (y * CanvasWidth + x) * 4;
+						if (pixels[idx + 3] > 0)
+						{
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							if (y < minY) minY = y;
+							if (y > maxY) maxY = y;
+							found = true;
+						}
+					}
+				}
+			}
+
+			int newWidth, newHeight, offsetX, offsetY;
+
+			if (!found)
+			{
+				newWidth = 32;
+				newHeight = 32;
+				offsetX = (32 - CanvasWidth) / 2;
+				offsetY = (32 - CanvasHeight) / 2;
+			}
+			else
+			{
+				newWidth = maxX - minX + 1;
+				newHeight = maxY - minY + 1;
+				offsetX = -minX;
+				offsetY = -minY;
+			}
+
+			SaveHistoryState();
+			ResizeCanvas(newWidth, newHeight, offsetX, offsetY);
+		}
+
 		[RelayCommand]
 		private void Save()
 		{
 			if (Sprite != null && Panel != null)
 			{
-				Panel.ReplaceSpritePixels(new[] { Sprite }, GetCompositePixels());
+				Panel.ReplaceSpritePixels(new[] { Sprite }, GetCompositePixels32());
 			}
 			_mainWindow.NavigateToAssetsCommand.Execute(null);
 		}
@@ -1653,7 +1923,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[RelayCommand]
 		private async Task CopyToClipboard()
 		{
-			var pixels = GetCompositePixels();
+			var pixels = GetCompositePixels32();
 			await SpriteClipboard.CopyAsync(pixels);
 		}
 
@@ -1686,14 +1956,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			Sprite = sprite;
 			Panel = panel;
 
+			int w = state.CanvasWidth > 0 ? state.CanvasWidth : 32;
+			int h = state.CanvasHeight > 0 ? state.CanvasHeight : 32;
+			CanvasWidth = w;
+			CanvasHeight = h;
+			_selectionMask = new bool[w, h];
+
 			Layers.Clear();
 			foreach (var layerModel in state.Layers)
 			{
 				byte[] pixels;
 				try { pixels = Convert.FromBase64String(layerModel.Pixels ?? ""); }
-				catch { pixels = new byte[32 * 32 * 4]; }
-				if (pixels.Length != 32 * 32 * 4)
-					pixels = new byte[32 * 32 * 4];
+				catch { pixels = new byte[w * h * 4]; }
+				if (pixels.Length != w * h * 4)
+					pixels = new byte[w * h * 4];
 
 				var layer = new LayerViewModel(layerModel.Name ?? "Layer", pixels)
 				{
@@ -1731,6 +2007,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			FillThreshold = state.FillThreshold;
 			CheckDiagonals = state.CheckDiagonals;
 			ShowFillPreview = state.ShowFillPreview;
+			if (Color.TryParse(state.GridColor ?? "#FF000000", out var gridCol))
+				GridColor = gridCol;
 
 			// Rebuild original-colors palette from the bottom layer
 			var existingOriginal = CustomPalettes.FirstOrDefault(p => p.Name == "Original colors");
@@ -1862,6 +2140,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private class PaintHistoryState
 		{
+			public int CanvasWidth { get; set; } = 32;
+			public int CanvasHeight { get; set; } = 32;
 			public List<(string Name, bool IsVisible, double Opacity, byte[] Pixels)> Layers { get; set; } = new();
 		}
 
@@ -1870,7 +2150,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private PaintHistoryState CaptureHistoryState()
 		{
-			var state = new PaintHistoryState();
+			var state = new PaintHistoryState
+			{
+				CanvasWidth = CanvasWidth,
+				CanvasHeight = CanvasHeight
+			};
 			foreach (var layer in Layers)
 			{
 				var pixelCopy = new byte[layer.Pixels.Length];
@@ -1882,6 +2166,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		private void RestoreHistoryState(PaintHistoryState state)
 		{
+			CanvasWidth = state.CanvasWidth;
+			CanvasHeight = state.CanvasHeight;
+			_selectionMask = new bool[CanvasWidth, CanvasHeight];
+
 			foreach (var l in Layers) UnsubscribeLayer(l);
 
 			while (Layers.Count > state.Layers.Count)
@@ -1890,7 +2178,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 			while (Layers.Count < state.Layers.Count)
 			{
-				Layers.Add(new LayerViewModel("", new byte[32 * 32 * 4]));
+				Layers.Add(new LayerViewModel("", new byte[CanvasWidth * CanvasHeight * 4]));
 			}
 
 			for (int i = 0; i < state.Layers.Count; i++)
@@ -1900,6 +2188,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				target.Name = source.Name;
 				target.IsVisible = source.IsVisible;
 				target.Opacity = source.Opacity;
+				if (target.Pixels.Length != source.Pixels.Length)
+				{
+					target.Pixels = new byte[source.Pixels.Length];
+				}
 				Array.Copy(source.Pixels, target.Pixels, source.Pixels.Length);
 				SubscribeLayer(target);
 			}
@@ -1971,7 +2263,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (ActiveTool == PaintTool.Picker)
 			{
-				if (HoverX >= 0 && HoverX < 32 && HoverY >= 0 && HoverY < 32)
+				if (HoverX >= 0 && HoverX < CanvasWidth && HoverY >= 0 && HoverY < CanvasHeight)
 				{
 					double left = HoverX * zoom;
 					double top = HoverY * zoom;
@@ -1994,7 +2286,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					int px = HoverX + dx;
 					int py = HoverY + dy;
 
-					if (px >= 0 && px < 32 && py >= 0 && py < 32)
+					if (px >= 0 && px < CanvasWidth && py >= 0 && py < CanvasHeight)
 					{
 						double left = px * zoom;
 						double top = py * zoom;
@@ -2007,7 +2299,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							sb.Append($"M {left},{top} L {left},{bottom} ");
 						}
 						// Right edge
-						if (!IsWithinBrushShape(dx + 1, dy, radius) || px == 31)
+						if (!IsWithinBrushShape(dx + 1, dy, radius) || px == CanvasWidth - 1)
 						{
 							sb.Append($"M {right},{top} L {right},{bottom} ");
 						}
@@ -2017,7 +2309,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 							sb.Append($"M {left},{top} L {right},{top} ");
 						}
 						// Bottom edge
-						if (!IsWithinBrushShape(dx, dy + 1, radius) || py == 31)
+						if (!IsWithinBrushShape(dx, dy + 1, radius) || py == CanvasHeight - 1)
 						{
 							sb.Append($"M {left},{bottom} L {right},{bottom} ");
 						}
@@ -2037,9 +2329,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			var sb = new System.Text.StringBuilder();
 			double zoom = ZoomLevel;
 
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
 					if (_selectionMask[x, y])
 					{
@@ -2052,7 +2344,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						{
 							sb.Append($"M {left},{top} L {left},{bottom} ");
 						}
-						if (x == 31 || !_selectionMask[x + 1, y])
+						if (x == CanvasWidth - 1 || !_selectionMask[x + 1, y])
 						{
 							sb.Append($"M {right},{top} L {right},{bottom} ");
 						}
@@ -2060,7 +2352,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						{
 							sb.Append($"M {left},{top} L {right},{top} ");
 						}
-						if (y == 31 || !_selectionMask[x, y + 1])
+						if (y == CanvasHeight - 1 || !_selectionMask[x, y + 1])
 						{
 							sb.Append($"M {left},{bottom} L {right},{bottom} ");
 						}
@@ -2077,13 +2369,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			if (ActiveLayer == null)
 				return string.Empty;
 
-			int minX = 32, maxX = -1, minY = 32, maxY = -1;
+			int minX = CanvasWidth, maxX = -1, minY = CanvasHeight, maxY = -1;
 			var pixels = ActiveLayer.Pixels;
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < CanvasHeight; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < CanvasWidth; x++)
 				{
-					int idx = (y * 32 + x) * 4;
+					int idx = (y * CanvasWidth + x) * 4;
 					if (pixels[idx + 3] > 0)
 					{
 						if (x < minX) minX = x;

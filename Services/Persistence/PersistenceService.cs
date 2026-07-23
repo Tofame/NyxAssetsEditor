@@ -592,6 +592,9 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool CheckDiagonals { get; set; } = true;
 			public bool ShowFillPreview { get; set; } = true;
 			public string SelectedPaletteName { get; set; } = "";
+			public int CanvasWidth { get; set; } = 32;
+			public int CanvasHeight { get; set; } = 32;
+			public string GridColor { get; set; } = "#FF000000";
 		}
 
 		private static readonly string PaintStatePath = Path.Combine(AppContext.BaseDirectory, "paint_state.toml");
@@ -622,7 +625,10 @@ namespace NyxAssetsEditor.Services.Persistence
 					FillThreshold = vm.FillThreshold,
 					CheckDiagonals = vm.CheckDiagonals,
 					ShowFillPreview = vm.ShowFillPreview,
-					SelectedPaletteName = vm.SelectedPalette?.Name ?? ""
+					SelectedPaletteName = vm.SelectedPalette?.Name ?? "",
+					CanvasWidth = vm.CanvasWidth,
+					CanvasHeight = vm.CanvasHeight,
+					GridColor = vm.GridColor.ToString()
 				};
 
 				foreach (var layer in vm.Layers)
