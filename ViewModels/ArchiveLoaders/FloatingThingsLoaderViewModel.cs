@@ -1621,6 +1621,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			RedoCommand.NotifyCanExecuteChanged();
 		}
 
+		public void ClearUndoRedoStack()
+		{
+			_undoRedoStack?.Clear();
+			RefreshUndoRedoCommands();
+		}
+
 		private ThingType? GetThingFromCatalog(ThingKind kind, uint id)
 		{
 			if (_catalog == null) return null;

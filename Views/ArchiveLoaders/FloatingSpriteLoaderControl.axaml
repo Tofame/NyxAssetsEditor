@@ -66,6 +66,8 @@
 							<MenuFlyout Placement="BottomEdgeAlignedRight">
 								<MenuItem Header="Save spr/assets" Command="{Binding RequestSaveConfirmationCommand}"/>
 								<MenuItem Header="Save As..." Command="{Binding SaveAsCommand}"/>
+								<Separator/>
+								<MenuItem Header="Sprites Optimizer..." Command="{Binding OpenSpritesOptimizerCommand}"/>
 							</MenuFlyout>
 						</Button.Flyout>
 					</Button>
