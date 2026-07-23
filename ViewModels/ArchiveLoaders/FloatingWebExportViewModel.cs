@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
 using NyxAssets.Things.Frames;
 using NyxAssets.Sprites;
+using NyxAssets.Utils;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Services.Rendering;
@@ -321,18 +322,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 					}
 					else
 					{
-						// Spritesheet Mode
-						var options = new ThingAppearanceOptions { FrameGroupIndex = 0, ShowGrid = false };
-						var pixels = ThingAppearanceRenderer.RenderPatternGrid(ot, loader, options);
-						if (pixels != null && ot.FrameGroups.Count > 0)
-						{
-							var fg = ot.FrameGroups[0];
-							var edge = SpritePixelCodec.SpriteEdgeLength;
-							var sheetW = Math.Max(edge, (int)(fg.PatternX * fg.Width * edge));
-							var sheetH = Math.Max(edge, (int)(fg.PatternY * fg.Height * edge));
-							var outputPath = Path.Combine(outfitsFolder, $"outfit_{ot.Id}_sheet.{format}");
-							WriteImage(pixels, outputPath, sheetW, sheetH, format, compression);
-						}
+						// Full Asset Editor spritesheet (all frames / layers / patterns / frame groups)
+						var outputPath = Path.Combine(outfitsFolder, $"outfit_{ot.Id}_sheet.{format}");
+						WriteThingSpritesheet(loader, ot, outputPath, format, compression);
 					}
 				});
 			}
@@ -568,6 +560,43 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 				}
 			}
 		}
+	}
+
+	private static void WriteThingSpritesheet(SpriteLoader loader, ThingType thing, string outputPath, string format, int compressionLevel)
+	{
+		using var spriteSource = new SpriteLoaderSpriteSource(loader);
+		var fmt = format.ToLowerInvariant();
+
+		if (fmt is "webp")
+		{
+			// Exporter has no WebP — write PNG to memory, re-encode.
+			using var pngStream = new MemoryStream();
+			if (!ThingSpriteSheetExporter.TryWriteThingSpriteSheetPng(spriteSource, thing, pngStream))
+				return;
+
+			pngStream.Position = 0;
+			using var skData = SkiaSharp.SKData.Create(pngStream);
+			using var image = SkiaSharp.SKImage.FromEncodedData(skData);
+			if (image == null) return;
+
+			var quality = 100 - (compressionLevel * 3);
+			using var encoded = image.Encode(SkiaSharp.SKEncodedImageFormat.Webp, quality);
+			if (encoded == null) return;
+			using var file = File.Create(outputPath);
+			encoded.SaveTo(file);
+			return;
+		}
+
+		var ok = fmt switch
+		{
+			"jpg" or "jpeg" => ThingSpriteSheetExporter.TryWriteThingSpriteSheetJpeg(
+				spriteSource, thing, outputPath, Math.Clamp(100 - (compressionLevel * 10), 10, 100)),
+			"bmp" => ThingSpriteSheetExporter.TryWriteThingSpriteSheetBmp(spriteSource, thing, outputPath),
+			_ => ThingSpriteSheetExporter.TryWriteThingSpriteSheetPng(spriteSource, thing, outputPath),
+		};
+
+		if (!ok)
+			throw new InvalidOperationException($"ThingSpriteSheetExporter could not write spritesheet for thing {thing.Id}.");
 	}
 
 	private static void WriteImage(byte[] pixels, string outputPath, int width, int height, string format, int compressionLevel)
