@@ -299,16 +299,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		{
 			UpdateCanvasPreview();
 			NotifyOutlinePropertiesChanged();
+			OnPropertyChanged(nameof(PositionText));
 		}
 		partial void OnHoverYChanged(int value)
 		{
 			UpdateCanvasPreview();
 			NotifyOutlinePropertiesChanged();
+			OnPropertyChanged(nameof(PositionText));
 		}
 		partial void OnIsHoveringChanged(bool value)
 		{
 			UpdateCanvasPreview();
 			NotifyOutlinePropertiesChanged();
+			OnPropertyChanged(nameof(PositionText));
 		}
 
 		[ObservableProperty]
@@ -381,11 +384,60 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		[ObservableProperty]
 		private PaletteViewModel? _selectedPalette;
 
+		public string PositionText => IsHovering && HoverX >= 0 && HoverY >= 0 ? $"{HoverX}, {HoverY} px" : "-";
+
+		public string SelectionText
+		{
+			get
+			{
+				if (!HasSelection)
+					return "-";
+
+				int minX = CanvasWidth;
+				int maxX = -1;
+				int minY = CanvasHeight;
+				int maxY = -1;
+				int count = 0;
+
+				for (int y = 0; y < CanvasHeight; y++)
+				{
+					for (int x = 0; x < CanvasWidth; x++)
+					{
+						if (_selectionMask[x, y])
+						{
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							if (y < minY) minY = y;
+							if (y > maxY) maxY = y;
+							count++;
+						}
+					}
+				}
+
+				if (count == 0)
+					return "-";
+
+				int w = maxX - minX + 1;
+				int h = maxY - minY + 1;
+				return $"{w}x{h} px at ({minX}, {minY}) [{count} px]";
+			}
+		}
+
+		public string ZoomPercentText => $"{ZoomLevel * 100:F0}%";
+
+		public void NotifySelectionChanged()
+		{
+			OnPropertyChanged(nameof(HasSelection));
+			OnPropertyChanged(nameof(SelectionText));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
+		}
+
 		partial void OnZoomLevelChanged(double value)
 		{
 			OnPropertyChanged(nameof(ZoomWidth));
 			OnPropertyChanged(nameof(ZoomHeight));
 			OnPropertyChanged(nameof(ZoomDimension));
+			OnPropertyChanged(nameof(ZoomPercentText));
 			OnPropertyChanged(nameof(GridPathData));
 			NotifyOutlinePropertiesChanged();
 		}
@@ -501,6 +553,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 			HasSelection = false;
+			OnPropertyChanged(nameof(SelectionText));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
 			UpdateCanvasPreview();
 		}
 
@@ -752,6 +806,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					}
 				}
 			}
+			OnPropertyChanged(nameof(SelectionText));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
 		}
 
 		private int ColorSimilarity(Color c1, Color c2)
@@ -1171,6 +1227,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 			HasSelection = hasSel;
+			OnPropertyChanged(nameof(SelectionText));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
 			UpdateCanvasPreview();
 		}
 
@@ -1437,7 +1495,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 			HasSelection = hasSel;
-
+			OnPropertyChanged(nameof(SelectionText));
+			OnPropertyChanged(nameof(SelectionOutlinePathData));
 			UpdateCanvasPreview();
 		}
 
