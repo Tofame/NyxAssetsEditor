@@ -859,6 +859,201 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			RequestSaveAs?.Invoke(this, EventArgs.Empty);
 		}
 
+		public event EventHandler? RequestSpritesOptimizer;
+
+		[RelayCommand]
+		private void OpenSpritesOptimizer()
+		{
+			RequestSpritesOptimizer?.Invoke(this, EventArgs.Empty);
+		}
+
+		public FloatingThingsLoaderViewModel? GetLinkedThingsPanel()
+		{
+			if (ParentViewModel == null) return null;
+			return ParentViewModel.ActivePanels.OfType<FloatingThingsLoaderViewModel>()
+				.FirstOrDefault(t => t.LinkedSpritePanel == this);
+		}
+
+		public void RunOptimization(string? exportPath, out int oldSpriteCount, out int removedCount, out int newSpriteCount)
+		{
+			oldSpriteCount = (int)TotalSprites;
+			removedCount = 0;
+			newSpriteCount = oldSpriteCount;
+
+			var thingsPanel = GetLinkedThingsPanel();
+			if (thingsPanel == null || thingsPanel.Catalog == null)
+				return;
+
+			var catalog = thingsPanel.Catalog;
+
+			// Gather all used sprite IDs
+			var usedSprites = new HashSet<uint>();
+			foreach (var item in catalog.EnumerateItems())
+				foreach (var fg in item.FrameGroups)
+					if (fg.SpriteIds != null)
+						foreach (var id in fg.SpriteIds)
+							if (id != 0) usedSprites.Add(id);
+
+			foreach (var outfit in catalog.EnumerateOutfits())
+				foreach (var fg in outfit.FrameGroups)
+					if (fg.SpriteIds != null)
+						foreach (var id in fg.SpriteIds)
+							if (id != 0) usedSprites.Add(id);
+
+			foreach (var effect in catalog.EnumerateEffects())
+				foreach (var fg in effect.FrameGroups)
+					if (fg.SpriteIds != null)
+						foreach (var id in fg.SpriteIds)
+							if (id != 0) usedSprites.Add(id);
+
+			foreach (var missile in catalog.EnumerateMissiles())
+				foreach (var fg in missile.FrameGroups)
+					if (fg.SpriteIds != null)
+						foreach (var id in fg.SpriteIds)
+							if (id != 0) usedSprites.Add(id);
+
+			// Find unused sprites
+			var unusedSprites = new List<uint>();
+			for (uint i = 1; i <= TotalSprites; i++)
+			{
+				if (!usedSprites.Contains(i))
+				{
+					unusedSprites.Add(i);
+				}
+			}
+
+			if (unusedSprites.Count == 0)
+			{
+				return;
+			}
+
+			// Export unused sprites to folder as PNGs if path is provided
+			if (!string.IsNullOrEmpty(exportPath) && Directory.Exists(exportPath))
+			{
+				foreach (var id in unusedSprites)
+				{
+					try
+					{
+						var pixels = Loader.LoadSpritePixels(id);
+						var edge = NyxAssets.Sprites.SpritePixelCodec.SpriteEdgeLength;
+						var info = new SkiaSharp.SKImageInfo(edge, edge, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
+						using var bitmap = new SkiaSharp.SKBitmap();
+						var pin = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+						try
+						{
+							bitmap.InstallPixels(info, pin.AddrOfPinnedObject(), info.RowBytes);
+							using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+							if (image != null)
+							{
+								using var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+								if (data != null)
+								{
+									var filePath = Path.Combine(exportPath, $"unused_sprite_{id}.png");
+									using var stream = File.OpenWrite(filePath);
+									data.SaveTo(stream);
+								}
+							}
+						}
+						finally
+						{
+							pin.Free();
+						}
+					}
+					catch (Exception ex)
+					{
+						System.Diagnostics.Debug.WriteLine($"Failed to export unused sprite {id}: {ex.Message}");
+					}
+				}
+			}
+
+			// Calculate old-to-new mapping for shifted IDs
+			var oldToNewMap = new Dictionary<uint, uint>();
+			unusedSprites.Sort();
+			for (uint oldId = 1; oldId <= TotalSprites; oldId++)
+			{
+				if (usedSprites.Contains(oldId))
+				{
+					int shift = 0;
+					foreach (var unusedId in unusedSprites)
+					{
+						if (unusedId < oldId)
+							shift++;
+						else
+							break;
+					}
+					oldToNewMap[oldId] = oldId - (uint)shift;
+				}
+			}
+
+			// Update references in catalog
+			Action<NyxAssets.Things.ThingFrameGroup> updateFg = fg =>
+			{
+				if (fg.SpriteIds != null)
+				{
+					for (int i = 0; i < fg.SpriteIds.Length; i++)
+					{
+						uint oldId = fg.SpriteIds[i];
+						if (oldId != 0)
+						{
+							if (oldToNewMap.TryGetValue(oldId, out var newId))
+								fg.SpriteIds[i] = newId;
+							else
+								fg.SpriteIds[i] = 0;
+						}
+					}
+				}
+			};
+
+			foreach (var item in catalog.EnumerateItems())
+				foreach (var fg in item.FrameGroups)
+					updateFg(fg);
+			foreach (var outfit in catalog.EnumerateOutfits())
+				foreach (var fg in outfit.FrameGroups)
+					updateFg(fg);
+			foreach (var effect in catalog.EnumerateEffects())
+				foreach (var fg in effect.FrameGroups)
+					updateFg(fg);
+			foreach (var missile in catalog.EnumerateMissiles())
+				foreach (var fg in missile.FrameGroups)
+					updateFg(fg);
+
+			// Copy used sprites to their new shifted positions (ordered by new ID ascending to prevent overwriting)
+			var sortedCopies = oldToNewMap.OrderBy(kvp => kvp.Value).ToList();
+			foreach (var pair in sortedCopies)
+			{
+				var pixels = Loader.LoadSpritePixels(pair.Key);
+				Loader.SetSpritePixels(pair.Value, pixels);
+			}
+
+			// Calculate counts
+			removedCount = unusedSprites.Count;
+			newSpriteCount = oldSpriteCount - removedCount;
+
+			// Shrink the archive count by removing remaining trailing sprites descending
+			for (uint id = (uint)oldSpriteCount; id > (uint)newSpriteCount; id--)
+			{
+				Loader.RemoveSprite(id);
+			}
+
+			// Clear undo/redo stacks since indices shifted
+			_undoRedoStack?.Clear();
+			RefreshUndoRedoCommands();
+
+			thingsPanel.ClearUndoRedoStack();
+			thingsPanel.HasSavedChanges = true;
+			thingsPanel.RefreshAfterCatalogMutation();
+
+			// Mark changes
+			HasSavedChanges = true;
+			TotalSprites = Loader.SpriteCount;
+			if (CurrentPage > TotalPages && TotalPages > 0)
+				CurrentPage = TotalPages;
+			else
+				UpdatePage();
+
+			NotifySelectionChanged();
+		}
+
 
 
 		private void OnAssetDisplaySizeChanged(int newSize)

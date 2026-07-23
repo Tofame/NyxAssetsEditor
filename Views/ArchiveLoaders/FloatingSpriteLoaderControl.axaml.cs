@@ -56,6 +56,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSaveAs -= OnSaveAsRequested;
 					_viewModel.RequestSpriteFileDialog -= OnSpriteFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
+					_viewModel.RequestSpritesOptimizer -= OnSpritesOptimizerRequested;
 				}
 				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
 				if (_viewModel != null)
@@ -63,8 +64,23 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSaveAs += OnSaveAsRequested;
 					_viewModel.RequestSpriteFileDialog += OnSpriteFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
+					_viewModel.RequestSpritesOptimizer += OnSpritesOptimizerRequested;
 				}
 			};
+		}
+
+		private async void OnSpritesOptimizerRequested(object? sender, EventArgs e)
+		{
+			if (_viewModel == null) return;
+			var topLevel = TopLevel.GetTopLevel(this);
+			if (topLevel is not Window window)
+			{
+				window = this.VisualRoot as Window;
+			}
+			if (window == null) return;
+
+			var dialog = new SpritesOptimizerDialog(_viewModel);
+			await dialog.ShowDialog(window);
 		}
 
 		private void RegisterResizeHandle(FloatingPanelInteraction interaction, string name, int direction)
