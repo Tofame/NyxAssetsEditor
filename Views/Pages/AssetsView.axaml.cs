@@ -86,6 +86,8 @@ namespace NyxAssetsEditor.Views.Pages
 				catch (Exception ex)
 				{
 					System.Diagnostics.Debug.WriteLine($"Compile as failed: {ex.Message}");
+					pair.SpritePanel.ErrorMessage = $"Compile As failed: {ex.Message}";
+					pair.ThingsPanel.ErrorMessage = $"Compile As failed: {ex.Message}";
 				}
 			}
 		}

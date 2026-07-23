@@ -289,6 +289,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				catch (Exception ex)
 				{
 					System.Diagnostics.Debug.WriteLine($"Compile failed: {ex}");
+					pair.SpritePanel.ErrorMessage = $"Compile failed: {ex.Message}";
+					pair.ThingsPanel.ErrorMessage = $"Compile failed: {ex.Message}";
 				}
 			}
 		}
