@@ -118,6 +118,11 @@
 							</StackPanel>
 						</Grid>
 						<CheckBox IsChecked="{Binding OptimizeWithOxiPng, Mode=TwoWay}" Content="Optimize PNGs with OxiPNG" IsVisible="{Binding IsPngFormat}" Margin="0,6,0,0" FontSize="11"/>
+						<StackPanel Spacing="2" Margin="18,2,0,0" IsVisible="{Binding ShowOxiPngOptions}">
+							<CheckBox IsChecked="{Binding OxiPngMaxLevel, Mode=TwoWay}" Content="OxiPNG max (-o max, slower)" FontSize="11"/>
+							<CheckBox IsChecked="{Binding OxiPngZopfli, Mode=TwoWay}" Content="Zopfli (--zopfli, slowest / smaller)" FontSize="11"/>
+							<TextBlock Text="Pick one (or neither = default -o 3)" FontSize="10" Foreground="#888" Margin="0,2,0,0"/>
+						</StackPanel>
 					</StackPanel>
 					
 					<Separator Height="1" Background="#383838"/>

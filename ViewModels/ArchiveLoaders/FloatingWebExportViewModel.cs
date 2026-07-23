@@ -78,6 +78,24 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 	[ObservableProperty]
 	private bool _optimizeWithOxiPng = true;
 
+	[ObservableProperty]
+	private bool _oxiPngMaxLevel;
+
+	[ObservableProperty]
+	private bool _oxiPngZopfli;
+
+	partial void OnOxiPngMaxLevelChanged(bool value)
+	{
+		if (value && OxiPngZopfli)
+			OxiPngZopfli = false;
+	}
+
+	partial void OnOxiPngZopfliChanged(bool value)
+	{
+		if (value && OxiPngMaxLevel)
+			OxiPngMaxLevel = false;
+	}
+
 	public bool CanExport => SelectedArchivePair != null
 		&& !IsExporting
 		&& !string.IsNullOrWhiteSpace(ExportPath)
@@ -87,6 +105,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 	public bool IsOutfitFirstFrameMode => ExportOutfits && OutfitMode == "FirstFrame";
 	public bool IsPngFormat => OutputFormat == "png";
+	public bool ShowOxiPngOptions => IsPngFormat && OptimizeWithOxiPng;
 
 	// Finder integration — button opens the Finder, export reads its results if active
 	private FloatingThingFinderViewModel? ActiveItemFinder => SelectedArchivePair == null ? null
@@ -111,7 +130,12 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 	partial void OnExportOutfitsChanged(bool value) => OnPropertyChanged(nameof(IsOutfitFirstFrameMode));
 	partial void OnOutfitModeChanged(string value) => OnPropertyChanged(nameof(IsOutfitFirstFrameMode));
-	partial void OnOutputFormatChanged(string value) => OnPropertyChanged(nameof(IsPngFormat));
+	partial void OnOutputFormatChanged(string value)
+	{
+		OnPropertyChanged(nameof(IsPngFormat));
+		OnPropertyChanged(nameof(ShowOxiPngOptions));
+	}
+	partial void OnOptimizeWithOxiPngChanged(bool value) => OnPropertyChanged(nameof(ShowOxiPngOptions));
 	partial void OnSelectedArchivePairChanged(WebExportArchivePairViewModel? value) => RefreshItemFilterText();
 
 	[RelayCommand]
@@ -176,6 +200,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		var dirOutfit = OutfitDirection;
 		var format = OutputFormat;
 		var compression = CompressionLevel;
+		var useOxi = OptimizeWithOxiPng;
+		var oxiMax = OxiPngMaxLevel;
+		var oxiZopfli = OxiPngZopfli;
 
 		// If a Thing Finder for items is open, use its filtered set
 		var finder = ActiveItemFinder;
@@ -192,7 +219,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		try
 		{
-			await Task.Run(() => DoExportWork(catalog, loader, destPath, doItems, itemFilterIds, doOutfits, doEffects, doMissiles, modeOutfit, dirOutfit, format, compression, _cts.Token)).ConfigureAwait(true);
+			await Task.Run(() => DoExportWork(catalog, loader, destPath, doItems, itemFilterIds, doOutfits, doEffects, doMissiles, modeOutfit, dirOutfit, format, compression, useOxi, oxiMax, oxiZopfli, _cts.Token)).ConfigureAwait(true);
 			StatusText = _cts.Token.IsCancellationRequested ? "Export cancelled." : "Export completed successfully!";
 		}
 		catch (Exception ex)
@@ -226,6 +253,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		string outfitDirection,
 		string format,
 		int compression,
+		bool useOxi,
+		bool oxiMax,
+		bool oxiZopfli,
 		CancellationToken token)
 	{
 		var tasks = new List<Action>();
@@ -378,10 +408,10 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 			});
 		});
 
-		if (format == "png" && OptimizeWithOxiPng && !token.IsCancellationRequested)
+		if (format == "png" && useOxi && !token.IsCancellationRequested)
 		{
 			foreach (var dir in oxiPngDirs)
-				RunOxiPng(dir, token);
+				RunOxiPng(dir, oxiMax, oxiZopfli, token);
 		}
 	}
 
@@ -392,11 +422,15 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		return path;
 	}
 
-	private void RunOxiPng(string directory, CancellationToken token)
+	private void RunOxiPng(string directory, bool oxiMax, bool oxiZopfli, CancellationToken token)
 	{
+		var optLevel = oxiMax ? "max" : "3";
+		var zopfli = oxiZopfli ? " --zopfli" : "";
+		var modeLabel = oxiMax ? "OxiPNG max" : oxiZopfli ? "OxiPNG + Zopfli" : "OxiPNG";
+
 		Avalonia.Threading.Dispatcher.UIThread.Post(() =>
 		{
-			StatusText = $"Optimizing PNGs in {Path.GetFileName(directory)} with OxiPNG...";
+			StatusText = $"Optimizing PNGs in {Path.GetFileName(directory)} with {modeLabel}...";
 		});
 
 		try
@@ -404,7 +438,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 			var psi = new System.Diagnostics.ProcessStartInfo
 			{
 				FileName = "oxipng",
-				Arguments = $"-o 3 --strip safe --quiet \"{Path.Combine(directory, "*.png")}\"",
+				Arguments = $"-o {optLevel}{zopfli} --strip safe --quiet \"{Path.Combine(directory, "*.png")}\"",
 				UseShellExecute = false,
 				CreateNoWindow = true
 			};

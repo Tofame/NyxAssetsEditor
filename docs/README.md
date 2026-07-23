@@ -34,3 +34,32 @@ For `.spr` / `.dat` pairs, each loader can read `extended`, `transparency`, `fra
 - [NyxAssets](https://www.nuget.org/packages/NyxAssets) — archive I/O, thing exchange, previews
 - [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/) — view models
 - [SkiaSharp](https://github.com/mono/SkiaSharp) — image processing
+
+### Optional: OxiPNG (Web Export)
+
+**Assets → Web Export** can re-compress exported PNGs with [oxipng](https://github.com/oxipng/oxipng). The binary must be on your `PATH`. Without it, export still writes PNGs; optimization is skipped with a warning.
+
+Install (pick one):
+
+```bash
+# Cargo (Rust toolchain)
+cargo install oxipng
+
+# Windows (Scoop)
+scoop install oxipng
+
+# macOS (Homebrew)
+brew install oxipng
+```
+
+Or download a release from [oxipng releases](https://github.com/oxipng/oxipng/releases) and add the folder to `PATH`.
+
+Web Export options (PNG only):
+
+| Option | Flag | Notes |
+|--------|------|--------|
+| Optimize PNGs with OxiPNG | `-o 3 --strip safe` | Default mid effort |
+| OxiPNG max | `-o max` | Slower, usually smaller. Mutually exclusive with Zopfli |
+| Zopfli | `-o 3 --zopfli` | Slowest; often smallest. Mutually exclusive with max. Uses oxipng's built-in Zopfli — no separate `zopflipng` install |
+
+Neither extra option → default `-o 3`.
