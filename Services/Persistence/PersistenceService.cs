@@ -564,5 +564,106 @@ namespace NyxAssetsEditor.Services.Persistence
 			}
 			return new List<RecentCombinationModel>();
 		}
+
+		public class PaintLayerModel
+		{
+			public string Name { get; set; } = "";
+			public bool IsVisible { get; set; } = true;
+			public double Opacity { get; set; } = 1.0;
+			public string Pixels { get; set; } = "";
+		}
+
+		public class PaintStateModel
+		{
+			public string SpriteFilePath { get; set; } = "";
+			public uint SpriteId { get; set; }
+			public List<PaintLayerModel> Layers { get; set; } = new List<PaintLayerModel>();
+			public int ActiveLayerIndex { get; set; }
+			public string ActiveTool { get; set; } = "Brush";
+			public int BrushSize { get; set; } = 1;
+			public string BrushShape { get; set; } = "Square";
+			public double ZoomLevel { get; set; } = 12.0;
+			public int ColorR { get; set; } = 255;
+			public int ColorG { get; set; } = 255;
+			public int ColorB { get; set; } = 255;
+			public bool CopyOnAxisX { get; set; }
+			public bool CopyOnAxisY { get; set; }
+			public double FillThreshold { get; set; } = 10.0;
+			public bool CheckDiagonals { get; set; } = true;
+			public bool ShowFillPreview { get; set; } = true;
+			public string SelectedPaletteName { get; set; } = "";
+			public int CanvasWidth { get; set; } = 32;
+			public int CanvasHeight { get; set; } = 32;
+			public string GridColor { get; set; } = "#FF000000";
+		}
+
+		private static readonly string PaintStatePath = Path.Combine(AppContext.BaseDirectory, "paint_state.toml");
+
+		public static void SavePaintState(NyxAssetsEditor.ViewModels.Pages.PaintViewModel vm)
+		{
+			if (_isRestoring) return;
+			try
+			{
+				if (vm.Sprite == null) return;
+				string filePath = vm.Panel?.FilePath ?? "";
+				if (filePath == "No archive loaded") filePath = "";
+
+				var model = new PaintStateModel
+				{
+					SpriteFilePath = filePath,
+					SpriteId = vm.Sprite.Id,
+					ActiveLayerIndex = vm.ActiveLayer != null ? vm.Layers.IndexOf(vm.ActiveLayer) : 0,
+					ActiveTool = vm.ActiveTool.ToString(),
+					BrushSize = vm.BrushSize,
+					BrushShape = vm.BrushShape.ToString(),
+					ZoomLevel = vm.ZoomLevel,
+					ColorR = vm.ActiveColor.R,
+					ColorG = vm.ActiveColor.G,
+					ColorB = vm.ActiveColor.B,
+					CopyOnAxisX = vm.CopyOnAxisX,
+					CopyOnAxisY = vm.CopyOnAxisY,
+					FillThreshold = vm.FillThreshold,
+					CheckDiagonals = vm.CheckDiagonals,
+					ShowFillPreview = vm.ShowFillPreview,
+					SelectedPaletteName = vm.SelectedPalette?.Name ?? "",
+					CanvasWidth = vm.CanvasWidth,
+					CanvasHeight = vm.CanvasHeight,
+					GridColor = vm.GridColor.ToString()
+				};
+
+				foreach (var layer in vm.Layers)
+				{
+					model.Layers.Add(new PaintLayerModel
+					{
+						Name = layer.Name,
+						IsVisible = layer.IsVisible,
+						Opacity = layer.Opacity,
+						Pixels = Convert.ToBase64String(layer.Pixels)
+					});
+				}
+
+				string toml = TomlSerializer.Serialize(model);
+				File.WriteAllText(PaintStatePath, toml);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to save paint state: {ex.Message}");
+			}
+		}
+
+		public static PaintStateModel? LoadPaintState()
+		{
+			try
+			{
+				if (!File.Exists(PaintStatePath)) return null;
+				string toml = File.ReadAllText(PaintStatePath);
+				return TomlSerializer.Deserialize<PaintStateModel>(toml);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to load paint state: {ex.Message}");
+				return null;
+			}
+		}
 	}
 }

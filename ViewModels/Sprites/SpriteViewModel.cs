@@ -7,6 +7,7 @@ using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Core;
+using NyxAssetsEditor.ViewModels.Shell;
 
 namespace NyxAssetsEditor.ViewModels.Sprites
 {
@@ -97,6 +98,16 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 				_panel.RemoveSprites(selected);
 			else
 				_panel.RemoveSprites(new[] { this });
+		}
+
+		[RelayCommand]
+		private void EditInPaint()
+		{
+			if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+				&& desktop.MainWindow?.DataContext is MainWindowViewModel mainVM)
+			{
+				mainVM.EditSprite(this, _panel);
+			}
 		}
 
 		private void ExportWithSelection(string format)

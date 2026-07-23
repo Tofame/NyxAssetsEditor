@@ -1,0 +1,533 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+			xmlns:common="using:NyxAssetsEditor.Views.Common"
+			xmlns:views="using:NyxAssetsEditor.Views.Pages"
+			mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
+			x:Class="NyxAssetsEditor.Views.Pages.PaintView"
+			x:DataType="vm:PaintViewModel"
+			Background="#141414">
+
+	<UserControl.Styles>
+		<Style Selector="Grid.CanvasContainer Border.ResizeHandle">
+			<Setter Property="Opacity" Value="0.0"/>
+			<Setter Property="Background" Value="#3A7BD5"/>
+			<Setter Property="BorderBrush" Value="#FFFFFF"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+				</Transitions>
+			</Setter>
+		</Style>
+		<Style Selector="Grid.CanvasContainer:pointerover Border.ResizeHandle">
+			<Setter Property="Opacity" Value="0.6"/>
+		</Style>
+		<Style Selector="Grid.CanvasContainer Border.ResizeHandle:pointerover">
+			<Setter Property="Opacity" Value="1.0"/>
+			<Setter Property="Background" Value="#00FFCC"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid ColumnDefinitions="220, *" Margin="10">
+		<!-- Left Toolbar -->
+		<Border Grid.Column="0" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="15" Margin="0,0,10,0">
+			<Grid RowDefinitions="Auto, Auto, Auto, Auto, *">
+				<!-- Title -->
+				<TextBlock Grid.Row="0" Text="Tools" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,15"/>
+
+				<!-- Tool Selection -->
+				<StackPanel Grid.Row="1" Spacing="8">
+					<RadioButton IsChecked="{Binding IsSelectActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/select.png" Width="14" Height="14"/>
+							<TextBlock Text="Selection" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsMoveActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/action_drag.png" Width="14" Height="14"/>
+							<TextBlock Text="Move Layer" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsBrushActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/pencil.png" Width="14" Height="14"/>
+							<TextBlock Text="Brush (Pencil)" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsEraserActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/eraser.png" Width="14" Height="14"/>
+							<TextBlock Text="Eraser" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsPickerActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/eyedropper.png" Width="14" Height="14"/>
+							<TextBlock Text="Color Picker" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsBucketActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/bucket.png" Width="14" Height="14"/>
+							<TextBlock Text="Fill Bucket" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+					<RadioButton IsChecked="{Binding IsWandActive}" Theme="{StaticResource {x:Type ToggleButton}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+							<Image Source="/Assets/Icons/paint/wand.png" Width="14" Height="14"/>
+							<TextBlock Text="Magic Wand" VerticalAlignment="Center"/>
+						</StackPanel>
+					</RadioButton>
+				</StackPanel>
+
+				<Separator Grid.Row="2" Margin="0,20" Background="#2D2D2D"/>
+
+				<!-- Brush Size & Settings -->
+				<StackPanel Grid.Row="3" Spacing="10">
+					<TextBlock Text="Brush Size" Foreground="#A0A0A0" FontSize="12"/>
+					<Grid ColumnDefinitions="*, Auto">
+						<Slider Grid.Column="0" Minimum="1" Maximum="8" Value="{Binding BrushSize}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+						<TextBlock Grid.Column="1" Text="{Binding BrushSize}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
+					</Grid>
+					<!-- Quick Size Presets -->
+					<Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*, *, *" RowSpacing="4" ColumnSpacing="4" Margin="0,-4,0,0">
+						<Button Grid.Row="0" Grid.Column="0" Content="1" Command="{Binding SetBrushSizeCommand}" CommandParameter="1" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="0" Grid.Column="1" Content="2" Command="{Binding SetBrushSizeCommand}" CommandParameter="2" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="0" Grid.Column="2" Content="3" Command="{Binding SetBrushSizeCommand}" CommandParameter="3" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="0" Content="4" Command="{Binding SetBrushSizeCommand}" CommandParameter="4" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="1" Content="5" Command="{Binding SetBrushSizeCommand}" CommandParameter="5" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+						<Button Grid.Row="1" Grid.Column="2" Content="8" Command="{Binding SetBrushSizeCommand}" CommandParameter="8" Height="26" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11"/>
+					</Grid>
+
+					<TextBlock Text="Brush Shape" Foreground="#A0A0A0" FontSize="12" Margin="0,5,0,0"/>
+					<Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4">
+						<RadioButton Grid.Column="0" Content="■" IsChecked="{Binding IsSquareBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Square Brush"/>
+						<RadioButton Grid.Column="1" Content="●" IsChecked="{Binding IsCircleBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Circle Brush"/>
+						<RadioButton Grid.Column="2" Content="◆" IsChecked="{Binding IsDiamondBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Diamond Brush"/>
+						<RadioButton Grid.Column="3" Content="✚" IsChecked="{Binding IsCrossBrush}" Theme="{StaticResource {x:Type ToggleButton}}" Height="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Cross Brush"/>
+					</Grid>
+
+					<StackPanel Spacing="5" IsVisible="{Binding IsThresholdVisible}">
+						<Separator Margin="0,5" Background="#2D2D2D"/>
+						<TextBlock Text="Bucket" Foreground="#A0A0A0" FontSize="12" FontWeight="SemiBold"/>
+						<TextBlock Text="Fill Threshold" Foreground="#A0A0A0" FontSize="11" Margin="0,5,0,0"/>
+						<Grid ColumnDefinitions="*, Auto">
+							<Slider Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding FillThreshold}" IsSnapToTickEnabled="False"/>
+							<TextBlock Grid.Column="1" Text="{Binding FillThreshold, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="10,0,0,0"/>
+						</Grid>
+						<CheckBox Content="Check diagonals" IsChecked="{Binding CheckDiagonals}" Foreground="#FFFFFF" Margin="0,5,0,0"/>
+						<CheckBox Content="Show preview" IsChecked="{Binding ShowFillPreview}" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+					</StackPanel>
+
+					<StackPanel Spacing="5" IsVisible="{Binding IsMoveToolSettingsVisible}">
+						<Separator Margin="0,5" Background="#2D2D2D"/>
+						<TextBlock Text="Move Tool" Foreground="#A0A0A0" FontSize="12" FontWeight="SemiBold"/>
+						<RadioButton Content="Move active layer" IsChecked="{Binding IsMoveActiveTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,5,0,0"/>
+						<RadioButton Content="Move touched layer" IsChecked="{Binding IsMoveTouchedTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+						<RadioButton Content="Move all layers" IsChecked="{Binding IsMoveAllTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+						<RadioButton Content="Move visible layers" IsChecked="{Binding IsMoveVisibleTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+					</StackPanel>
+
+					<Separator Margin="0,5" Background="#2D2D2D"/>
+					<TextBlock Text="Symmetry drawing" Foreground="#A0A0A0" FontSize="12"/>
+					<CheckBox Content="Copy on Axis X" IsChecked="{Binding CopyOnAxisX}" Foreground="#FFFFFF"/>
+					<CheckBox Content="Copy on Axis Y" IsChecked="{Binding CopyOnAxisY}" Foreground="#FFFFFF"/>
+
+					<Button Content="Clear Selection" Command="{Binding ClearSelection}" IsEnabled="{Binding HasSelection}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,15,0,0"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- Right Canvas Panel -->
+		<Grid Grid.Column="1" RowDefinitions="Auto, *, Auto">
+			<!-- Canvas Actions Header -->
+			<Border Grid.Row="0" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+				<Grid ColumnDefinitions="*, Auto">
+					<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+						<Button Command="{Binding UndoCommand}" ToolTip.Tip="Undo (Ctrl+Z)" HotKey="Ctrl+Z">
+							<Image Source="/Assets/Icons/action_undo.png" Width="14" Height="14"/>
+						</Button>
+						<Button Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Y)" HotKey="Ctrl+Y">
+							<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
+						</Button>
+						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
+						<Button Content="Mirror Horizontal" Command="{Binding MirrorHorizontalCommand}"/>
+						<Button Content="Mirror Vertical" Command="{Binding MirrorVerticalCommand}"/>
+						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
+						<CheckBox Content="Handles" IsChecked="{Binding ShowResizeHandles}" VerticalAlignment="Center" FontSize="11" Margin="0,0,5,0"/>
+						<Button Content="Resize..." Click="OnResizeCanvasMenuClick" FontSize="11" Padding="8,4"/>
+						<Button Content="Fit to Layers" Command="{Binding FitCanvasToContentCommand}" FontSize="11" Padding="8,4"/>
+						<Border Width="1" Height="16" Background="#2D2D2D" Margin="5,0" VerticalAlignment="Center"/>
+						<CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" VerticalAlignment="Center" FontSize="11" Margin="0,0,5,0"/>
+						<TextBlock Text="Grid Size:" VerticalAlignment="Center" FontSize="11" Foreground="#A0A0A0"/>
+						<NumericUpDown Value="{Binding GridWidth}" Minimum="1" Maximum="128" Width="70" Height="24" FontSize="11"/>
+						<TextBlock Text="x" VerticalAlignment="Center" FontSize="11" Foreground="#A0A0A0"/>
+						<NumericUpDown Value="{Binding GridHeight}" Minimum="1" Maximum="128" Width="70" Height="24" FontSize="11"/>
+						<ColorPicker Color="{Binding GridColor}" Width="45" Height="24" Margin="5,0,0,0"/>
+					</StackPanel>
+					<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+						<Button Command="{Binding CopySelectionCommand}" HotKey="Ctrl+C" IsVisible="False"/>
+						<Button Command="{Binding PasteSelectionCommand}" HotKey="Ctrl+V" IsVisible="False"/>
+						<Button Command="{Binding DeleteSelectionCommand}" HotKey="Delete" IsVisible="False"/>
+						<Button Command="{Binding SelectSelectToolCommand}" HotKey="R" IsVisible="False"/>
+						<Button Command="{Binding SelectMoveToolCommand}" HotKey="M" IsVisible="False"/>
+						<Button Command="{Binding SelectBrushToolCommand}" HotKey="P" IsVisible="False"/>
+						<Button Command="{Binding SelectEraserToolCommand}" HotKey="Shift+E" IsVisible="False"/>
+						<Button Command="{Binding SelectPickerToolCommand}" HotKey="O" IsVisible="False"/>
+						<Button Command="{Binding SelectBucketToolCommand}" HotKey="Shift+B" IsVisible="False"/>
+						<Button Command="{Binding SelectWandToolCommand}" HotKey="U" IsVisible="False"/>
+						<Button Content="Copy to Clipboard" Command="{Binding CopyToClipboardCommand}" Background="#1F4E2B" Foreground="#FFFFFF"/>
+						<Button Content="Cancel" Command="{Binding CancelCommand}"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- Canvas Workspace Layout with Centered Drawing and Absolute Overlays -->
+			<Border Grid.Row="1" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" ClipToBounds="True" PointerWheelChanged="OnPointerWheelChanged" PointerPressed="OnWorkspacePointerPressed">
+				<Panel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+					<!-- Transparent checkerboard background simulation -->
+					<Image Source="/Assets/avalonia-logo.ico" Opacity="0.03" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+					<!-- Centered Sprite Canvas Drawing Area & Dimensions -->
+					<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
+						<!-- Dimensions Label (e.g. 32 x 32) -->
+						<TextBlock HorizontalAlignment="Center" Foreground="#A0A0A0" FontSize="11" FontWeight="SemiBold">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="{}{0} x {1}">
+									<Binding Path="CanvasWidth"/>
+									<Binding Path="CanvasHeight"/>
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+
+						<!-- Resizable Canvas Container -->
+						<Grid Classes="CanvasContainer" RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, Auto, Auto">
+							
+							<!-- Resize Handles Row 0 -->
+							<Border Grid.Row="0" Grid.Column="0" Width="8" Height="8" Classes="ResizeHandle" Cursor="TopLeftCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top Left" Name="Handle_TL" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="0" Grid.Column="1" Width="8" Height="8" HorizontalAlignment="Center" Classes="ResizeHandle" Cursor="SizeNorthSouth" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top" Name="Handle_T" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="0" Grid.Column="2" Width="8" Height="8" Classes="ResizeHandle" Cursor="TopRightCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Top Right" Name="Handle_TR" IsVisible="{Binding ShowResizeHandles}"/>
+
+							<!-- Resize Handles Row 1 (Left and Right) -->
+							<Border Grid.Row="1" Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center" Classes="ResizeHandle" Cursor="SizeWestEast" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Left" Name="Handle_L" IsVisible="{Binding ShowResizeHandles}"/>
+							
+							<!-- Central Canvas Border -->
+							<Border Grid.Row="1" Grid.Column="1" BorderBrush="#444444" BorderThickness="1" Background="#141414">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Extract Sprite Colors" Command="{Binding ExtractPaletteFromActiveLayerCommand}"/>
+										<MenuItem Header="Resize Canvas..." Click="OnResizeCanvasMenuClick"/>
+										<MenuItem Header="Fit Canvas to Layers" Command="{Binding FitCanvasToContentCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
+								<Panel>
+									<Viewbox Stretch="Uniform" Height="{Binding ZoomHeight}" Width="{Binding ZoomWidth}">
+										<Image x:Name="CanvasImage"
+											   Source="{Binding CanvasPreview}"
+											   Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}"
+											   RenderOptions.BitmapInterpolationMode="None"
+											   PointerPressed="OnCanvasPointerPressed"
+											   PointerMoved="OnCanvasPointerMoved"
+											   PointerReleased="OnCanvasPointerReleased"
+											   PointerEntered="OnCanvasPointerEntered"
+											   PointerExited="OnCanvasPointerExited"/>
+									</Viewbox>
+									<!-- Slim vector grid overlay -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<Path Stroke="{Binding GridBrush}" StrokeThickness="0.75" Opacity="0.8" Data="{Binding GridPathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Eraser cursor -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black shadow outline (thickness 3) -->
+										<Path Stroke="#000000" StrokeThickness="3.0"
+											  Data="{Binding HoverOutlinePathData}"/>
+										<!-- White sharp outline (thickness 1) -->
+										<Path Stroke="#FFFFFF" StrokeThickness="1.0"
+											  Data="{Binding HoverOutlinePathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Selection (Marching Ants / Dashed) -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black dashed background stroke (thickness 1.5) -->
+										<Path Stroke="#000000" StrokeThickness="1.5"
+											  Data="{Binding SelectionOutlinePathData}"/>
+										<!-- White dashed foreground stroke (thickness 1.5) with DashArray -->
+										<Path Stroke="#FFFFFF" StrokeThickness="1.5" StrokeDashArray="4,4"
+											  Data="{Binding SelectionOutlinePathData}"/>
+									</Canvas>
+									<!-- Slim vector outline overlay for Active Layer (GIMP style golden dashed) -->
+									<Canvas Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" IsHitTestVisible="False">
+										<!-- Black dashed background stroke (thickness 1.0) -->
+										<Path Stroke="#000000" StrokeThickness="1.0"
+											  Data="{Binding ActiveLayerOutlinePathData}"/>
+										<!-- Golden dashed foreground stroke (thickness 1.0) with DashArray -->
+										<Path Stroke="#FFD700" StrokeThickness="1.0" StrokeDashArray="4,4"
+											  Data="{Binding ActiveLayerOutlinePathData}"/>
+									</Canvas>
+								</Panel>
+							</Border>
+
+							<!-- Resize Handles Row 2 -->
+							<Border Grid.Row="2" Grid.Column="0" Width="8" Height="8" Classes="ResizeHandle" Cursor="BottomLeftCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom Left" Name="Handle_BL" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="2" Grid.Column="1" Width="8" Height="8" HorizontalAlignment="Center" Classes="ResizeHandle" Cursor="SizeNorthSouth" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom" Name="Handle_B" IsVisible="{Binding ShowResizeHandles}"/>
+							<Border Grid.Row="2" Grid.Column="2" Width="8" Height="8" Classes="ResizeHandle" Cursor="BottomRightCorner" PointerPressed="OnResizeHandlePointerPressed" PointerMoved="OnResizeHandlePointerMoved" PointerReleased="OnResizeHandlePointerReleased" ToolTip.Tip="Resize Bottom Right" Name="Handle_BR" IsVisible="{Binding ShowResizeHandles}"/>
+						</Grid>
+					</StackPanel>
+
+					<!-- Overlay Canvas for Draggable Controls (Null background allows clicks to pass through) -->
+					<Canvas x:Name="WorkspaceCanvas" Background="{x:Null}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" SizeChanged="OnWorkspaceCanvasSizeChanged">
+						<!-- Floating Layers Panel (Top Left) -->
+						<Border x:Name="LayersPanel" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Width="310" Padding="12"
+								Canvas.Left="15" Canvas.Top="10"
+								BoxShadow="0 4 12 0 #A0000000"
+								PointerPressed="OnPanelHeaderPointerPressed"
+								PointerMoved="OnPanelHeaderPointerMoved"
+								PointerReleased="OnPanelHeaderPointerReleased">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<Grid RowDefinitions="Auto, Auto, *">
+								<TextBlock Grid.Row="0" Text="Layers" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
+										   Cursor="SizeAll"/>
+								<StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+									<Button Content="+" Command="{Binding AddLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="-" Command="{Binding DeleteLayerCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="▲" Command="{Binding MoveLayerUpCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+									<Button Content="▼" Command="{Binding MoveLayerDownCommand}" Width="24" Height="24" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+								</StackPanel>
+								<ListBox x:Name="LayersListBox" Grid.Row="2"
+								 ItemsSource="{Binding Layers}" SelectedItem="{Binding ActiveLayer}"
+								 Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4"
+								 ScrollViewer.VerticalScrollBarVisibility="Auto"
+								 PointerMoved="OnLayerDragHandleMoved"
+								 PointerReleased="OnLayerDragHandleReleased">
+							<ListBox.ItemTemplate>
+								<DataTemplate DataType="{x:Type vm:LayerViewModel}">
+									<Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto" Background="Transparent" Classes.dragging="{Binding IsDragging}">
+										<Grid.Styles>
+											<Style Selector="Grid.dragging">
+												<Setter Property="Opacity" Value="0.5"/>
+											</Style>
+										</Grid.Styles>
+										<!-- Drag handle -->
+										<Image Grid.Column="0" Source="/Assets/Icons/action_drag.png" Width="12" Height="12" Cursor="Hand"
+											   VerticalAlignment="Center"
+											   Margin="0,0,4,0"
+											   PointerPressed="OnLayerDragHandlePressed"/>
+										<!-- Visibility eye toggle -->
+										<Button Grid.Column="1" Command="{Binding ToggleVisibilityCommand}"
+												Width="20" Height="20" Padding="0" Margin="0,0,4,0"
+												Background="Transparent" BorderThickness="0"
+												HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+											<Panel>
+												<Image Source="/Assets/Icons/eye.png" Width="12" Height="12" IsVisible="{Binding IsVisible}"/>
+												<Image Source="/Assets/Icons/eye_hide.png" Width="12" Height="12" IsVisible="{Binding IsNotVisible}"/>
+											</Panel>
+										</Button>
+										<!-- Layer name -->
+										<Panel Grid.Column="2" VerticalAlignment="Center" Margin="5,0">
+											<TextBlock Text="{Binding Name}"
+													   VerticalAlignment="Center" Foreground="#FFFFFF" FontSize="11"
+													   IsVisible="{Binding !IsEditingName}"
+													   DoubleTapped="OnLayerNameDoubleTapped"/>
+											<TextBox Text="{Binding Name, Mode=TwoWay}"
+													 FontSize="11" Height="22" Padding="4,0" Margin="0"
+													 IsVisible="{Binding IsEditingName}"
+													 LostFocus="OnLayerNameEditLostFocus"
+													 KeyDown="OnLayerNameEditKeyDown"/>
+										</Panel>
+										<!-- Opacity % -->
+										<NumericUpDown Grid.Column="3" Value="{Binding OpacityPercent}"
+													   Minimum="0" Maximum="100" ShowButtonSpinner="False"
+													   Width="35" Height="24" FontSize="10" Padding="2,0"/>
+										<!-- Transparency State Icon -->
+										<Image Grid.Column="4" Source="/Assets/Icons/paint/transparency_state.png"
+											   Width="12" Height="12" Opacity="{Binding Opacity}"
+											   VerticalAlignment="Center" Margin="6,0,8,0"/>
+									</Grid>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+							</Grid>
+						</Border>
+
+						<!-- Floating Palette & Colors Panel (Top Right) -->
+						<Border x:Name="PalettePanel" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Width="260" Height="580" Padding="12"
+								BoxShadow="0 4 12 0 #A0000000"
+								PointerPressed="OnPanelHeaderPointerPressed"
+								PointerMoved="OnPanelHeaderPointerMoved"
+								PointerReleased="OnPanelHeaderPointerReleased">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<Grid RowDefinitions="Auto, Auto, Auto, Auto, *, Auto">
+								<TextBlock Grid.Row="0" Text="Palette &amp; Colors" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,8"
+										   Cursor="SizeAll"/>
+								<Grid Grid.Row="1" Margin="0,0,0,8">
+									<ComboBox ItemsSource="{Binding CustomPalettes}" SelectedItem="{Binding SelectedPalette}" HorizontalAlignment="Stretch" Height="26" FontSize="11">
+										<ComboBox.ItemTemplate>
+											<DataTemplate DataType="{x:Type vm:PaletteViewModel}">
+												<Grid ColumnDefinitions="*, Auto">
+													<StackPanel Orientation="Horizontal" Spacing="6">
+														<Image Source="/Assets/Icons/lock.png" Width="12" Height="12" IsVisible="{Binding !IsModifiable}" VerticalAlignment="Center"/>
+														<Image Source="/Assets/Icons/unlock.png" Width="12" Height="12" IsVisible="{Binding IsModifiable}" VerticalAlignment="Center"/>
+														<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+													</StackPanel>
+													<Button Grid.Column="1" Content="✕" 
+															Command="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).DeletePaletteCommand}"
+															CommandParameter="{Binding}"
+															IsVisible="{Binding IsModifiable}"
+															Width="18" Height="18" Padding="0" Margin="5,0,0,0"
+															HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="9"
+															Background="Transparent" BorderThickness="0" Foreground="#FF5555"/>
+												</Grid>
+											</DataTemplate>
+										</ComboBox.ItemTemplate>
+									</ComboBox>
+								</Grid>
+								<!-- Palette Creation -->
+								<Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto, Auto" Margin="0,0,0,8">
+									<TextBox Text="{Binding NewPaletteName, Mode=TwoWay}" PlaceholderText="Palette Name" Height="26" FontSize="11" Padding="5,2"/>
+									<Button Grid.Column="1" Content="+" Command="{Binding CreatePaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Create palette"/>
+									<Button Grid.Column="2" Content="R" Command="{Binding RenameSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Rename palette"/>
+									<Button Grid.Column="3" Content="D" Command="{Binding DuplicateSelectedPaletteCommand}" Margin="4,0,0,0" Height="26" Width="26" FontSize="11" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip.Tip="Duplicate selected palette"/>
+								</Grid>
+								<!-- Color Picker -->
+								<Border Grid.Row="3" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,8"
+										IsVisible="{Binding SelectedPalette.IsModifiable}">
+									<StackPanel Spacing="6">
+										<ColorPicker Color="{Binding ActiveColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" HorizontalAlignment="Stretch"/>
+										<Button Content="Add to Palette" Command="{Binding AddColorToPaletteCommand}" HorizontalAlignment="Stretch" Height="22" FontSize="10" Padding="0"/>
+									</StackPanel>
+								</Border>
+								<!-- Colors Grid (Aseprite Style) -->
+								<ScrollViewer Grid.Row="4" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="3">
+									<ItemsControl x:Name="PaletteColorsItemsControl" ItemsSource="{Binding PaletteColors}"
+												  PointerMoved="OnPaletteColorPointerMoved"
+												  PointerReleased="OnPaletteColorPointerReleased">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<WrapPanel Orientation="Horizontal" MaxWidth="230"/>
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate DataType="{x:Type Color}">
+												<Border Width="16" Height="16" Margin="1.5" CornerRadius="2" Cursor="Hand"
+														Tapped="OnPaletteColorTapped"
+														PointerPressed="OnPaletteColorPointerPressed">
+													<Border.BorderBrush>
+														<MultiBinding Converter="{x:Static views:ColorToBrushConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).ActiveColor"/>
+														</MultiBinding>
+													</Border.BorderBrush>
+													<Border.BorderThickness>
+														<MultiBinding Converter="{x:Static views:ColorToThicknessConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).ActiveColor"/>
+														</MultiBinding>
+													</Border.BorderThickness>
+													<Border.Opacity>
+														<MultiBinding Converter="{x:Static views:ColorToOpacityConverter.Instance}">
+															<Binding/>
+															<Binding Path="$parent[UserControl].((vm:PaintViewModel)DataContext).DraggedColor"/>
+														</MultiBinding>
+													</Border.Opacity>
+													<Border.ContextMenu>
+														<ContextMenu>
+															<MenuItem Header="Set Active" Click="OnSetActiveColorClick" CommandParameter="{Binding $parent[Border]}"/>
+															<MenuItem Header="Duplicate" Click="OnDuplicateColorClick" CommandParameter="{Binding $parent[Border]}" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
+															<MenuItem Header="Remove" Click="OnRemoveColorClick" CommandParameter="{Binding $parent[Border]}" IsVisible="{Binding $parent[UserControl].((vm:PaintViewModel)DataContext).SelectedPalette.IsModifiable}"/>
+														</ContextMenu>
+													</Border.ContextMenu>
+													<Border.Background>
+														<SolidColorBrush Color="{Binding}"/>
+													</Border.Background>
+													<Border.Styles>
+														<Style Selector="Border:pointerover">
+															<Setter Property="BorderBrush" Value="#FFFFFF"/>
+														</Style>
+													</Border.Styles>
+												</Border>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</ScrollViewer>
+								<!-- Color Gradient Tool -->
+								<Border Grid.Row="5" Background="#141414" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,8,0,0">
+									<Grid RowDefinitions="Auto, Auto">
+										<TextBlock Grid.Row="0" Text="Gradient Tool (Active ➔ Target)" FontSize="10" Foreground="#A0A0A0" Margin="0,0,0,4"/>
+										<Grid Grid.Row="1" ColumnDefinitions="*, Auto">
+											<ColorPicker Color="{Binding GradientEndColor, Mode=TwoWay}" IsAlphaEnabled="True" IsColorPaletteVisible="False" IsColorPreviewVisible="False" Width="140" Height="22"/>
+											<Button Grid.Column="1" Content="{Binding GradientStepsButtonText}" Command="{Binding GenerateGradientCommand}" Margin="4,0,0,0" Height="22" FontSize="9" Padding="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+													ContextRequested="OnGradientButtonContextRequested">
+												<FlyoutBase.AttachedFlyout>
+													<Flyout Placement="Bottom">
+														<StackPanel Orientation="Horizontal" Spacing="5" Margin="5">
+															<TextBlock Text="Stops:" VerticalAlignment="Center" FontSize="10"/>
+															<TextBox Text="{Binding GradientStopsInput, Mode=TwoWay}" Width="40" Height="20" FontSize="10" Padding="2,0"/>
+															<Button Content="Set" Command="{Binding ApplyStopsInputCommand}" Click="OnCloseFlyoutClick" Width="30" Height="20" FontSize="10" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+														</StackPanel>
+													</Flyout>
+												</FlyoutBase.AttachedFlyout>
+											</Button>
+										</Grid>
+									</Grid>
+								</Border>
+
+							</Grid>
+						</Border>
+
+						<!-- Floating Zoom HUD Panel (Bottom Left, below Layers) -->
+						<Border CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1"
+								Width="240" Height="55" Padding="6"
+								Canvas.Right="15" Canvas.Top="15"
+								BoxShadow="0 4 12 0 #A0000000">
+							<Border.Background>
+								<SolidColorBrush Color="#1C1C1C" Opacity="0.9"/>
+							</Border.Background>
+							<Grid ColumnDefinitions="Auto, *, Auto, Auto" VerticalAlignment="Center">
+								<Button Grid.Column="0" Command="{Binding ZoomOutCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center">
+									<Image Source="/Assets/Icons/zoom-out.png" Width="12" Height="12"/>
+								</Button>
+								<Slider Grid.Column="1" Minimum="1" Maximum="64" Value="{Binding ZoomLevel}" Margin="8,0" VerticalAlignment="Center"/>
+								<Button Grid.Column="2" Command="{Binding ZoomInCommand}" Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center">
+									<Image Source="/Assets/Icons/zoom-in.png" Width="12" Height="12"/>
+								</Button>
+								<TextBlock Grid.Column="3" Text="{Binding ZoomLevel, StringFormat='{}{0:F0}x'}" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="10" FontWeight="Bold" Width="30" TextAlignment="Right"/>
+							</Grid>
+						</Border>
+					</Canvas>
+				</Panel>
+			</Border>
+
+			<!-- Status Bar -->
+			<Border Grid.Row="2" Background="#1C1C1C" CornerRadius="8" BorderBrush="#2D2D2D" BorderThickness="1" Padding="10,5" Margin="0,10,0,0">
+				<Grid ColumnDefinitions="Auto, *, Auto">
+					<!-- Position Info -->
+					<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<TextBlock Text="Position:" Foreground="#808080" FontSize="11"/>
+							<TextBlock Text="{Binding PositionText}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold"/>
+						</StackPanel>
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<TextBlock Text="Selection:" Foreground="#808080" FontSize="11"/>
+							<TextBlock Text="{Binding SelectionText}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold"/>
+						</StackPanel>
+					</StackPanel>
+					
+					<!-- Zoom info at right -->
+					<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Zoom:" Foreground="#808080" FontSize="11"/>
+						<TextBlock Text="{Binding ZoomPercentText}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+		</Grid>
+	</Grid>
+</UserControl>
