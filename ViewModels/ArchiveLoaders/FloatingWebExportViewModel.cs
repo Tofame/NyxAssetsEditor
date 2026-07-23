@@ -230,10 +230,11 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 	{
 		var tasks = new List<Action>();
 		var oxiPngDirs = new List<string>();
+		var exportRoot = EnsureExportSubfolder(destFolder, "assets_export");
 
 		if (doItems)
 		{
-			var itemsFolder = EnsureExportSubfolder(destFolder, "a_exported_items");
+			var itemsFolder = EnsureExportSubfolder(exportRoot, "a_exported_items");
 			oxiPngDirs.Add(itemsFolder);
 
 			var items = catalog.EnumerateItems().OrderBy(i => i.Id).ToList();
@@ -258,7 +259,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doOutfits)
 		{
-			var outfitsFolder = EnsureExportSubfolder(destFolder, "a_exported_outfits");
+			var outfitsFolder = EnsureExportSubfolder(exportRoot, "a_exported_outfits");
 			oxiPngDirs.Add(outfitsFolder);
 
 			var outfits = catalog.EnumerateOutfits().ToList();
@@ -309,7 +310,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doEffects)
 		{
-			var effectsFolder = EnsureExportSubfolder(destFolder, "a_exported_effects");
+			var effectsFolder = EnsureExportSubfolder(exportRoot, "a_exported_effects");
 			oxiPngDirs.Add(effectsFolder);
 
 			var effects = catalog.EnumerateEffects().ToList();
@@ -332,7 +333,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doMissiles)
 		{
-			var missilesFolder = EnsureExportSubfolder(destFolder, "a_exported_missiles");
+			var missilesFolder = EnsureExportSubfolder(exportRoot, "a_exported_missiles");
 			oxiPngDirs.Add(missilesFolder);
 
 			var missiles = catalog.EnumerateMissiles().ToList();
