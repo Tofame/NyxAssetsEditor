@@ -14,6 +14,7 @@ using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.Services.Archive;
+using NyxAssetsEditor.Services.Things;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
@@ -45,9 +46,6 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 	private bool _exportItems = true;
 
 	[ObservableProperty]
-	private string _itemFilter = "All"; // "All", "Pickupable", "Stackable"
-
-	[ObservableProperty]
 	private bool _exportOutfits = false;
 
 	[ObservableProperty]
@@ -57,16 +55,16 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 	private bool _exportMissiles = false;
 
 	[ObservableProperty]
-	private string _outfitMode = "FirstFrame"; // "FirstFrame", "Spritesheet"
+	private string _outfitMode = "FirstFrame";
 
 	[ObservableProperty]
-	private string _outfitDirection = "South"; // "South", "East", "North", "West"
+	private string _outfitDirection = "South";
 
 	[ObservableProperty]
-	private string _outputFormat = "png"; // "webp", "png", "jpg", "bmp"
+	private string _outputFormat = "png";
 
 	[ObservableProperty]
-	private int _compressionLevel = 8; // 0 to 9
+	private int _compressionLevel = 8;
 
 	[ObservableProperty]
 	private bool _isExporting;
@@ -80,15 +78,48 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 	[ObservableProperty]
 	private bool _optimizeWithOxiPng = true;
 
-	public bool CanExport => SelectedArchivePair != null && !IsExporting && !string.IsNullOrWhiteSpace(ExportPath) && (ExportItems || ExportOutfits || ExportEffects || ExportMissiles);
+	public bool CanExport => SelectedArchivePair != null
+		&& !IsExporting
+		&& !string.IsNullOrWhiteSpace(ExportPath)
+		&& (ExportItems || ExportOutfits || ExportEffects || ExportMissiles);
+
 	public bool CanCancel => IsExporting;
 
 	public bool IsOutfitFirstFrameMode => ExportOutfits && OutfitMode == "FirstFrame";
 	public bool IsPngFormat => OutputFormat == "png";
 
+	// Finder integration — button opens the Finder, export reads its results if active
+	private FloatingThingFinderViewModel? ActiveItemFinder => SelectedArchivePair == null ? null
+		: _parent.ActivePanels.OfType<FloatingThingFinderViewModel>()
+			.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, SelectedArchivePair.Pair.ThingsPanel)
+				&& p.SelectedKind == ThingKind.Item);
+
+	public string ItemFilterText
+	{
+		get
+		{
+			var finder = ActiveItemFinder;
+			if (finder == null) return "All items (no filter active)";
+			return $"Filter active: {finder.ResultCount} items match";
+		}
+	}
+
+	private void RefreshItemFilterText()
+	{
+		OnPropertyChanged(nameof(ItemFilterText));
+	}
+
 	partial void OnExportOutfitsChanged(bool value) => OnPropertyChanged(nameof(IsOutfitFirstFrameMode));
 	partial void OnOutfitModeChanged(string value) => OnPropertyChanged(nameof(IsOutfitFirstFrameMode));
 	partial void OnOutputFormatChanged(string value) => OnPropertyChanged(nameof(IsPngFormat));
+	partial void OnSelectedArchivePairChanged(WebExportArchivePairViewModel? value) => RefreshItemFilterText();
+
+	[RelayCommand]
+	private void OpenItemFilter()
+	{
+		if (SelectedArchivePair == null) return;
+		_parent.OpenThingFinder(SelectedArchivePair.Pair.ThingsPanel, ThingKind.Item);
+	}
 
 	public FloatingWebExportViewModel(AssetsViewModel parent)
 	{
@@ -108,6 +139,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 				CancelCommand.NotifyCanExecuteChanged();
 			}
 		};
+
+		// Update filter text when any Finder opens/closes/changes
+		_parent.ActivePanels.CollectionChanged += (s, e) => RefreshItemFilterText();
 	}
 
 	public void RefreshArchivePairs()
@@ -134,7 +168,6 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		var catalog = pair.ThingsPanel.Catalog;
 		var loader = pair.SpritePanel.Loader;
 		var destPath = ExportPath;
-		var filter = ItemFilter;
 		var doItems = ExportItems;
 		var doOutfits = ExportOutfits;
 		var doEffects = ExportEffects;
@@ -143,6 +176,12 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		var dirOutfit = OutfitDirection;
 		var format = OutputFormat;
 		var compression = CompressionLevel;
+
+		// If a Thing Finder for items is open, use its filtered set
+		var finder = ActiveItemFinder;
+		HashSet<uint>? itemFilterIds = finder != null
+			? new HashSet<uint>(finder.FilteredThings.Select(t => t.Id))
+			: null;
 
 		if (catalog == null)
 		{
@@ -153,7 +192,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		try
 		{
-			await Task.Run(() => DoExportWork(catalog, loader, destPath, doItems, filter, doOutfits, doEffects, doMissiles, modeOutfit, dirOutfit, format, compression, _cts.Token)).ConfigureAwait(true);
+			await Task.Run(() => DoExportWork(catalog, loader, destPath, doItems, itemFilterIds, doOutfits, doEffects, doMissiles, modeOutfit, dirOutfit, format, compression, _cts.Token)).ConfigureAwait(true);
 			StatusText = _cts.Token.IsCancellationRequested ? "Export cancelled." : "Export completed successfully!";
 		}
 		catch (Exception ex)
@@ -179,7 +218,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		SpriteLoader loader,
 		string destFolder,
 		bool doItems,
-		string itemFilter,
+		HashSet<uint>? itemFilterIds,
 		bool doOutfits,
 		bool doEffects,
 		bool doMissiles,
@@ -193,11 +232,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doItems)
 		{
-			var items = catalog.EnumerateItems().ToList();
-			if (itemFilter == "Pickupable")
-				items = items.Where(i => i.Pickupable).ToList();
-			else if (itemFilter == "Stackable")
-				items = items.Where(i => i.Stackable).ToList();
+			var items = catalog.EnumerateItems().OrderBy(i => i.Id).ToList();
+			if (itemFilterIds != null)
+				items = items.Where(i => itemFilterIds.Contains(i.Id)).ToList();
 
 			foreach (var item in items)
 			{
@@ -218,6 +255,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		if (doOutfits)
 		{
 			var outfits = catalog.EnumerateOutfits().ToList();
+
 			var dir = outfitDirection switch
 			{
 				"East" => Direction4.East,
@@ -265,6 +303,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		if (doEffects)
 		{
 			var effects = catalog.EnumerateEffects().ToList();
+
 			foreach (var effect in effects)
 			{
 				var ef = effect;
@@ -284,6 +323,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		if (doMissiles)
 		{
 			var missiles = catalog.EnumerateMissiles().ToList();
+
 			foreach (var missile in missiles)
 			{
 				var mi = missile;

@@ -39,25 +39,19 @@
 						<TextBlock Text="Archive Pair" Classes="label"/>
 						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" HorizontalAlignment="Stretch" PlaceholderText="No compatible pair"/>
 					</StackPanel>
-					
 					<Separator Height="1" Background="#383838"/>
+				
+				<!-- Export Items Settings -->
+				<StackPanel Spacing="6">
+					<CheckBox IsChecked="{Binding ExportItems, Mode=TwoWay}" Content="Export Items"/>
 					
-					<!-- Export Items Settings -->
-					<StackPanel Spacing="6">
-						<CheckBox IsChecked="{Binding ExportItems, Mode=TwoWay}" Content="Export Items"/>
-						
-						<StackPanel Spacing="4" Margin="20,0,0,0" IsEnabled="{Binding ExportItems}">
-							<TextBlock Text="Item Filter" Classes="label"/>
-							<ComboBox SelectedItem="{Binding ItemFilter, Mode=TwoWay}" HorizontalAlignment="Stretch" Height="28">
-								<ComboBox.Items>
-									<x:String>All</x:String>
-									<x:String>Pickupable</x:String>
-									<x:String>Stackable</x:String>
-								</ComboBox.Items>
-							</ComboBox>
-						</StackPanel>
+					<StackPanel Spacing="4" Margin="20,0,0,0" IsEnabled="{Binding ExportItems}">
+						<TextBlock Text="{Binding ItemFilterText}" Classes="label"/>
+						<Button Content="Set Item Filter..." Command="{Binding OpenItemFilterCommand}"
+							Padding="10,5" FontSize="11" HorizontalAlignment="Left"/>
 					</StackPanel>
-					
+				</StackPanel>
+				
 					<Separator Height="1" Background="#383838"/>
 					
 					<!-- Export Outfits Settings -->

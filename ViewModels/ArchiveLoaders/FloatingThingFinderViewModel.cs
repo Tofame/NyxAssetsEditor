@@ -23,7 +23,7 @@ public sealed record ThingFinderOption(string Value, string DisplayName)
 
 public sealed partial class ThingFinderFieldViewModel : ObservableObject
 {
-	private readonly FloatingThingFinderViewModel _owner;
+	private readonly NyxAssetsEditor.Services.Things.IThingFilterOwner _owner;
 	private bool _isActive;
 	private bool _booleanValue;
 	private decimal? _numericValue;
@@ -111,7 +111,7 @@ public sealed partial class ThingFinderFieldViewModel : ObservableObject
 		}
 	}
 
-	public ThingFinderFieldViewModel(FloatingThingFinderViewModel owner, ThingFinderFieldDescriptor descriptor)
+	public ThingFinderFieldViewModel(NyxAssetsEditor.Services.Things.IThingFilterOwner owner, ThingFinderFieldDescriptor descriptor)
 	{
 		_owner = owner;
 		Descriptor = descriptor;
@@ -201,7 +201,7 @@ public sealed class ThingFinderResultViewModel : IDisposable
 	public void Dispose() => _previewImage?.Dispose();
 }
 
-public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposable
+public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposable, NyxAssetsEditor.Services.Things.IThingFilterOwner
 {
 	private readonly AssetsViewModel _parent;
 	private readonly DispatcherTimer _filterTimer = new() { Interval = TimeSpan.FromMilliseconds(175) };
@@ -303,6 +303,7 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	public bool ShowListViewContent => HasResults && IsListView;
 
 	public int ResultCount => _filteredThings.Count;
+	public IReadOnlyList<ThingType> FilteredThings => _filteredThings;
 	public int TotalPages => Math.Max(1, (ResultCount + PageSize - 1) / PageSize);
 	public bool HasPreviousPage => CurrentPage > 1;
 	public bool HasNextPage => CurrentPage < TotalPages;
@@ -535,7 +536,7 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		return descriptor.Source == ThingFinderFieldSource.Pattern ? 2000 : 1000;
 	}
 
-	private static readonly HashSet<string> PropertyBooleanFields = new(StringComparer.Ordinal)
+	internal static readonly HashSet<string> PropertyBooleanFields = new(StringComparer.Ordinal)
 	{
 		nameof(ThingType.IsGround), nameof(ThingType.HasLight), nameof(ThingType.MiniMap),
 		nameof(ThingType.HasOffset), nameof(ThingType.HasElevation), nameof(ThingType.IsMarketItem),
@@ -543,7 +544,7 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		nameof(ThingType.IsLensHelp),
 	};
 
-	private static readonly HashSet<string> ItemOnlyFields = new(StringComparer.Ordinal)
+	internal static readonly HashSet<string> ItemOnlyFields = new(StringComparer.Ordinal)
 	{
 		nameof(ThingType.IsGround), nameof(ThingType.GroundSpeed), nameof(ThingType.MiniMap),
 		nameof(ThingType.MiniMapColor), nameof(ThingType.Stackable), nameof(ThingType.Rotatable),
@@ -554,12 +555,12 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		nameof(ThingType.MarketRestrictLevel), nameof(ThingType.HasDefaultAction), nameof(ThingType.DefaultAction),
 	};
 
-	private static readonly HashSet<string> OutfitOnlyFields = new(StringComparer.Ordinal)
+	internal static readonly HashSet<string> OutfitOnlyFields = new(StringComparer.Ordinal)
 	{
 		nameof(ThingType.DontCenterOutfit),
 	};
 
-	private static readonly IReadOnlyDictionary<string, string> EditorLabels = new Dictionary<string, string>(StringComparer.Ordinal)
+	internal static readonly IReadOnlyDictionary<string, string> EditorLabels = new Dictionary<string, string>(StringComparer.Ordinal)
 	{
 		[nameof(ThingType.IsGroundBorder)] = "Ground Border",
 		[nameof(ThingType.IsOnBottom)] = "Bottom",
@@ -595,7 +596,7 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		[nameof(ThingType.DontCenterOutfit)] = "Don't Center Outfit",
 	};
 
-	private static readonly IReadOnlyDictionary<string, int> FieldOrder = new Dictionary<string, int>(StringComparer.Ordinal)
+	internal static readonly IReadOnlyDictionary<string, int> FieldOrder = new Dictionary<string, int>(StringComparer.Ordinal)
 	{
 		[nameof(ThingType.IsGround)] = 10, [nameof(ThingType.GroundSpeed)] = 11,
 		[nameof(ThingType.HasLight)] = 20, [nameof(ThingType.LightColor)] = 21, [nameof(ThingType.LightLevel)] = 22,
