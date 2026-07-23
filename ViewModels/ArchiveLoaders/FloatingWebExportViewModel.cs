@@ -229,9 +229,13 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 		CancellationToken token)
 	{
 		var tasks = new List<Action>();
+		var oxiPngDirs = new List<string>();
 
 		if (doItems)
 		{
+			var itemsFolder = EnsureExportSubfolder(destFolder, "a_exported_items");
+			oxiPngDirs.Add(itemsFolder);
+
 			var items = catalog.EnumerateItems().OrderBy(i => i.Id).ToList();
 			if (itemFilterIds != null)
 				items = items.Where(i => itemFilterIds.Contains(i.Id)).ToList();
@@ -245,7 +249,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 					var pixels = ThingPreviewRenderer.RenderPreviewRgba(it, loader);
 					if (pixels != null)
 					{
-						var outputPath = Path.Combine(destFolder, $"item_{it.Id}.{format}");
+						var outputPath = Path.Combine(itemsFolder, $"item_{it.Id}.{format}");
 						WriteImage(pixels, outputPath, 32, 32, format, compression);
 					}
 				});
@@ -254,6 +258,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doOutfits)
 		{
+			var outfitsFolder = EnsureExportSubfolder(destFolder, "a_exported_outfits");
+			oxiPngDirs.Add(outfitsFolder);
+
 			var outfits = catalog.EnumerateOutfits().ToList();
 
 			var dir = outfitDirection switch
@@ -277,7 +284,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 						var pixels = RenderOutfitFrameRgba(ot, loader, req);
 						if (pixels != null)
 						{
-							var outputPath = Path.Combine(destFolder, $"outfit_{ot.Id}.{format}");
+							var outputPath = Path.Combine(outfitsFolder, $"outfit_{ot.Id}.{format}");
 							WriteImage(pixels, outputPath, 32, 32, format, compression);
 						}
 					}
@@ -292,7 +299,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 							var edge = SpritePixelCodec.SpriteEdgeLength;
 							var sheetW = Math.Max(edge, (int)(fg.PatternX * fg.Width * edge));
 							var sheetH = Math.Max(edge, (int)(fg.PatternY * fg.Height * edge));
-							var outputPath = Path.Combine(destFolder, $"outfit_{ot.Id}_sheet.{format}");
+							var outputPath = Path.Combine(outfitsFolder, $"outfit_{ot.Id}_sheet.{format}");
 							WriteImage(pixels, outputPath, sheetW, sheetH, format, compression);
 						}
 					}
@@ -302,6 +309,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doEffects)
 		{
+			var effectsFolder = EnsureExportSubfolder(destFolder, "a_exported_effects");
+			oxiPngDirs.Add(effectsFolder);
+
 			var effects = catalog.EnumerateEffects().ToList();
 
 			foreach (var effect in effects)
@@ -313,7 +323,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 					var pixels = ThingPreviewRenderer.RenderPreviewRgba(ef, loader);
 					if (pixels != null)
 					{
-						var outputPath = Path.Combine(destFolder, $"effect_{ef.Id}.{format}");
+						var outputPath = Path.Combine(effectsFolder, $"effect_{ef.Id}.{format}");
 						WriteImage(pixels, outputPath, 32, 32, format, compression);
 					}
 				});
@@ -322,6 +332,9 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (doMissiles)
 		{
+			var missilesFolder = EnsureExportSubfolder(destFolder, "a_exported_missiles");
+			oxiPngDirs.Add(missilesFolder);
+
 			var missiles = catalog.EnumerateMissiles().ToList();
 
 			foreach (var missile in missiles)
@@ -333,7 +346,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 					var pixels = ThingPreviewRenderer.RenderPreviewRgba(mi, loader);
 					if (pixels != null)
 					{
-						var outputPath = Path.Combine(destFolder, $"missile_{mi.Id}.{format}");
+						var outputPath = Path.Combine(missilesFolder, $"missile_{mi.Id}.{format}");
 						WriteImage(pixels, outputPath, 32, 32, format, compression);
 					}
 				});
@@ -366,8 +379,16 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 
 		if (format == "png" && OptimizeWithOxiPng && !token.IsCancellationRequested)
 		{
-			RunOxiPng(destFolder, token);
+			foreach (var dir in oxiPngDirs)
+				RunOxiPng(dir, token);
 		}
+	}
+
+	private static string EnsureExportSubfolder(string destFolder, string folderName)
+	{
+		var path = Path.Combine(destFolder, folderName);
+		Directory.CreateDirectory(path);
+		return path;
 	}
 
 	private void RunOxiPng(string directory, CancellationToken token)
