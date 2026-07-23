@@ -38,6 +38,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		Cross
 	}
 
+	public enum MoveTarget
+	{
+		ActiveLayer,
+		AllLayers,
+		VisibleLayers,
+		TouchedLayer
+	}
+
 	public partial class LayerViewModel : ViewModelBase
 	{
 		[ObservableProperty]
@@ -146,10 +154,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(IsSelectActive));
 			OnPropertyChanged(nameof(IsMoveActive));
 			OnPropertyChanged(nameof(IsThresholdVisible));
+			OnPropertyChanged(nameof(IsMoveToolSettingsVisible));
 			NotifyOutlinePropertiesChanged();
 		}
 
 		public bool IsThresholdVisible => ActiveTool == PaintTool.Bucket || ActiveTool == PaintTool.Wand;
+		public bool IsMoveToolSettingsVisible => ActiveTool == PaintTool.Move;
 
 		public bool IsBrushActive
 		{
@@ -368,6 +378,41 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		[ObservableProperty]
 		private Color _gridColor = Colors.Black;
+
+		[ObservableProperty]
+		private MoveTarget _moveTarget = MoveTarget.ActiveLayer;
+
+		partial void OnMoveTargetChanged(MoveTarget value)
+		{
+			OnPropertyChanged(nameof(IsMoveActiveTarget));
+			OnPropertyChanged(nameof(IsMoveAllTarget));
+			OnPropertyChanged(nameof(IsMoveVisibleTarget));
+			OnPropertyChanged(nameof(IsMoveTouchedTarget));
+		}
+
+		public bool IsMoveActiveTarget
+		{
+			get => MoveTarget == MoveTarget.ActiveLayer;
+			set { if (value) MoveTarget = MoveTarget.ActiveLayer; }
+		}
+
+		public bool IsMoveAllTarget
+		{
+			get => MoveTarget == MoveTarget.AllLayers;
+			set { if (value) MoveTarget = MoveTarget.AllLayers; }
+		}
+
+		public bool IsMoveVisibleTarget
+		{
+			get => MoveTarget == MoveTarget.VisibleLayers;
+			set { if (value) MoveTarget = MoveTarget.VisibleLayers; }
+		}
+
+		public bool IsMoveTouchedTarget
+		{
+			get => MoveTarget == MoveTarget.TouchedLayer;
+			set { if (value) MoveTarget = MoveTarget.TouchedLayer; }
+		}
 
 		partial void OnGridColorChanged(Color value)
 		{
@@ -1378,13 +1423,27 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			UpdateCanvasPreview();
 		}
 
-		public void ShiftLayerAndSelection(int dx, int dy, byte[] originalPixels, bool[,] originalSelectionMask)
+		public LayerViewModel? FindTouchedLayer(int x, int y)
 		{
-			if (ActiveLayer == null)
-				return;
+			if (x < 0 || x >= CanvasWidth || y < 0 || y >= CanvasHeight)
+				return null;
 
-			var pixels = ActiveLayer.Pixels;
+			for (int i = 0; i < Layers.Count; i++)
+			{
+				var layer = Layers[i];
+				if (!layer.IsVisible) continue;
 
+				int idx = (y * CanvasWidth + x) * 4;
+				if (layer.Pixels[idx + 3] > 10)
+				{
+					return layer;
+				}
+			}
+			return null;
+		}
+
+		public void ShiftLayerAndSelection(int dx, int dy, List<byte[]> originalAllLayersPixels, bool[,] originalSelectionMask)
+		{
 			bool hadSelection = false;
 			for (int y = 0; y < CanvasHeight; y++)
 			{
@@ -1398,35 +1457,75 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				}
 			}
 
-			if (hadSelection)
+			for (int i = 0; i < Layers.Count; i++)
 			{
-				for (int y = 0; y < CanvasHeight; y++)
+				var layer = Layers[i];
+				if (i >= originalAllLayersPixels.Count) continue;
+
+				bool shouldMove = false;
+				if ((MoveTarget == MoveTarget.ActiveLayer || MoveTarget == MoveTarget.TouchedLayer) && layer == ActiveLayer)
+					shouldMove = true;
+				else if (MoveTarget == MoveTarget.AllLayers)
+					shouldMove = true;
+				else if (MoveTarget == MoveTarget.VisibleLayers && layer.IsVisible)
+					shouldMove = true;
+
+				if (!shouldMove) continue;
+
+				var originalPixels = originalAllLayersPixels[i];
+				var pixels = layer.Pixels;
+
+				if (hadSelection)
 				{
-					for (int x = 0; x < CanvasWidth; x++)
+					for (int y = 0; y < CanvasHeight; y++)
 					{
-						int idx = (y * CanvasWidth + x) * 4;
-						if (originalSelectionMask[x, y])
+						for (int x = 0; x < CanvasWidth; x++)
 						{
-							pixels[idx] = 0;
-							pixels[idx + 1] = 0;
-							pixels[idx + 2] = 0;
-							pixels[idx + 3] = 0;
+							int idx = (y * CanvasWidth + x) * 4;
+							if (originalSelectionMask[x, y])
+							{
+								pixels[idx] = 0;
+								pixels[idx + 1] = 0;
+								pixels[idx + 2] = 0;
+								pixels[idx + 3] = 0;
+							}
+							else
+							{
+								pixels[idx] = originalPixels[idx];
+								pixels[idx + 1] = originalPixels[idx + 1];
+								pixels[idx + 2] = originalPixels[idx + 2];
+								pixels[idx + 3] = originalPixels[idx + 3];
+							}
 						}
-						else
+					}
+
+					for (int y = 0; y < CanvasHeight; y++)
+					{
+						for (int x = 0; x < CanvasWidth; x++)
 						{
-							pixels[idx] = originalPixels[idx];
-							pixels[idx + 1] = originalPixels[idx + 1];
-							pixels[idx + 2] = originalPixels[idx + 2];
-							pixels[idx + 3] = originalPixels[idx + 3];
+							if (originalSelectionMask[x, y])
+							{
+								int newX = x + dx;
+								int newY = y + dy;
+								if (newX >= 0 && newX < CanvasWidth && newY >= 0 && newY < CanvasHeight)
+								{
+									int srcIdx = (y * CanvasWidth + x) * 4;
+									int destIdx = (newY * CanvasWidth + newX) * 4;
+									pixels[destIdx] = originalPixels[srcIdx];
+									pixels[destIdx + 1] = originalPixels[srcIdx + 1];
+									pixels[destIdx + 2] = originalPixels[srcIdx + 2];
+									pixels[destIdx + 3] = originalPixels[srcIdx + 3];
+								}
+							}
 						}
 					}
 				}
-
-				for (int y = 0; y < CanvasHeight; y++)
+				else
 				{
-					for (int x = 0; x < CanvasWidth; x++)
+					Array.Clear(pixels, 0, pixels.Length);
+					for (int y = 0; y < CanvasHeight; y++)
 					{
-						if (originalSelectionMask[x, y])
+						for (int x = 0; x < CanvasWidth; x++)
 						{
 							int newX = x + dx;
 							int newY = y + dy;
@@ -1439,27 +1538,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 								pixels[destIdx + 2] = originalPixels[srcIdx + 2];
 								pixels[destIdx + 3] = originalPixels[srcIdx + 3];
 							}
-						}
-					}
-				}
-			}
-			else
-			{
-				Array.Clear(pixels, 0, pixels.Length);
-				for (int y = 0; y < CanvasHeight; y++)
-				{
-					for (int x = 0; x < CanvasWidth; x++)
-					{
-						int newX = x + dx;
-						int newY = y + dy;
-						if (newX >= 0 && newX < CanvasWidth && newY >= 0 && newY < CanvasHeight)
-						{
-							int srcIdx = (y * CanvasWidth + x) * 4;
-							int destIdx = (newY * CanvasWidth + newX) * 4;
-							pixels[destIdx] = originalPixels[srcIdx];
-							pixels[destIdx + 1] = originalPixels[srcIdx + 1];
-							pixels[destIdx + 2] = originalPixels[srcIdx + 2];
-							pixels[destIdx + 3] = originalPixels[srcIdx + 3];
 						}
 					}
 				}

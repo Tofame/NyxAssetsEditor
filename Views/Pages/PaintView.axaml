@@ -123,6 +123,15 @@
 						<CheckBox Content="Show preview" IsChecked="{Binding ShowFillPreview}" Foreground="#FFFFFF" Margin="0,2,0,0"/>
 					</StackPanel>
 
+					<StackPanel Spacing="5" IsVisible="{Binding IsMoveToolSettingsVisible}">
+						<Separator Margin="0,5" Background="#2D2D2D"/>
+						<TextBlock Text="Move Tool" Foreground="#A0A0A0" FontSize="12" FontWeight="SemiBold"/>
+						<RadioButton Content="Move active layer" IsChecked="{Binding IsMoveActiveTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,5,0,0"/>
+						<RadioButton Content="Move touched layer" IsChecked="{Binding IsMoveTouchedTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+						<RadioButton Content="Move all layers" IsChecked="{Binding IsMoveAllTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+						<RadioButton Content="Move visible layers" IsChecked="{Binding IsMoveVisibleTarget}" GroupName="MoveTargetGroup" Foreground="#FFFFFF" Margin="0,2,0,0"/>
+					</StackPanel>
+
 					<Separator Margin="0,5" Background="#2D2D2D"/>
 					<TextBlock Text="Symmetry drawing" Foreground="#A0A0A0" FontSize="12"/>
 					<CheckBox Content="Copy on Axis X" IsChecked="{Binding CopyOnAxisX}" Foreground="#FFFFFF"/>

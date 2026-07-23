@@ -21,7 +21,7 @@ namespace NyxAssetsEditor.Views.Pages
 		private bool[,]? _selectionBeforeDrag;
 		private int _moveStartX = -1;
 		private int _moveStartY = -1;
-		private byte[]? _moveStartPixels;
+		private List<byte[]>? _moveStartAllLayersPixels;
 		private bool[,]? _moveStartSelectionMask;
 
 		public PaintView()
@@ -67,10 +67,21 @@ namespace NyxAssetsEditor.Views.Pages
 						_moveStartX = (int)(pos.X / img.Bounds.Width * vm.CanvasWidth);
 						_moveStartY = (int)(pos.Y / img.Bounds.Height * vm.CanvasHeight);
 
-						if (vm.ActiveLayer != null)
+						if (vm.MoveTarget == MoveTarget.TouchedLayer)
 						{
-							_moveStartPixels = new byte[vm.ActiveLayer.Pixels.Length];
-							Array.Copy(vm.ActiveLayer.Pixels, _moveStartPixels, _moveStartPixels.Length);
+							var touched = vm.FindTouchedLayer(_moveStartX, _moveStartY);
+							if (touched != null)
+							{
+								vm.ActiveLayer = touched;
+							}
+						}
+
+						_moveStartAllLayersPixels = new List<byte[]>();
+						foreach (var layer in vm.Layers)
+						{
+							var copy = new byte[layer.Pixels.Length];
+							Array.Copy(layer.Pixels, copy, layer.Pixels.Length);
+							_moveStartAllLayersPixels.Add(copy);
 						}
 						_moveStartSelectionMask = new bool[vm.CanvasWidth, vm.CanvasHeight];
 						Array.Copy(vm.GetSelectionMask(), _moveStartSelectionMask, _moveStartSelectionMask.Length);
@@ -233,7 +244,7 @@ namespace NyxAssetsEditor.Views.Pages
 		{
 			var vm = DataContext as PaintViewModel;
 			var img = this.FindControl<Image>("CanvasImage");
-			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0 || _moveStartPixels == null || _moveStartSelectionMask == null)
+			if (vm == null || img == null || img.Bounds.Width <= 0 || img.Bounds.Height <= 0 || _moveStartAllLayersPixels == null || _moveStartSelectionMask == null)
 				return;
 
 			var pos = e.GetPosition(img);
@@ -243,7 +254,7 @@ namespace NyxAssetsEditor.Views.Pages
 			int dx = currentX - _moveStartX;
 			int dy = currentY - _moveStartY;
 
-			vm.ShiftLayerAndSelection(dx, dy, _moveStartPixels, _moveStartSelectionMask);
+			vm.ShiftLayerAndSelection(dx, dy, _moveStartAllLayersPixels, _moveStartSelectionMask);
 		}
 
 		private void OnPaletteColorTapped(object sender, TappedEventArgs e)
