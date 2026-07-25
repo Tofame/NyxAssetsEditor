@@ -89,6 +89,46 @@
 					<TextBlock Text="Use the top navigation bar to switch to the Assets page and load archives (.spr / .dat or .assets / .json)." Foreground="#999999" TextWrapping="Wrap"/>
 				</StackPanel>
 			</Border>
+
+			<!-- Contributors Section -->
+			<StackPanel Spacing="10" IsVisible="{Binding HasContributors}">
+				<TextBlock Text="Contributors" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,5"/>
+				<ItemsControl ItemsSource="{Binding Contributors}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:ContributorViewModel">
+							<Border Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="8"
+									Margin="0,0,12,12" Width="140" Padding="12,14">
+								<Border.Styles>
+									<Style Selector="Border:pointerover">
+										<Setter Property="BorderBrush" Value="#5E94FF"/>
+									</Style>
+								</Border.Styles>
+								<StackPanel Spacing="8" HorizontalAlignment="Center">
+									<!-- Avatar or Fallback -->
+									<Border CornerRadius="32" Width="56" Height="56" ClipToBounds="True"
+											HorizontalAlignment="Center" Background="#2D2D2D">
+										<Image Source="{Binding Avatar}" Width="56" Height="56" Stretch="UniformToFill"
+											   IsVisible="{Binding Avatar, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+									</Border>
+									<!-- Name -->
+									<TextBlock Text="{Binding Login}" FontWeight="SemiBold" FontSize="12"
+											   Foreground="#FFFFFF" HorizontalAlignment="Center"
+											   TextTrimming="CharacterEllipsis" TextAlignment="Center"/>
+									<!-- Commits -->
+									<TextBlock Text="{Binding ContributionsLabel}" FontSize="10"
+											   Foreground="#5E94FF" HorizontalAlignment="Center" TextAlignment="Center"/>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</StackPanel>
+
 		</StackPanel>
 	</ScrollViewer>
 </UserControl>

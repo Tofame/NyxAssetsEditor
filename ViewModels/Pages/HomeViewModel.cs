@@ -1,5 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Shell;
 
@@ -46,6 +52,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public bool HasFilteredCombinations => FilteredRecentCombinations.Count > 0;
 
+		public ObservableCollection<ContributorViewModel> Contributors { get; } = new ObservableCollection<ContributorViewModel>();
+		public bool HasContributors => Contributors.Count > 0;
+
 		// Parameterless constructor for design-time
 		public HomeViewModel()
 		{
@@ -76,6 +85,68 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					r.ThingsUseFrameGroups
 				));
 			}
+
+			_ = LoadContributorsAsync();
+		}
+
+		private static readonly HttpClient _http = new HttpClient();
+		private static readonly string _cacheDir = System.IO.Path.Combine(
+			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+			"NyxAssetsEditor");
+		private static readonly string _cacheFile = System.IO.Path.Combine(_cacheDir, "contributors_cache.json");
+		private static readonly TimeSpan _cacheTtl = TimeSpan.FromDays(3);
+
+		private async Task LoadContributorsAsync()
+		{
+			try
+			{
+				_http.DefaultRequestHeaders.UserAgent.TryParseAdd("NyxAssetsEditor");
+
+				GithubContributor[]? items = null;
+
+				// Try to read from cache first
+				if (System.IO.File.Exists(_cacheFile))
+				{
+					var age = DateTime.UtcNow - System.IO.File.GetLastWriteTimeUtc(_cacheFile);
+					if (age < _cacheTtl)
+					{
+						var cached = await System.IO.File.ReadAllTextAsync(_cacheFile);
+						items = System.Text.Json.JsonSerializer.Deserialize<GithubContributor[]>(cached);
+					}
+				}
+
+				// Fetch from GitHub if cache is missing or stale
+				if (items == null)
+				{
+					var url = "https://api.github.com/repos/Tofame/NyxAssetsEditor/contributors?per_page=10&anon=false";
+					items = await _http.GetFromJsonAsync<GithubContributor[]>(url);
+					if (items != null)
+					{
+						System.IO.Directory.CreateDirectory(_cacheDir);
+						var json = System.Text.Json.JsonSerializer.Serialize(items);
+						await System.IO.File.WriteAllTextAsync(_cacheFile, json);
+					}
+				}
+
+				if (items == null) return;
+
+				foreach (var c in items)
+				{
+					// Avatar: fetched from GitHub CDN URL into memory only — never written to disk
+					Bitmap? avatar = null;
+					try
+					{
+						var bytes = await _http.GetByteArrayAsync(c.AvatarUrl + "&s=64");
+						using var ms = new System.IO.MemoryStream(bytes);
+						avatar = new Bitmap(ms);
+					}
+					catch { /* avatar stays null */ }
+
+					Contributors.Add(new ContributorViewModel(c.Login, c.Contributions, c.HtmlUrl, avatar));
+				}
+				OnPropertyChanged(nameof(HasContributors));
+			}
+			catch { /* network unavailable – silently skip */ }
 		}
 
 		public void LoadCombination(
@@ -113,5 +184,30 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(nameof(FilteredRecentCombinations));
 			OnPropertyChanged(nameof(HasFilteredCombinations));
 		}
+	}
+
+	public class ContributorViewModel
+	{
+		public string Login { get; }
+		public int Contributions { get; }
+		public string ProfileUrl { get; }
+		public Bitmap? Avatar { get; }
+		public string ContributionsLabel => $"{Contributions} commit{(Contributions == 1 ? "" : "s")}";
+
+		public ContributorViewModel(string login, int contributions, string profileUrl, Bitmap? avatar)
+		{
+			Login = login;
+			Contributions = contributions;
+			ProfileUrl = profileUrl;
+			Avatar = avatar;
+		}
+	}
+
+	file class GithubContributor
+	{
+		[JsonPropertyName("login")] public string Login { get; set; } = "";
+		[JsonPropertyName("avatar_url")] public string AvatarUrl { get; set; } = "";
+		[JsonPropertyName("html_url")] public string HtmlUrl { get; set; } = "";
+		[JsonPropertyName("contributions")] public int Contributions { get; set; }
 	}
 }
