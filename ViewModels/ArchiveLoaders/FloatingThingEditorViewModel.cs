@@ -84,6 +84,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private string _promptText = string.Empty;
 	private System.Threading.Tasks.TaskCompletionSource<PromptResult>? _promptTcs;
 
+	private int _selectedTabIndex;
+	public int SelectedTabIndex
+	{
+		get => _selectedTabIndex;
+		set => SetProperty(ref _selectedTabIndex, value);
+	}
+
 	public enum PromptResult
 	{
 		Save,
@@ -194,6 +201,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_missileDirection = Direction8.South;
 
 		NotifyThingProperties();
+		if (!IsItem && _selectedTabIndex == 2)
+		{
+			SelectedTabIndex = 0;
+		}
 		NotifyAppearanceControls();
 		OnPropertyChanged(nameof(SelectedFrameGroupIndex));
 		OnPropertyChanged(nameof(FrameGroupDisplay));

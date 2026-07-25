@@ -106,7 +106,7 @@
 				</Grid>
 			</Border>
 
-			<TabControl Grid.Row="1" IsVisible="{Binding !IsMinimized}" Background="#222222" Height="{Binding DisplayHeight}" Padding="8">
+			<TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}" IsVisible="{Binding !IsMinimized}" Background="#222222" Height="{Binding DisplayHeight}" Padding="8">
 				<TabItem Header="Texture">
 					<ScrollViewer HorizontalScrollBarVisibility="Disabled">
 						<StackPanel Spacing="12" Margin="0,8,0,16">
