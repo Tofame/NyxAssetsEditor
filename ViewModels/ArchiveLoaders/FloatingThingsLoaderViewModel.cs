@@ -711,22 +711,39 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (compileSprites)
 				{
 					ArchiveCompileService.BackupIfExists(LinkedSpritePanel.FilePath);
-				}
-				ArchiveCompileService.BackupIfExists(FilePath);
+					ArchiveCompileService.BackupIfExists(FilePath);
 
-				ArchiveCompileService.CompilePair(
-					LinkedSpritePanel,
-					this,
-					LinkedSpritePanel.FilePath,
-					FilePath);
+					ArchiveCompileService.CompilePair(
+						LinkedSpritePanel,
+						this,
+						LinkedSpritePanel.FilePath,
+						FilePath);
 
-				if (compileSprites)
-				{
 					await LinkedSpritePanel.LoadArchiveAsync(LinkedSpritePanel.FilePath);
 					LinkedSpritePanel.HasSavedChanges = false;
+					
+					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
+					HasSavedChanges = false;
 				}
-				await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
-				HasSavedChanges = false;
+				else
+				{
+					ArchiveCompileService.BackupIfExists(FilePath);
+					
+					var options = GetWriteOptions();
+					var format = ArchiveFormat;
+					if (format == ArchiveFormat.Dat)
+					{
+						using var datStream = File.Create(FilePath);
+						Catalog.WriteDatTo(datStream, options);
+					}
+					else
+					{
+						Catalog.ExportJson(FilePath, options);
+					}
+
+					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
+					HasSavedChanges = false;
+				}
 				_parentViewModel?.RefreshCompileCommands();
 			}
 			catch (Exception ex)

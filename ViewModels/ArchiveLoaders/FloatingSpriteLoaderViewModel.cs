@@ -59,25 +59,39 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			{
 				bool compileThings = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && thingsPanel.HasSavedChanges;
 
-				ArchiveCompileService.BackupIfExists(FilePath);
 				if (compileThings)
 				{
+					ArchiveCompileService.BackupIfExists(FilePath);
 					ArchiveCompileService.BackupIfExists(thingsPanel.FilePath);
-				}
 
-				ArchiveCompileService.CompilePair(
-					this,
-					thingsPanel,
-					FilePath,
-					thingsPanel.FilePath);
+					ArchiveCompileService.CompilePair(
+						this,
+						thingsPanel,
+						FilePath,
+						thingsPanel.FilePath);
 
-				await LoadArchiveAsync(FilePath);
-				HasSavedChanges = false;
+					await LoadArchiveAsync(FilePath);
+					HasSavedChanges = false;
 
-				if (compileThings)
-				{
 					await thingsPanel.LoadArchiveAsync(thingsPanel.FilePath, useLastLoadedSprite: false);
 					thingsPanel.HasSavedChanges = false;
+				}
+				else
+				{
+					ArchiveCompileService.BackupIfExists(FilePath);
+					
+					var format = ArchiveFormat;
+					if (format == NyxAssetsEditor.ViewModels.Common.ArchiveFormat.Spr)
+					{
+						Loader.WriteSprTo(FilePath);
+					}
+					else
+					{
+						Loader.WriteAssetsTo(FilePath);
+					}
+
+					await LoadArchiveAsync(FilePath);
+					HasSavedChanges = false;
 				}
 				ParentViewModel.RefreshCompileCommands();
 			}
