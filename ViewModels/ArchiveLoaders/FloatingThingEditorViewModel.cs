@@ -964,6 +964,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(ShowBottomEffect));
 		OnPropertyChanged(nameof(ShowDontCenterOutfit));
 		OnPropertyChanged(nameof(ShowUsable));
+		OnPropertyChanged(nameof(ShowFloorChange));
 
 		// Notify remaining flags
 		OnPropertyChanged(nameof(IsGroundBorder));
@@ -1808,11 +1809,12 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowIsTranslucent => DatVersion >= DatVersionFormat.V5;
 	public bool ShowIgnoreLook => DatVersion >= DatVersionFormat.V4;
 	public bool ShowCloth => DatVersion >= DatVersionFormat.V5;
-	public bool ShowMarket => DatVersion >= DatVersionFormat.V5;
-	public bool ShowHasDefaultAction => DatVersion >= DatVersionFormat.V6;
-	public bool ShowWrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
-	public bool ShowUnwrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
-	public bool ShowBottomEffect => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V5;
+	public bool ShowMarket => SettingsViewModel.ClientVersion >= 940 && IsItem;
+	public bool ShowHasDefaultAction => DatVersion >= DatVersionFormat.V6 && IsItem;
+	public bool ShowWrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V6;
+	public bool ShowUnwrappable => DatVersion == DatVersionFormat.V1 || DatVersion == DatVersionFormat.V2 || DatVersion >= DatVersionFormat.V6;
+	public bool ShowFloorChange => DatVersion <= DatVersionFormat.V4;
+	public bool ShowBottomEffect => DatVersion >= DatVersionFormat.V6;
 	public bool ShowDontCenterOutfit => DatVersion >= DatVersionFormat.V5;
 	public bool ShowUsable => DatVersion >= DatVersionFormat.V6;
 
