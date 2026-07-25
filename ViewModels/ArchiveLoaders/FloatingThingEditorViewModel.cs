@@ -115,10 +115,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public FlagVisibilityMap FlagVisibility => new(this);
 	public FlagLabelMap FlagLabel => new(this, _defaultLabels);
 
+	public class FlagConfig
+	{
+		public byte id { get; set; }
+		public string? label { get; set; }
+	}
+
 	public class FlagsTomlModel
 	{
-		public Dictionary<string, string>? flags { get; set; }
-		public Dictionary<string, string>? Flags { get; set; }
+		public Dictionary<string, FlagConfig>? flags { get; set; }
 	}
 
 	public enum PromptResult
@@ -2176,16 +2181,12 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			try
 			{
 				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
-				if (model != null)
+				if (model != null && model.flags != null && model.flags.Count > 0)
 				{
-					var dict = model.flags ?? model.Flags;
-					if (dict != null && dict.Count > 0)
-					{
-						_loadedFlags = dict;
-						OnPropertyChanged(nameof(FlagVisibility));
-						OnPropertyChanged(nameof(FlagLabel));
-						return;
-					}
+					_loadedFlags = model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.label ?? pair.Key, StringComparer.Ordinal);
+					OnPropertyChanged(nameof(FlagVisibility));
+					OnPropertyChanged(nameof(FlagLabel));
+					return;
 				}
 			}
 			catch
@@ -2196,6 +2197,73 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
 		OnPropertyChanged(nameof(FlagVisibility));
 		OnPropertyChanged(nameof(FlagLabel));
+	}
+
+	public static Dictionary<string, byte>? GetCustomFlagWriteMap(uint clientVersion)
+	{
+		var datVersion = DatThingFormatRules.SelectFromClientVersion(new ClientDataVersion { Value = clientVersion });
+		string versionDirName = datVersion.ToString().ToLowerInvariant();
+		string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+		string relativePath = System.IO.Path.Combine("Assets", "datProtocols", versionDirName);
+
+		string? FindPath(string fileName)
+		{
+			string p = System.IO.Path.Combine(baseDir, relativePath, fileName);
+			if (System.IO.File.Exists(p)) return p;
+			p = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), relativePath, fileName);
+			if (System.IO.File.Exists(p)) return p;
+			p = System.IO.Path.Combine(baseDir, "..", "..", "..", relativePath, fileName);
+			if (System.IO.File.Exists(p)) return p;
+			return null;
+		}
+
+		string tomlText = "";
+		string? overridePath = FindPath("flags_override.toml");
+		if (overridePath != null)
+		{
+			try { tomlText = System.IO.File.ReadAllText(overridePath); } catch { }
+		}
+
+		if (string.IsNullOrEmpty(tomlText))
+		{
+			string? defaultPath = FindPath("flags.toml");
+			if (defaultPath != null)
+			{
+				try { tomlText = System.IO.File.ReadAllText(defaultPath); } catch { }
+			}
+		}
+
+		if (string.IsNullOrEmpty(tomlText))
+		{
+			try
+			{
+				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/flags.toml")))
+				using (var reader = new System.IO.StreamReader(stream))
+				{
+					tomlText = reader.ReadToEnd();
+				}
+			}
+			catch
+			{
+			}
+		}
+
+		if (!string.IsNullOrEmpty(tomlText))
+		{
+			try
+			{
+				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
+				if (model != null && model.flags != null && model.flags.Count > 0)
+				{
+					return model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.id, StringComparer.Ordinal);
+				}
+			}
+			catch
+			{
+			}
+		}
+
+		return null;
 	}
 
 	private Dictionary<string, string> GetDefaultFlagsForVersion(DatVersionFormat version)

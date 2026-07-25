@@ -1,25 +1,25 @@
 [flags]
-IsContainer = "Container"
-ForceUse = "Force Use"
-MultiUse = "Multi Use"
-IsFluidContainer = "Fluid Container"
-IsFluid = "Fluid"
-IsUnpassable = "Unpassable"
-IsUnmoveable = "Unmoveable"
-BlockMissile = "Block Missile"
-BlockPathfind = "Block Pathfinder"
-Pickupable = "Pickupable"
-Rotatable = "Rotatable"
-IsLyingObject = "Lying Object"
-IsFullGround = "Full Ground"
-NoMoveAnimation = "No Move Animation"
-Hangable = "Hangable"
-IsHorizontal = "Hook East"
-IsVertical = "Hook South"
-DontHide = "Don't Hide"
-IsTranslucent = "Translucent"
-IgnoreLook = "Ignore Look"
-Usable = "Useable"
-Wrappable = "Wrappable"
-Unwrappable = "Unwrappable"
-BottomEffect = "Top Effect"
+IsContainer = { id = 0x04, label = "Container" }
+ForceUse = { id = 0x06, label = "Force Use" }
+MultiUse = { id = 0x07, label = "Multi Use" }
+IsFluidContainer = { id = 0x0A, label = "Fluid Container" }
+IsFluid = { id = 0x0B, label = "Fluid" }
+IsUnpassable = { id = 0x0C, label = "Unpassable" }
+IsUnmoveable = { id = 0x0D, label = "Unmoveable" }
+BlockMissile = { id = 0x0E, label = "Block Missile" }
+BlockPathfind = { id = 0x0F, label = "Block Pathfinder" }
+Pickupable = { id = 0x11, label = "Pickupable" }
+Rotatable = { id = 0x15, label = "Rotatable" }
+IsLyingObject = { id = 0x1B, label = "Lying Object" }
+IsFullGround = { id = 0x1F, label = "Full Ground" }
+NoMoveAnimation = { id = 0x10, label = "No Move Animation" }
+Hangable = { id = 0x12, label = "Hangable" }
+IsHorizontal = { id = 0x14, label = "Hook East" }
+IsVertical = { id = 0x13, label = "Hook South" }
+DontHide = { id = 0x17, label = "Don't Hide" }
+IsTranslucent = { id = 0x18, label = "Translucent" }
+IgnoreLook = { id = 0x20, label = "Ignore Look" }
+Usable = { id = 0xFE, label = "Useable" }
+Wrappable = { id = 0x24, label = "Wrappable" }
+Unwrappable = { id = 0x25, label = "Unwrappable" }
+BottomEffect = { id = 0x26, label = "Top Effect" }

@@ -1,17 +1,17 @@
 [flags]
-IsContainer = "Container"
-ForceUse = "Force Use"
-MultiUse = "Multi Use"
-IsFluidContainer = "Fluid Container"
-IsFluid = "Fluid"
-IsUnpassable = "Unpassable"
-IsUnmoveable = "Unmoveable"
-BlockMissile = "Block Missile"
-BlockPathfind = "Block Pathfinder"
-Pickupable = "Pickupable"
-Rotatable = "Rotatable"
-IsLyingObject = "Lying Object"
-IsFullGround = "Full Ground"
-Wrappable = "Wrappable"
-Unwrappable = "Unwrappable"
-FloorChange = "Floor Change"
+IsContainer = { id = 0x03, label = "Container" }
+ForceUse = { id = 0x06, label = "Force Use" }
+MultiUse = { id = 0x05, label = "Multi Use" }
+IsFluidContainer = { id = 0x09, label = "Fluid Container" }
+IsFluid = { id = 0x0A, label = "Fluid" }
+IsUnpassable = { id = 0x0B, label = "Unpassable" }
+IsUnmoveable = { id = 0x0C, label = "Unmoveable" }
+BlockMissile = { id = 0x0D, label = "Block Missile" }
+BlockPathfind = { id = 0x0E, label = "Block Pathfinder" }
+Pickupable = { id = 0x0F, label = "Pickupable" }
+Rotatable = { id = 0x17, label = "Rotatable" }
+IsLyingObject = { id = 0x18, label = "Lying Object" }
+IsFullGround = { id = 0x12, label = "Full Ground" }
+Wrappable = { id = 0x24, label = "Wrappable" }
+Unwrappable = { id = 0x25, label = "Unwrappable" }
+FloorChange = { id = 0x11, label = "Floor Change" }

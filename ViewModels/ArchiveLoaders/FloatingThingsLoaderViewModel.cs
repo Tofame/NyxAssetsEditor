@@ -273,7 +273,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ExtendedSpriteIds = UseExtendedThingIds,
 			ImprovedAnimations = UseFrameAnimations,
 			OutfitFrameGroups = UseFrameGroups,
-			TransparentSprites = SettingsViewModel.UseTransparentPixels
+			TransparentSprites = SettingsViewModel.UseTransparentPixels,
+			CustomFlagMap = FloatingThingEditorViewModel.GetCustomFlagWriteMap(SettingsViewModel.ClientVersion)
 		};
 
 		public FloatingSpriteLoaderViewModel? LinkedSpritePanel { get; set; }
