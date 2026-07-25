@@ -118,6 +118,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public class FlagsTomlModel
 	{
 		public Dictionary<string, string>? flags { get; set; }
+		public Dictionary<string, string>? Flags { get; set; }
 	}
 
 	public enum PromptResult
@@ -2116,33 +2117,39 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	public void RequestApplyToCatalog() => ApplyToCatalog();
 
-	private void LoadProtocolFlags()
+	private string? FindTomlFile(string fileName)
 	{
 		string versionDirName = DatVersion.ToString().ToLowerInvariant();
-		string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-		string relativePath = System.IO.Path.Combine("Assets", "datProtocols", versionDirName);
-		string overridePath = System.IO.Path.Combine(baseDir, relativePath, "flags_override.toml");
+		string relativePath = System.IO.Path.Combine("Assets", "datProtocols", versionDirName, fileName);
 
-		if (!System.IO.File.Exists(overridePath) && !System.IO.Directory.Exists(System.IO.Path.Combine(baseDir, "Assets")))
-		{
-			overridePath = System.IO.Path.Combine(baseDir, "..", "..", "..", relativePath, "flags_override.toml");
-		}
+		// 1. Next to executable
+		string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+		if (System.IO.File.Exists(path)) return path;
 
+		// 2. Working directory (project root in development)
+		path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), relativePath);
+		if (System.IO.File.Exists(path)) return path;
+
+		// 3. Up from output directory
+		path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", relativePath);
+		if (System.IO.File.Exists(path)) return path;
+
+		return null;
+	}
+
+	private void LoadProtocolFlags()
+	{
 		string tomlText = "";
-		if (System.IO.File.Exists(overridePath))
+		string? overridePath = FindTomlFile("flags_override.toml");
+		if (overridePath != null)
 		{
 			try { tomlText = System.IO.File.ReadAllText(overridePath); } catch { }
 		}
 
 		if (string.IsNullOrEmpty(tomlText))
 		{
-			string defaultPath = System.IO.Path.Combine(baseDir, relativePath, "flags.toml");
-			if (!System.IO.File.Exists(defaultPath) && !System.IO.Directory.Exists(System.IO.Path.Combine(baseDir, "Assets")))
-			{
-				defaultPath = System.IO.Path.Combine(baseDir, "..", "..", "..", relativePath, "flags.toml");
-			}
-
-			if (System.IO.File.Exists(defaultPath))
+			string? defaultPath = FindTomlFile("flags.toml");
+			if (defaultPath != null)
 			{
 				try { tomlText = System.IO.File.ReadAllText(defaultPath); } catch { }
 			}
@@ -2152,6 +2159,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			try
 			{
+				string versionDirName = DatVersion.ToString().ToLowerInvariant();
 				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/flags.toml")))
 				using (var reader = new System.IO.StreamReader(stream))
 				{
@@ -2168,12 +2176,16 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			try
 			{
 				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
-				if (model != null && model.flags != null && model.flags.Count > 0)
+				if (model != null)
 				{
-					_loadedFlags = model.flags;
-					OnPropertyChanged(nameof(FlagVisibility));
-					OnPropertyChanged(nameof(FlagLabel));
-					return;
+					var dict = model.flags ?? model.Flags;
+					if (dict != null && dict.Count > 0)
+					{
+						_loadedFlags = dict;
+						OnPropertyChanged(nameof(FlagVisibility));
+						OnPropertyChanged(nameof(FlagLabel));
+						return;
+					}
 				}
 			}
 			catch
