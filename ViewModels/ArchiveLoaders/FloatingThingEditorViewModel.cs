@@ -91,6 +91,35 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _selectedTabIndex, value);
 	}
 
+	private Dictionary<string, string> _loadedFlags = new(StringComparer.Ordinal);
+
+	public class FlagVisibilityMap
+	{
+		private readonly FloatingThingEditorViewModel _vm;
+		public FlagVisibilityMap(FloatingThingEditorViewModel vm) => _vm = vm;
+		public bool this[string key] => _vm._loadedFlags.ContainsKey(key);
+	}
+
+	public class FlagLabelMap
+	{
+		private readonly FloatingThingEditorViewModel _vm;
+		private readonly Dictionary<string, string> _defaults;
+		public FlagLabelMap(FloatingThingEditorViewModel vm, Dictionary<string, string> defaults)
+		{
+			_vm = vm;
+			_defaults = defaults;
+		}
+		public string this[string key] => _vm._loadedFlags.TryGetValue(key, out var label) ? label : (_defaults.TryGetValue(key, out var def) ? def : key);
+	}
+
+	public FlagVisibilityMap FlagVisibility => new(this);
+	public FlagLabelMap FlagLabel => new(this, _defaultLabels);
+
+	public class FlagsTomlModel
+	{
+		public Dictionary<string, string>? flags { get; set; }
+	}
+
 	public enum PromptResult
 	{
 		Save,
@@ -200,6 +229,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_outfitDirection = Direction4.South;
 		_missileDirection = Direction8.South;
 
+		LoadProtocolFlags();
 		NotifyThingProperties();
 		if (!IsItem && _selectedTabIndex == 2)
 		{
@@ -2085,6 +2115,184 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	public void RequestApplyToCatalog() => ApplyToCatalog();
+
+	private void LoadProtocolFlags()
+	{
+		string versionDirName = DatVersion.ToString().ToLowerInvariant();
+		string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+		string relativePath = System.IO.Path.Combine("Assets", "datProtocols", versionDirName);
+		string overridePath = System.IO.Path.Combine(baseDir, relativePath, "flags_override.toml");
+
+		if (!System.IO.File.Exists(overridePath) && !System.IO.Directory.Exists(System.IO.Path.Combine(baseDir, "Assets")))
+		{
+			overridePath = System.IO.Path.Combine(baseDir, "..", "..", "..", relativePath, "flags_override.toml");
+		}
+
+		string tomlText = "";
+		if (System.IO.File.Exists(overridePath))
+		{
+			try { tomlText = System.IO.File.ReadAllText(overridePath); } catch { }
+		}
+
+		if (string.IsNullOrEmpty(tomlText))
+		{
+			string defaultPath = System.IO.Path.Combine(baseDir, relativePath, "flags.toml");
+			if (!System.IO.File.Exists(defaultPath) && !System.IO.Directory.Exists(System.IO.Path.Combine(baseDir, "Assets")))
+			{
+				defaultPath = System.IO.Path.Combine(baseDir, "..", "..", "..", relativePath, "flags.toml");
+			}
+
+			if (System.IO.File.Exists(defaultPath))
+			{
+				try { tomlText = System.IO.File.ReadAllText(defaultPath); } catch { }
+			}
+		}
+
+		if (string.IsNullOrEmpty(tomlText))
+		{
+			try
+			{
+				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/flags.toml")))
+				using (var reader = new System.IO.StreamReader(stream))
+				{
+					tomlText = reader.ReadToEnd();
+				}
+			}
+			catch
+			{
+			}
+		}
+
+		if (!string.IsNullOrEmpty(tomlText))
+		{
+			try
+			{
+				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
+				if (model != null && model.flags != null && model.flags.Count > 0)
+				{
+					_loadedFlags = model.flags;
+					OnPropertyChanged(nameof(FlagVisibility));
+					OnPropertyChanged(nameof(FlagLabel));
+					return;
+				}
+			}
+			catch
+			{
+			}
+		}
+
+		_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
+		OnPropertyChanged(nameof(FlagVisibility));
+		OnPropertyChanged(nameof(FlagLabel));
+	}
+
+	private Dictionary<string, string> GetDefaultFlagsForVersion(DatVersionFormat version)
+	{
+		var flags = new Dictionary<string, string>(StringComparer.Ordinal)
+		{
+			["IsContainer"] = "Container",
+			["ForceUse"] = "Force Use",
+			["MultiUse"] = "Multi Use",
+			["IsFluidContainer"] = "Fluid Container",
+			["IsFluid"] = "Fluid",
+			["IsUnpassable"] = "Unpassable",
+			["IsUnmoveable"] = "Unmoveable",
+			["BlockMissile"] = "Block Missile",
+			["BlockPathfind"] = "Block Pathfinder",
+			["Pickupable"] = "Pickupable",
+			["Rotatable"] = "Rotatable",
+			["IsLyingObject"] = "Lying Object",
+			["IsFullGround"] = "Full Ground",
+		};
+
+		if (version == DatVersionFormat.V1)
+		{
+			flags["Wrappable"] = "Wrappable";
+			flags["Unwrappable"] = "Unwrappable";
+			flags["FloorChange"] = "Floor Change";
+		}
+		else if (version == DatVersionFormat.V2)
+		{
+			flags["Hangable"] = "Hangable";
+			flags["IsHorizontal"] = "Hook East";
+			flags["IsVertical"] = "Hook South";
+			flags["Wrappable"] = "Wrappable";
+			flags["Unwrappable"] = "Unwrappable";
+			flags["FloorChange"] = "Floor Change";
+		}
+		else if (version == DatVersionFormat.V3)
+		{
+			flags["Hangable"] = "Hangable";
+			flags["IsHorizontal"] = "Hook East";
+			flags["IsVertical"] = "Hook South";
+			flags["FloorChange"] = "Floor Change";
+		}
+		else if (version == DatVersionFormat.V4)
+		{
+			flags["Hangable"] = "Hangable";
+			flags["IsHorizontal"] = "Hook East";
+			flags["IsVertical"] = "Hook South";
+			flags["DontHide"] = "Don't Hide";
+			flags["IgnoreLook"] = "Ignore Look";
+			flags["FloorChange"] = "Floor Change";
+		}
+		else if (version == DatVersionFormat.V5)
+		{
+			flags["Hangable"] = "Hangable";
+			flags["IsHorizontal"] = "Hook East";
+			flags["IsVertical"] = "Hook South";
+			flags["DontHide"] = "Don't Hide";
+			flags["IsTranslucent"] = "Translucent";
+			flags["IgnoreLook"] = "Ignore Look";
+		}
+		else if (version == DatVersionFormat.V6)
+		{
+			flags["NoMoveAnimation"] = "No Move Animation";
+			flags["Hangable"] = "Hangable";
+			flags["IsHorizontal"] = "Hook East";
+			flags["IsVertical"] = "Hook South";
+			flags["DontHide"] = "Don't Hide";
+			flags["IsTranslucent"] = "Translucent";
+			flags["IgnoreLook"] = "Ignore Look";
+			flags["Usable"] = "Useable";
+			flags["Wrappable"] = "Wrappable";
+			flags["Unwrappable"] = "Unwrappable";
+			flags["BottomEffect"] = "Top Effect";
+		}
+
+		return flags;
+	}
+
+	private static readonly Dictionary<string, string> _defaultLabels = new(StringComparer.Ordinal)
+	{
+		["IsContainer"] = "Container",
+		["Stackable"] = "Stackable",
+		["ForceUse"] = "Force Use",
+		["MultiUse"] = "Multi Use",
+		["IsFluidContainer"] = "Fluid Container",
+		["IsFluid"] = "Fluid",
+		["IsUnpassable"] = "Unpassable",
+		["IsUnmoveable"] = "Unmoveable",
+		["BlockMissile"] = "Block Missile",
+		["BlockPathfind"] = "Block Pathfinder",
+		["FloorChange"] = "Floor Change",
+		["NoMoveAnimation"] = "No Move Animation",
+		["Pickupable"] = "Pickupable",
+		["Hangable"] = "Hangable",
+		["IsHorizontal"] = "Hook East",
+		["IsVertical"] = "Hook South",
+		["Rotatable"] = "Rotatable",
+		["DontHide"] = "Don't Hide",
+		["IsTranslucent"] = "Translucent",
+		["IsLyingObject"] = "Lying Object",
+		["IsFullGround"] = "Full Ground",
+		["IgnoreLook"] = "Ignore Look",
+		["Usable"] = "Useable",
+		["Wrappable"] = "Wrappable",
+		["Unwrappable"] = "Unwrappable",
+		["BottomEffect"] = "Top Effect",
+		["AnimateAlways"] = "Animate Always",
+	};
 }
 
 public partial class CustomFlagViewModel : ViewModelBase

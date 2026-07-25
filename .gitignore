@@ -8,3 +8,4 @@ riderModule.iml
 NyxAssetsEditor.sln.DotSettings.user
 /publish
 /docs/plans
+Assets/datProtocols/**/*_override*
