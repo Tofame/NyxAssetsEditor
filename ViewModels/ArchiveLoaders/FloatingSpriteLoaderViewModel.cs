@@ -41,7 +41,49 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (SetProperty(ref _hasSavedChanges, value))
 				{
 					ParentViewModel?.RefreshCompileCommands();
+					CompileCommand.NotifyCanExecuteChanged();
 				}
+			}
+		}
+
+		public bool CanCompile => IsArchiveLoaded && ParentViewModel != null && HasSavedChanges;
+
+		[RelayCommand(CanExecute = nameof(CanCompile))]
+		private async System.Threading.Tasks.Task Compile()
+		{
+			if (ParentViewModel == null) return;
+			var thingsPanel = ParentViewModel.GetCompilePairs().FirstOrDefault(p => p.SpritePanel == this)?.ThingsPanel;
+			if (thingsPanel == null) return;
+
+			try
+			{
+				bool compileThings = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && thingsPanel.HasSavedChanges;
+
+				ArchiveCompileService.BackupIfExists(FilePath);
+				if (compileThings)
+				{
+					ArchiveCompileService.BackupIfExists(thingsPanel.FilePath);
+				}
+
+				ArchiveCompileService.CompilePair(
+					this,
+					thingsPanel,
+					FilePath,
+					thingsPanel.FilePath);
+
+				await LoadArchiveAsync(FilePath);
+				HasSavedChanges = false;
+
+				if (compileThings)
+				{
+					await thingsPanel.LoadArchiveAsync(thingsPanel.FilePath, useLastLoadedSprite: false);
+					thingsPanel.HasSavedChanges = false;
+				}
+				ParentViewModel.RefreshCompileCommands();
+			}
+			catch (Exception ex)
+			{
+				ErrorMessage = $"Compile failed: {ex.Message}";
 			}
 		}
 

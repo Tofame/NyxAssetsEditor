@@ -610,6 +610,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			OnPropertyChanged(nameof(IsSpriteLoaderLoaded));
 			OnPropertyChanged(nameof(ShowSpritesNotLoadedWarning));
 			OnPropertyChanged(nameof(ShowLoadThingsDropzone));
+			OnPropertyChanged(nameof(CanCompile));
+			CompileCommand.NotifyCanExecuteChanged();
 			RefreshPreviews();
 		}
 
@@ -691,7 +693,45 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (SetProperty(ref _hasSavedChanges, value))
 				{
 					_parentViewModel?.RefreshCompileCommands();
+					CompileCommand.NotifyCanExecuteChanged();
 				}
+			}
+		}
+
+		public bool CanCompile => IsArchiveLoaded && LinkedSpritePanel != null && HasSavedChanges;
+
+		[RelayCommand(CanExecute = nameof(CanCompile))]
+		private async System.Threading.Tasks.Task Compile()
+		{
+			if (LinkedSpritePanel == null) return;
+			try
+			{
+				bool compileSprites = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && LinkedSpritePanel.HasSavedChanges;
+
+				if (compileSprites)
+				{
+					ArchiveCompileService.BackupIfExists(LinkedSpritePanel.FilePath);
+				}
+				ArchiveCompileService.BackupIfExists(FilePath);
+
+				ArchiveCompileService.CompilePair(
+					LinkedSpritePanel,
+					this,
+					LinkedSpritePanel.FilePath,
+					FilePath);
+
+				if (compileSprites)
+				{
+					await LinkedSpritePanel.LoadArchiveAsync(LinkedSpritePanel.FilePath);
+					LinkedSpritePanel.HasSavedChanges = false;
+				}
+				await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
+				HasSavedChanges = false;
+				_parentViewModel?.RefreshCompileCommands();
+			}
+			catch (Exception ex)
+			{
+				ErrorMessage = $"Compile failed: {ex.Message}";
 			}
 		}
 

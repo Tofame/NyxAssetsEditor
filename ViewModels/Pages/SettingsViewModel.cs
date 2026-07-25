@@ -57,6 +57,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _compileLinkedPairTogether = true;
+		public static bool CompileLinkedPairTogether
+		{
+			get => _compileLinkedPairTogether;
+			set
+			{
+				if (_compileLinkedPairTogether != value)
+				{
+					_compileLinkedPairTogether = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		private static bool _allowUnknownSignatures = true;
 		public static bool AllowUnknownSignatures
 		{
@@ -295,6 +309,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set => AllowUnknownSignatures = value;
 		}
 
+		public bool CompileLinkedPairTogetherSetting
+		{
+			get => CompileLinkedPairTogether;
+			set
+			{
+				if (CompileLinkedPairTogether != value)
+				{
+					CompileLinkedPairTogether = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -322,7 +349,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			bool allowUnknownSignatures = true,
 			string? looktypeMountAlignment = null,
 			int looktypeMountedRiderOffsetX = 0,
-			int looktypeMountedRiderOffsetY = 0)
+			int looktypeMountedRiderOffsetY = 0,
+			bool compileLinkedPairTogether = true)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -331,6 +359,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_useExtendedSpriteIds = useExtendedSpriteIds;
 			_preloadGraphicalAssets = preloadGraphicalAssets;
 			_allowUnknownSignatures = allowUnknownSignatures;
+			_compileLinkedPairTogether = compileLinkedPairTogether;
 			_assetDisplaySize = assetDisplaySize;
 			ThingIdOffset = thingIdOffset;
 			_clientVersion = clientVersion;

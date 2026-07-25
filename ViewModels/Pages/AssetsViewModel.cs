@@ -45,6 +45,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
 		public Action<double, double>? PositionWebExportHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
+		public bool CanCompileAs => GetCompilePairs().Any();
+
+		private LinkedArchivePair? _lastActivePair;
+		public LinkedArchivePair? LastActivePair
+		{
+			get => _lastActivePair ?? GetCompilePairs().FirstOrDefault();
+			set => _lastActivePair = value;
+		}
 
 		public System.Collections.Generic.IReadOnlyList<LinkedArchivePair> GetCompilePairs()
 		{
@@ -216,6 +224,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public void RefreshCompileCommands()
 		{
 			OnPropertyChanged(nameof(CanCompile));
+			OnPropertyChanged(nameof(CanCompileAs));
 			CompileCommand.NotifyCanExecuteChanged();
 			CompileAsCommand.NotifyCanExecuteChanged();
 		}
@@ -265,10 +274,61 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				: "Changes pending (details unavailable).";
 		}
 
+		[RelayCommand]
+		public void OpenCompilePanel()
+		{
+			var existing = ActivePanels.OfType<FloatingCompileViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				existing.RefreshArchivePairs();
+				return;
+			}
+
+			double panelW = FloatingCompileViewModel.DefaultPanelWidth;
+			double panelH = FloatingCompileViewModel.DefaultContentHeight;
+			double posX = 450;
+			double posY = 120;
+
+			var panel = new FloatingCompileViewModel(this)
+			{
+				DockState = "Floating",
+				PanelWidth = panelW,
+				ContentHeight = panelH,
+				PositionX = Math.Max(0, posX),
+				PositionY = Math.Max(0, posY),
+				IsVisible = true,
+			};
+
+			AddPanelFromView(panel);
+		}
+
 		[RelayCommand(CanExecute = nameof(CanCompile))]
 		private async System.Threading.Tasks.Task Compile()
 		{
-			foreach (var pair in GetCompilePairs())
+			var pairs = GetCompilePairs();
+			if (pairs.Count == 0) return;
+
+			var targets = new System.Collections.Generic.List<LinkedArchivePair>();
+			if (pairs.Count == 1)
+			{
+				targets.Add(pairs[0]);
+			}
+			else
+			{
+				var active = LastActivePair;
+				if (active != null)
+				{
+					targets.Add(active);
+				}
+				else
+				{
+					targets.Add(pairs[0]);
+				}
+			}
+
+			foreach (var pair in targets)
 			{
 				try
 				{
@@ -298,11 +358,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
-		[RelayCommand(CanExecute = nameof(CanCompile))]
-		private async System.Threading.Tasks.Task CompileAs()
+		[RelayCommand(CanExecute = nameof(CanCompileAs))]
+		private void CompileAs()
 		{
-			if (CompileAsHandler != null)
-				await CompileAsHandler();
+			OpenCompilePanel();
 		}
 
 		public async System.Threading.Tasks.Task CompilePairAs(LinkedArchivePair pair, string spriteOutputPath, string thingsOutputPath)
@@ -716,6 +775,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				&& sender is FloatingSpriteLoaderViewModel or FloatingThingsLoaderViewModel)
 			{
 				RefreshLooktypeGenerators();
+				if (sender is FloatingSpriteLoaderViewModel sprPanel && sprPanel.HasSavedChanges)
+				{
+					var pair = GetCompilePairs().FirstOrDefault(p => p.SpritePanel == sprPanel);
+					if (pair != null) LastActivePair = pair;
+				}
+				else if (sender is FloatingThingsLoaderViewModel thPanel && thPanel.HasSavedChanges)
+				{
+					var pair = GetCompilePairs().FirstOrDefault(p => p.ThingsPanel == thPanel);
+					if (pair != null) LastActivePair = pair;
+				}
 			}
 
 			if (e.PropertyName == nameof(PanelViewModelBase.IsMinimized) ||

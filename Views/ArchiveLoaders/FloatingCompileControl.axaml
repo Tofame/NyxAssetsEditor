@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingCompileControl"
+			 x:DataType="vm:FloatingCompileViewModel"
+			 x:CompileBindings="False"
+			 Width="{Binding DisplayWidth}">
+	<UserControl.Styles>
+		<Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#999"/><Setter Property="FontSize" Value="11"/></Style>
+	</UserControl.Styles>
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<!-- Title Bar (Draggable) -->
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/>
+						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Content="—" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Content Area -->
+			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}"
+						  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+				<StackPanel Spacing="14" Margin="15">
+					<!-- Pair Selection -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Select Archive Pair to Compile" Classes="label"/>
+						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" 
+								  DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair" HorizontalAlignment="Stretch"/>
+					</StackPanel>
+
+					<TextBlock Text="{Binding HasChangesSummary}" Foreground="#FFB84C" FontSize="11" FontWeight="SemiBold" 
+							   IsVisible="{Binding SelectedArchivePair, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+					<!-- Output Paths -->
+					<Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" Margin="0,5,0,5">
+						<!-- Sprite Path -->
+						<StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,8,8">
+							<TextBlock Text="Sprite Output Path" Classes="label"/>
+							<TextBox Text="{Binding SpriteOutputPath}" PlaceholderText="Sprite output path..." Height="28" Padding="6,2" VerticalContentAlignment="Center" FontSize="11"/>
+							<TextBlock Text="{Binding SpriteOriginalPath, StringFormat='Original: {0}'}" FontSize="10" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+						</StackPanel>
+						<Button Grid.Row="0" Grid.Column="1" Content="Browse..." Command="{Binding BrowseSpriteCommand}" VerticalAlignment="Center" Height="28" Margin="0,15,0,8"/>
+
+						<!-- Things Path -->
+						<StackPanel Grid.Row="1" Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+							<TextBlock Text="Things Output Path" Classes="label"/>
+							<TextBox Text="{Binding ThingsOutputPath}" PlaceholderText="Things output path..." Height="28" Padding="6,2" VerticalContentAlignment="Center" FontSize="11"/>
+							<TextBlock Text="{Binding ThingsOriginalPath, StringFormat='Original: {0}'}" FontSize="10" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+						</StackPanel>
+						<Button Grid.Row="1" Grid.Column="1" Content="Browse..." Command="{Binding BrowseThingsCommand}" VerticalAlignment="Center" Height="28" Margin="0,15,0,0"/>
+					</Grid>
+
+					<!-- Status Message -->
+					<TextBlock Text="{Binding StatusMessage}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" HorizontalAlignment="Stretch" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+					<!-- Actions -->
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
+						<Button Content="Compile In-Place" Command="{Binding CompileCommand}" 
+								Background="#2D2D2D" Foreground="#E0E0E0" Padding="15,6" CornerRadius="4" FontSize="12"/>
+						<Button Content="Compile As..." Command="{Binding CompileAsCommand}" 
+								Background="#FF6B6B" Foreground="#FFFFFF" Padding="15,6" CornerRadius="4" FontSize="12" FontWeight="SemiBold"/>
+					</StackPanel>
+				</StackPanel>
+			</ScrollViewer>
+		</Grid>
+	</Border>
+</UserControl>

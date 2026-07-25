@@ -46,7 +46,7 @@
 						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
 					</ContextMenu>
 				</Border.ContextMenu>
-				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto, Auto, Auto">
+				<Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto">
 					<!-- Panel Name -->
 					<StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="8" VerticalAlignment="Center">
 						<TextBlock Text="Sprites Viewer" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="13"/>
@@ -91,14 +91,19 @@
 					<Button Grid.Column="5" Command="{Binding RedoCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Redo (Ctrl+Y)">
 						<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
 					</Button>
+
+					<!-- Compile Button -->
+					<Button Grid.Column="6" Command="{Binding CompileCommand}" IsEnabled="{Binding CanCompile}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" IsVisible="{Binding IsArchiveLoaded}" ToolTip.Tip="Compile Archive">
+						<Image Source="/Assets/Icons/hard-drive.png" Width="14" Height="14"/>
+					</Button>
 					
 					<!-- Minimize Button -->
-					<Button Grid.Column="6" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Minimize">
+					<Button Grid.Column="7" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Minimize">
 						<Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
 					</Button>
 					
 					<!-- Close Button -->
-					<Button Grid.Column="7" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="Close">
+					<Button Grid.Column="8" Command="{Binding ClosePanelCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="Close">
 						<Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
 					</Button>
 				</Grid>

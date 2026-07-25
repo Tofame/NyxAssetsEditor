@@ -61,6 +61,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Compile Paired Archives:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<CheckBox IsChecked="{Binding CompileLinkedPairTogetherSetting}"/>
+						<TextBlock Text="Compiling a Things/Sprite viewer also compiles its linked partner."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 

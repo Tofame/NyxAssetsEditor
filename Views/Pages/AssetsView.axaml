@@ -28,6 +28,9 @@
 		<DataTemplate DataType="{x:Type panels:FloatingWebExportViewModel}">
 			<loaders:FloatingWebExportControl />
 		</DataTemplate>
+		<DataTemplate DataType="{x:Type panels:FloatingCompileViewModel}">
+			<loaders:FloatingCompileControl />
+		</DataTemplate>
 		<DataTemplate DataType="{x:Type panels:FloatingThingFinderViewModel}">
 			<loaders:FloatingThingFinderControl />
 		</DataTemplate>
