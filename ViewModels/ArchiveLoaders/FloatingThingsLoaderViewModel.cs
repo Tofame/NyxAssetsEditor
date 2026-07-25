@@ -708,6 +708,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			{
 				bool compileSprites = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && LinkedSpritePanel.HasSavedChanges;
 
+				var (savedPage, savedId) = SaveViewState();
+
 				if (compileSprites)
 				{
 					ArchiveCompileService.BackupIfExists(LinkedSpritePanel.FilePath);
@@ -744,11 +746,35 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
 					HasSavedChanges = false;
 				}
+				RestoreViewState(savedPage, savedId);
 				_parentViewModel?.RefreshCompileCommands();
 			}
 			catch (Exception ex)
 			{
 				ErrorMessage = $"Compile failed: {ex.Message}";
+			}
+		}
+
+		private (int page, uint thingId) SaveViewState() =>
+			(_currentPage, SelectedThing?.Id ?? 0);
+
+		private void RestoreViewState(int page, uint thingId)
+		{
+			int maxPage = TotalPages;
+			int target = Math.Min(page, maxPage > 0 ? maxPage : 1);
+			if (_currentPage != target)
+			{
+				_currentPage = target;
+				OnPropertyChanged(nameof(CurrentPage));
+				OnPropertyChanged(nameof(HasNextPage));
+				OnPropertyChanged(nameof(HasPreviousPage));
+				UpdatePage();
+			}
+			if (thingId != 0)
+			{
+				var item = PagedThings.FirstOrDefault(t => t.Id == thingId);
+				if (item != null)
+					SelectThing(item);
 			}
 		}
 
