@@ -92,19 +92,16 @@ public sealed class SpritesheetCanvasControl : Control
 		var width = vm.Columns * cell;
 		var height = vm.Rows * cell;
 		var gridPen = new Pen(new SolidColorBrush(Color.Parse("#E6FF4D7A")), Math.Max(1, zoom < 1 ? 1 : 1.5));
-		var splitPen = new Pen(new SolidColorBrush(Color.Parse("#F2FFD54F")), Math.Max(2, zoom < 1 ? 2 : 3));
 		context.DrawRectangle(new SolidColorBrush(Color.Parse("#183A7BD5")), gridPen, new Rect(x, y, width, height));
 		for (var column = 1; column < vm.Columns; column++)
 		{
 			var px = x + column * cell;
-			var pen = vm.ThingWidth > 0 && column % vm.ThingSheetColumns == 0 ? splitPen : gridPen;
-			context.DrawLine(pen, new Point(px, y), new Point(px, y + height));
+			context.DrawLine(gridPen, new Point(px, y), new Point(px, y + height));
 		}
 		for (var row = 1; row < vm.Rows; row++)
 		{
 			var py = y + row * cell;
-			var pen = vm.ThingHeight > 0 && row % vm.ThingSheetRows == 0 ? splitPen : gridPen;
-			context.DrawLine(pen, new Point(x, py), new Point(x + width, py));
+			context.DrawLine(gridPen, new Point(x, py), new Point(x + width, py));
 		}
 	}
 
