@@ -67,6 +67,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private double _zoom = 1;
 	private int _thingWidth;
 	private int _thingHeight;
+	private int _thingExactSize = 32;
 	private int _thingLayers = 1;
 	private int _thingPatternX = 1;
 	private int _thingPatternY = 1;
@@ -74,6 +75,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _thingFrames = 1;
 	private int _outfitDirections = 4;
 	private int _outfitFrames = 3;
+	private bool _outfitSeparateFrameGroups;
+	private int _outfitIdleFrames = 1;
+	private int _outfitWalkingFrames = 2;
 	private uint _templateThingId;
 	private uint _replacementThingId;
 	private bool _useTemplate;
@@ -97,13 +101,17 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_state = PersistenceService.GetSlicerState();
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
+		_thingExactSize = Math.Clamp(_state.ThingExactSize, 1, 255);
 		_thingLayers = Math.Max(1, _state.ThingLayers);
 		_thingPatternX = Math.Max(1, _state.ThingPatternX);
 		_thingPatternY = Math.Max(1, _state.ThingPatternY);
 		_thingPatternZ = Math.Max(1, _state.ThingPatternZ);
 		_thingFrames = Math.Max(1, _state.ThingFrames);
 		_outfitDirections = Math.Max(1, _state.OutfitDirections);
-		_outfitFrames = Math.Max(1, _state.OutfitFrames);
+		_outfitFrames = Math.Clamp(_state.OutfitFrames, 1, 60);
+		_outfitSeparateFrameGroups = _state.OutfitSeparateFrameGroups;
+		_outfitIdleFrames = Math.Clamp(_state.OutfitIdleFrames, 1, 60);
+		_outfitWalkingFrames = Math.Clamp(_state.OutfitWalkingFrames, 1, 60);
 		_replaceExisting = _state.ReplaceExisting;
 		if (Enum.TryParse<ThingKind>(_state.ThingKind, out var kind)) _selectedKind = kind;
 		if (_selectedKind == ThingKind.Missile && _thingPatternX == 1 && _thingPatternY == 1)
@@ -147,6 +155,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
+	public int ThingExactSize { get => _thingExactSize; set => SetProperty(ref _thingExactSize, Math.Clamp(value, 1, 255)); }
 	public int ThingLayers
 	{
 		get => _thingLayers;
@@ -180,7 +189,47 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	}
 	public int ThingFrames { get => _thingFrames; set { if (SetProperty(ref _thingFrames, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
-	public int OutfitFrames { get => _outfitFrames; set { if (SetProperty(ref _outfitFrames, Math.Max(1, value))) NotifyValidation(); } }
+	public int OutfitFrames { get => _outfitFrames; set { if (SetProperty(ref _outfitFrames, Math.Clamp(value, 1, 60))) NotifyValidation(); } }
+	public bool OutfitSeparateFrameGroups
+	{
+		get => _outfitSeparateFrameGroups;
+		set
+		{
+			if (!SetProperty(ref _outfitSeparateFrameGroups, value)) return;
+			OnPropertyChanged(nameof(OutfitLayoutFrames));
+			OnPropertyChanged(nameof(OutfitFrameGroupHint));
+			OnPropertyChanged(nameof(ShowSingleOutfitFrames));
+			OnPropertyChanged(nameof(ShowSeparateOutfitFrames));
+			NotifyValidation();
+		}
+	}
+	public int OutfitIdleFrames
+	{
+		get => _outfitIdleFrames;
+		set
+		{
+			if (!SetProperty(ref _outfitIdleFrames, Math.Clamp(value, 1, 60))) return;
+			OnPropertyChanged(nameof(OutfitLayoutFrames));
+			OnPropertyChanged(nameof(OutfitFrameGroupHint));
+			NotifyValidation();
+		}
+	}
+	public int OutfitWalkingFrames
+	{
+		get => _outfitWalkingFrames;
+		set
+		{
+			if (!SetProperty(ref _outfitWalkingFrames, Math.Clamp(value, 1, 60))) return;
+			OnPropertyChanged(nameof(OutfitLayoutFrames));
+			OnPropertyChanged(nameof(OutfitFrameGroupHint));
+			NotifyValidation();
+		}
+	}
+	public int OutfitLayoutFrames => OutfitSeparateFrameGroups
+		? checked(OutfitIdleFrames + OutfitWalkingFrames)
+		: OutfitFrames;
+	public bool ShowSingleOutfitFrames => IsOutfit && !OutfitSeparateFrameGroups;
+	public bool ShowSeparateOutfitFrames => IsOutfit && OutfitSeparateFrameGroups;
 	public bool OutfitHasRecolourMask
 	{
 		get => ThingLayers >= 2;
@@ -257,6 +306,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			if (!SetProperty(ref _selectedKind, value)) return;
 			TemplateThingId = 0;
 			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(IsMissile));
+			OnPropertyChanged(nameof(ShowSingleOutfitFrames)); OnPropertyChanged(nameof(ShowSeparateOutfitFrames));
 			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
 			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			RefreshThingChoices();
@@ -278,9 +328,12 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public string OutfitFrameGroupHint => SelectedTarget?.ThingsPanel switch
 	{
 		null => "Choose a target to resolve idle and walking frames.",
+		{ UseFrameGroups: true } when OutfitSeparateFrameGroups && !UsesCombinedLayout =>
+			$"{OutfitIdleFrames} idle + {OutfitWalkingFrames} walking frames.",
 		{ UseFrameGroups: true } when OutfitFrames >= 3 && !UsesCombinedLayout =>
 			"Frame 1 = idle; remaining frames = walking.",
 		{ UseFrameGroups: true } => "Idle and walking use separate frame groups.",
+		_ when OutfitSeparateFrameGroups => "This legacy target will store both groups as one animation.",
 		_ => "Idle and walking share one legacy frame group."
 	};
 	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
@@ -491,10 +544,12 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 				ThingWidth, ThingHeight, ThingLayers,
 				IsOutfit ? OutfitDirections : ThingPatternX,
 				ThingPatternY, ThingPatternZ,
-				IsOutfit ? OutfitFrames : ThingFrames,
+				IsOutfit ? OutfitLayoutFrames : ThingFrames,
 				GetAnimationDuration(),
 				thingsPanel.UseFrameAnimations, template, replacement,
-				thingsPanel.UseFrameGroups);
+				thingsPanel.UseFrameGroups,
+				ExactSize: ThingExactSize,
+				OutfitIdleFrames: IsOutfit && OutfitSeparateFrameGroups ? OutfitIdleFrames : 0);
 			var plan = SpritesheetThingBuilder.Build(request);
 			var ids = thingsPanel.ImportSlicerThings(plan.SpritePixels, plan.Things, plan.IsReplacement);
 			Status(false, plan.IsReplacement
@@ -566,10 +621,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
 		_state.WasMaximized = maximized;
-		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight;
+		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.ThingExactSize = ThingExactSize;
 		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
 		_state.ThingPatternY = ThingPatternY; _state.ThingPatternZ = ThingPatternZ; _state.ThingFrames = ThingFrames;
-		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames; _state.ThingKind = SelectedKind.ToString();
+		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames;
+		_state.OutfitSeparateFrameGroups = OutfitSeparateFrameGroups;
+		_state.OutfitIdleFrames = OutfitIdleFrames; _state.OutfitWalkingFrames = OutfitWalkingFrames;
+		_state.ThingKind = SelectedKind.ToString();
 		_state.ReplaceExisting = ReplaceExisting;
 		return _state;
 	}
@@ -649,13 +707,25 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		if (group == null) return;
 		ThingWidth = (int)(group.Width == 0 ? 1u : group.Width);
 		ThingHeight = (int)(group.Height == 0 ? 1u : group.Height);
+		ThingExactSize = (int)(group.ExactSize == 0 ? 32u : group.ExactSize);
 		ThingLayers = (int)(group.Layers == 0 ? 1u : group.Layers);
 		ThingPatternY = (int)(group.PatternY == 0 ? 1u : group.PatternY);
 		ThingPatternZ = (int)(group.PatternZ == 0 ? 1u : group.PatternZ);
 		if (thing.Kind == ThingKind.Outfit)
 		{
 			OutfitDirections = (int)(group.PatternX == 0 ? 1u : group.PatternX);
-			OutfitFrames = (int)(group.Frames == 0 ? 1u : group.Frames);
+			var groups = thing.FrameGroups.OrderBy(frameGroup => frameGroup.GroupTypeId).ToList();
+			if (groups.Count > 1)
+			{
+				OutfitSeparateFrameGroups = true;
+				OutfitIdleFrames = (int)Math.Max(1u, groups[0].Frames);
+				OutfitWalkingFrames = (int)Math.Max(1u, groups[1].Frames);
+			}
+			else
+			{
+				OutfitSeparateFrameGroups = false;
+				OutfitFrames = (int)(group.Frames == 0 ? 1u : group.Frames);
+			}
 		}
 		else
 		{
@@ -678,12 +748,12 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		if (TryGetCombinedLayoutDimensions(out var combinedColumns, out var combinedRows))
 		{
 			return Columns == combinedColumns && Rows == combinedRows
-				? (true, $"Combined Object Builder sheet: {combinedColumns}×{combinedRows} cells; all source frame groups will be preserved.")
-				: (false, $"The selected multi-group thing needs a complete {combinedColumns}×{combinedRows} cell Object Builder sheet.");
+				? (true, $"Combined sheet: {combinedColumns} × {combinedRows} cells.")
+				: (false, $"This frame-group layout needs {combinedColumns} × {combinedRows} cells.");
 		}
 
 		var patternX = IsOutfit ? OutfitDirections : ThingPatternX;
-		var frames = IsOutfit ? OutfitFrames : ThingFrames;
+		var frames = IsOutfit ? OutfitLayoutFrames : ThingFrames;
 		if ((ThingWidth == 0) != (ThingHeight == 0))
 			return (false, "Set both footprint values to 0 for one inferred thing, or set both to its cell dimensions.");
 
@@ -716,8 +786,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		{
 			var commonWidth = source.FrameGroups.Max(group => (long)group.Width);
 			var commonHeight = source.FrameGroups.Max(group => (long)group.Height);
-			var totalX = source.FrameGroups.Max(group => checked((long)group.PatternZ * group.PatternX * group.Layers));
-			var totalY = source.FrameGroups.Sum(group => checked((long)group.Frames * group.PatternY));
+			var totalX = source.FrameGroups.Max(group => (long)group.GetSpriteSheetTextureColumns());
+			var totalY = source.FrameGroups.Sum(group => (long)group.GetSpriteSheetTextureRows());
 			var calculatedColumns = checked(commonWidth * totalX);
 			var calculatedRows = checked(commonHeight * totalY);
 			if (calculatedColumns <= 0 || calculatedRows <= 0 || calculatedColumns > int.MaxValue || calculatedRows > int.MaxValue)

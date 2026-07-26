@@ -69,6 +69,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string LastExportDirectory { get; set; } = "";
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
+			public int ThingExactSize { get; set; } = 32;
 			public int ThingLayers { get; set; } = 1;
 			public int ThingPatternX { get; set; } = 1;
 			public int ThingPatternY { get; set; } = 1;
@@ -76,6 +77,9 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int ThingFrames { get; set; } = 1;
 			public int OutfitDirections { get; set; } = 4;
 			public int OutfitFrames { get; set; } = 3;
+			public bool OutfitSeparateFrameGroups { get; set; }
+			public int OutfitIdleFrames { get; set; } = 1;
+			public int OutfitWalkingFrames { get; set; } = 2;
 			public string ThingKind { get; set; } = "Item";
 			public bool ReplaceExisting { get; set; }
 		}
@@ -237,6 +241,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			LastExportDirectory = _slicerState.LastExportDirectory,
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
+			ThingExactSize = _slicerState.ThingExactSize,
 			ThingLayers = _slicerState.ThingLayers,
 			ThingPatternX = _slicerState.ThingPatternX,
 			ThingPatternY = _slicerState.ThingPatternY,
@@ -244,6 +249,9 @@ namespace NyxAssetsEditor.Services.Persistence
 			ThingFrames = _slicerState.ThingFrames,
 			OutfitDirections = _slicerState.OutfitDirections,
 			OutfitFrames = _slicerState.OutfitFrames,
+			OutfitSeparateFrameGroups = _slicerState.OutfitSeparateFrameGroups,
+			OutfitIdleFrames = _slicerState.OutfitIdleFrames,
+			OutfitWalkingFrames = _slicerState.OutfitWalkingFrames,
 			ThingKind = _slicerState.ThingKind,
 			ReplaceExisting = _slicerState.ReplaceExisting
 		};

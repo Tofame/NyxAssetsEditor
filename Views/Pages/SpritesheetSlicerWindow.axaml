@@ -92,11 +92,14 @@
 
 					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
 						<TextBlock Text="Thing footprint (cells)" Foreground="#AAAAAA"/>
-						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
 							<TextBlock Grid.Row="0" Grid.Column="0" Text="Thing width:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0"/>
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Thing height:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Exact size:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingExactSize}" Minimum="1" Maximum="255" FormatString="0"
+								ToolTip.Tip="DAT exact-size metadata; this does not change the 32-pixel sprite cell size."/>
 						</Grid>
 						<TextBlock Text="Use 0 × 0 to derive one footprint from the complete frame-group sheet." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
 					</StackPanel>
@@ -125,9 +128,17 @@
 								IsVisible="{Binding !IsOutfit}"/>
 							<CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="Mounted rider pose" IsChecked="{Binding OutfitHasMountedPose}"
 								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Adds the mounted rider pose as Pattern Z = 2. The mount itself remains a separate outfit ID."/>
-							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
 							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding ThingFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
-							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding IsOutfit}"/>
+							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding ShowSingleOutfitFrames}"/>
+							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding ShowSingleOutfitFrames}"/>
+						</Grid>
+						<CheckBox Content="Separate idle and walking groups" IsChecked="{Binding OutfitSeparateFrameGroups}" IsVisible="{Binding IsOutfit}"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7" IsVisible="{Binding ShowSeparateOutfitFrames}">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Idle frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding OutfitIdleFrames}" Minimum="1" Maximum="60" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Walking frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitWalkingFrames}" Minimum="1" Maximum="60" FormatString="0"/>
 						</Grid>
 						<TextBlock Text="Missiles commonly use a 3 × 3 Pattern X/Y direction grid; use the values stored by the source thing." Foreground="#888888" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsMissile}"/>
 						<TextBlock Text="{Binding OutfitFrameGroupHint}" Foreground="#C8B98F" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsOutfit}"/>

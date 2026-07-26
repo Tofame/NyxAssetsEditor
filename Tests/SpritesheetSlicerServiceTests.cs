@@ -175,14 +175,16 @@ public class SpritesheetSlicerServiceTests
 			Slicer = new PersistenceService.SlicerStateModel
 			{
 				WasMaximized = true, LastOpenDirectory = "images", LastExportDirectory = "exports",
-				ThingWidth = 2, ThingHeight = 3, ThingLayers = 2,
+				ThingWidth = 2, ThingHeight = 3, ThingExactSize = 48, ThingLayers = 2,
 				ThingPatternX = 4, ThingPatternY = 3, ThingPatternZ = 2, ThingFrames = 6,
-				OutfitDirections = 8, OutfitFrames = 4, ThingKind = "Missile", ReplaceExisting = true
+				OutfitDirections = 8, OutfitFrames = 4, OutfitSeparateFrameGroups = true,
+				OutfitIdleFrames = 8, OutfitWalkingFrames = 8, ThingKind = "Missile", ReplaceExisting = true
 			}
 		};
 		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>(TomlSerializer.Serialize(model));
 		Assert.NotNull(restored);
 		Assert.True(restored!.Slicer.WasMaximized);
+		Assert.Equal(48, restored.Slicer.ThingExactSize);
 		Assert.Equal(2, restored.Slicer.ThingLayers);
 		Assert.Equal(4, restored.Slicer.ThingPatternX);
 		Assert.Equal(3, restored.Slicer.ThingPatternY);
@@ -190,6 +192,9 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(6, restored.Slicer.ThingFrames);
 		Assert.Equal("Missile", restored.Slicer.ThingKind);
 		Assert.True(restored.Slicer.ReplaceExisting);
+		Assert.True(restored.Slicer.OutfitSeparateFrameGroups);
+		Assert.Equal(8, restored.Slicer.OutfitIdleFrames);
+		Assert.Equal(8, restored.Slicer.OutfitWalkingFrames);
 	}
 
 	[Fact]
@@ -198,6 +203,9 @@ public class SpritesheetSlicerServiceTests
 		var defaults = new PersistenceService.SlicerStateModel();
 		Assert.Equal(4, defaults.OutfitDirections);
 		Assert.Equal(3, defaults.OutfitFrames);
+		Assert.Equal(32, defaults.ThingExactSize);
+		Assert.Equal(1, defaults.OutfitIdleFrames);
+		Assert.Equal(2, defaults.OutfitWalkingFrames);
 		Assert.Equal(1, defaults.ThingLayers);
 		Assert.Equal(1, defaults.ThingPatternX);
 		Assert.Equal(1, defaults.ThingPatternY);
@@ -420,6 +428,40 @@ public class SpritesheetThingBuilderTests
 		Assert.All(group.FrameTimings, timing => Assert.Equal((uint)400, timing.MinimumMilliseconds));
 		Assert.True(group.TryGetSpriteId(1, 1, 1, 1, 0, 0, 0, out var firstTextureTopLeft));
 		Assert.Equal((uint)1006, firstTextureTopLeft);
+	}
+
+	[Fact]
+	public void Outfit_ManualIdleAndWalkingGroupsPreserveExactSize()
+	{
+		var empty = new byte[32 * 32 * 4];
+		var filled = new byte[32 * 32 * 4];
+		filled[3] = 255;
+		var cells = Enumerable.Range(0, 96)
+			.SelectMany(row => Enumerable.Range(0, 32)
+				.Select(column => (row is 0 or 48) && column == 0
+					? new SlicerCell(column, row, filled, false)
+					: new SlicerCell(column, row, empty, true)))
+			.ToArray();
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 32, 96, 32), cells, 100, 200,
+			2, 2, 2, 4, 3, 2, 16, 800, true, null, null,
+			OutfitFrameGroups: true, ExactSize: 48, OutfitIdleFrames: 8));
+
+		Assert.Equal(2, result.SpritePixels.Count);
+		Assert.Equal(2, result.Things.Single().FrameGroups.Count);
+		var idle = result.Things.Single().FrameGroups[0];
+		var walking = result.Things.Single().FrameGroups[1];
+		Assert.Equal((uint)8, idle.Frames);
+		Assert.Equal((uint)8, walking.Frames);
+		Assert.Equal((uint)48, idle.ExactSize);
+		Assert.Equal((uint)48, walking.ExactSize);
+		Assert.Equal((uint)2, idle.Layers);
+		Assert.Equal((uint)3, idle.PatternY);
+		Assert.Equal((uint)2, idle.PatternZ);
+		Assert.True(idle.TryGetSpriteId(1, 1, 0, 0, 0, 0, 0, out var firstIdle));
+		Assert.True(walking.TryGetSpriteId(1, 1, 0, 0, 0, 0, 0, out var firstWalking));
+		Assert.Equal((uint)100, firstIdle);
+		Assert.Equal((uint)101, firstWalking);
 	}
 
 	[Fact]
