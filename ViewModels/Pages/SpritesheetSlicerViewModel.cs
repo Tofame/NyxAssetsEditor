@@ -336,6 +336,16 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_ when OutfitSeparateFrameGroups => "This legacy target will store both groups as one animation.",
 		_ => "Idle and walking share one legacy frame group."
 	};
+	public int ThingSheetColumns => TryGetCombinedLayoutDimensions(out var columns, out _)
+		? columns
+		: ThingWidth > 0
+			? ClampLayoutDimension((long)ThingWidth * ThingLayers * (IsOutfit ? OutfitDirections : ThingPatternX) * ThingPatternZ)
+			: Columns;
+	public int ThingSheetRows => TryGetCombinedLayoutDimensions(out _, out var rows)
+		? rows
+		: ThingHeight > 0
+			? ClampLayoutDimension((long)ThingHeight * (IsOutfit ? OutfitLayoutFrames : ThingFrames) * ThingPatternY)
+			: Rows;
 	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
 	public bool CanChooseTemplate => ShowTemplatePicker && SelectedTarget?.HasThings == true;
 	public bool CanChooseReplacement => ReplaceExisting && SelectedTarget?.HasThings == true;
@@ -743,6 +753,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			: $"{choice.DisplayName} — {groups} frame groups; combined-sheet layout will be copied";
 	}
 
+	private static int ClampLayoutDimension(long value) => value is > 0 and <= int.MaxValue ? (int)value : int.MaxValue;
+
 	private (bool Valid, string Message) GetLayoutStatus()
 	{
 		if (TryGetCombinedLayoutDimensions(out var combinedColumns, out var combinedRows))
@@ -820,6 +832,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private void NotifyValidation()
 	{
 		OnPropertyChanged(nameof(SplitHint));
+		OnPropertyChanged(nameof(ThingSheetColumns));
+		OnPropertyChanged(nameof(ThingSheetRows));
 		OnPropertyChanged(nameof(UsesCombinedLayout));
 		OnPropertyChanged(nameof(OutfitFrameGroupHint));
 		NotifyCommands();
