@@ -186,7 +186,7 @@ public class SpritesheetSlicerServiceTests
 		var defaults = new PersistenceService.SlicerStateModel();
 		Assert.True(defaults.AutoDetectSpriteGrid);
 		Assert.Equal(4, defaults.OutfitDirections);
-		Assert.Equal(1, defaults.OutfitFrames);
+		Assert.Equal(3, defaults.OutfitFrames);
 		Assert.Equal(1, defaults.ThingLayers);
 		Assert.Equal(1, defaults.ThingPatternX);
 		Assert.Equal(1, defaults.ThingPatternY);
@@ -242,6 +242,36 @@ public class SpritesheetThingBuilderTests
 		Assert.Equal(3, group.FrameTimings!.Length);
 		Assert.True(group.TryGetSpriteId(1, 1, 0, 2, 0, 0, 1, out var topLeft));
 		Assert.Equal((uint)(500 + 1 * 2 * 8 + 2 * 2), topLeft);
+	}
+
+	[Fact]
+	public void ClassicThreeFrameOutfit_SplitsIdleAndWalkingForFrameGroupTargets()
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
+			0, 0, 1, 4, 1, 1, 3, 275, true, null, null, OutfitFrameGroups: true));
+		var thing = result.Things.Single();
+
+		Assert.Equal(2, thing.FrameGroups.Count);
+		Assert.Equal(0, (int)thing.FrameGroups[0].GroupTypeId);
+		Assert.Equal((uint)1, thing.FrameGroups[0].Frames);
+		Assert.False(thing.FrameGroups[0].IsAnimation);
+		Assert.Equal(new uint[] { 100, 101, 102, 103 }, thing.FrameGroups[0].SpriteIds);
+		Assert.Equal(1, (int)thing.FrameGroups[1].GroupTypeId);
+		Assert.Equal((uint)2, thing.FrameGroups[1].Frames);
+		Assert.True(thing.FrameGroups[1].IsAnimation);
+		Assert.Equal(new uint[] { 104, 105, 106, 107, 108, 109, 110, 111 }, thing.FrameGroups[1].SpriteIds);
+	}
+
+	[Fact]
+	public void ClassicThreeFrameOutfit_RemainsOneGroupForLegacyTargets()
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
+			0, 0, 1, 4, 1, 1, 3, 275, true, null, null, OutfitFrameGroups: false));
+
+		Assert.Single(result.Things.Single().FrameGroups);
+		Assert.Equal((uint)3, result.Things.Single().FrameGroups[0].Frames);
 	}
 
 	[Fact]
@@ -384,7 +414,7 @@ public class SpritesheetThingBuilderTests
 
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), cells, 100, 200,
-			0, 0, 1, 4, 1, 1, 1, 300, true, template, null));
+			0, 0, 1, 4, 1, 1, 1, 300, true, template, null, OutfitFrameGroups: true));
 		var thing = result.Things.Single();
 
 		Assert.Equal(2, thing.FrameGroups.Count);
@@ -395,6 +425,13 @@ public class SpritesheetThingBuilderTests
 		Assert.Equal((uint)100, idle);
 		Assert.True(thing.FrameGroups[1].TryGetSpriteId(0, 0, 0, 3, 0, 0, 1, out var lastWalking));
 		Assert.Equal((uint)108, lastWalking);
+
+		var legacyResult = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), cells, 200, 201,
+			0, 0, 1, 4, 1, 1, 1, 300, false, template, null, OutfitFrameGroups: false));
+		var legacyGroup = legacyResult.Things.Single().FrameGroups.Single();
+		Assert.Equal((uint)3, legacyGroup.Frames);
+		Assert.Equal(9, legacyGroup.SpriteIds.Length);
 	}
 
 	private static IReadOnlyList<SlicerCell> Cells(int columns, int rows)

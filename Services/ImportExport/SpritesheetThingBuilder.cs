@@ -22,7 +22,8 @@ public sealed record SlicerThingBuildRequest(
 	uint AnimationDurationMs,
 	bool ImprovedAnimations,
 	ThingType? Template,
-	ThingType? Replacement);
+	ThingType? Replacement,
+	bool OutfitFrameGroups = false);
 
 public sealed record SlicerThingBuildResult(IReadOnlyList<byte[]> SpritePixels, IReadOnlyList<ThingType> Things, bool IsReplacement);
 
@@ -68,6 +69,14 @@ public static class SpritesheetThingBuilder
 		var things = layoutSource is { FrameGroups.Count: > 1 }
 			? BuildCombinedFrameGroups(request, spriteIds, layoutSource)
 			: BuildThings(request, spriteIds);
+		if (request.Kind == ThingKind.Outfit)
+		{
+			foreach (var thing in things)
+			{
+				if (request.OutfitFrameGroups) SplitLegacyOutfitFrames(thing, request);
+				else CollapseOutfitFrameGroups(thing, request);
+			}
+		}
 		if (request.Replacement != null && things.Count != 1)
 			throw new InvalidOperationException("Replacement requires a selection that produces exactly one thing.");
 		return new SlicerThingBuildResult(pixels, things, request.Replacement != null);
@@ -217,6 +226,72 @@ public static class SpritesheetThingBuilder
 		}
 
 		return new[] { thing };
+	}
+
+	private static void SplitLegacyOutfitFrames(ThingType thing, SlicerThingBuildRequest request)
+	{
+		if (thing.FrameGroups.Count != 1) return;
+		var normal = thing.FrameGroups[0];
+		if (normal.Frames < 3) return;
+		var slotsPerFrame = normal.SpriteIds.Length / checked((int)normal.Frames);
+		var idleIds = normal.SpriteIds.Take(slotsPerFrame).ToArray();
+		var walkingIds = normal.SpriteIds.Skip(slotsPerFrame).ToArray();
+		var idle = CreateDerivedOutfitGroup(normal, 0, 1, idleIds, request);
+		var walking = CreateDerivedOutfitGroup(normal, 1, checked((int)normal.Frames - 1), walkingIds, request);
+		thing.FrameGroups.Clear();
+		thing.FrameGroups.Add(idle);
+		thing.FrameGroups.Add(walking);
+	}
+
+	private static void CollapseOutfitFrameGroups(ThingType thing, SlicerThingBuildRequest request)
+	{
+		if (thing.FrameGroups.Count <= 1) return;
+		var groups = thing.FrameGroups.OrderBy(group => group.GroupTypeId).ToList();
+		var first = groups[0];
+		if (groups.Any(group => group.Width != first.Width || group.Height != first.Height ||
+			group.Layers != first.Layers || group.PatternX != first.PatternX ||
+			group.PatternY != first.PatternY || group.PatternZ != first.PatternZ))
+			throw new InvalidOperationException("The selected frame groups cannot be represented by this legacy target because their layouts differ.");
+
+		var frames = checked(groups.Sum(group => (int)group.Frames));
+		var spriteIds = groups.SelectMany(group => group.SpriteIds).ToArray();
+		var normal = CreateDerivedOutfitGroup(first, 0, frames, spriteIds, request);
+		thing.FrameGroups.Clear();
+		thing.FrameGroups.Add(normal);
+	}
+
+	private static ThingFrameGroup CreateDerivedOutfitGroup(
+		ThingFrameGroup source,
+		int groupType,
+		int frames,
+		uint[] spriteIds,
+		SlicerThingBuildRequest request)
+	{
+		var group = new ThingFrameGroup
+		{
+			GroupTypeId = (byte)groupType,
+			Width = source.Width,
+			Height = source.Height,
+			ExactSize = source.ExactSize,
+			Layers = source.Layers,
+			PatternX = source.PatternX,
+			PatternY = source.PatternY,
+			PatternZ = source.PatternZ,
+			Frames = (uint)frames,
+			IsAnimation = frames > 1,
+			AnimationMode = 0,
+			LoopCount = 0,
+			StartFrame = 0,
+			SpriteIds = spriteIds
+		};
+		if (request.ImprovedAnimations && frames > 1)
+		{
+			group.FrameTimings = Enumerable.Range(0, frames)
+				.Select(_ => new AnimationFrameTiming(request.AnimationDurationMs, request.AnimationDurationMs))
+				.ToArray();
+		}
+		ThingFrameGroupEditor.EnsureSpriteCapacity(group);
+		return group;
 	}
 
 	private static ThingFrameGroup CreateGroup(SlicerThingBuildRequest request, uint width, uint height)

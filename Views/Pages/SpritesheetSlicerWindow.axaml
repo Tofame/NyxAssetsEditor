@@ -92,6 +92,7 @@
 							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding IsOutfit}"/>
 						</Grid>
 						<TextBlock Text="Missiles commonly use a 3 × 3 Pattern X/Y direction grid; use the values stored by the source thing." Foreground="#888888" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsMissile}"/>
+						<TextBlock Text="{Binding OutfitFrameGroupHint}" Foreground="#C8B98F" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsOutfit}"/>
 						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
 						<Border Background="#211E19" BorderBrush="#4B4437" BorderThickness="1" CornerRadius="4" Padding="7">
 							<TextBlock Text="Without a template or replacement this creates one frame group. Selecting a thing with Default and Walking groups enables its combined Object Builder sheet layout automatically." Foreground="#C8B98F" FontSize="10" TextWrapping="Wrap"/>

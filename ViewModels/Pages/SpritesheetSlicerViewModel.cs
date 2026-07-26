@@ -75,7 +75,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _thingPatternZ = 1;
 	private int _thingFrames = 1;
 	private int _outfitDirections = 4;
-	private int _outfitFrames = 1;
+	private int _outfitFrames = 3;
 	private uint _templateThingId;
 	private uint _replacementThingId;
 	private bool _useTemplate;
@@ -246,6 +246,14 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public bool IsOutfit => SelectedKind == ThingKind.Outfit;
 	public bool IsMissile => SelectedKind == ThingKind.Missile;
 	public bool UsesCombinedLayout => TryGetCombinedLayoutDimensions(out _, out _);
+	public string OutfitFrameGroupHint => SelectedTarget?.ThingsPanel switch
+	{
+		null => "Choose a things target to determine how Idle/Stand and Walking frames will be stored.",
+		{ UseFrameGroups: true } when OutfitFrames >= 3 && !UsesCombinedLayout =>
+			"This target uses outfit frame groups: frame 1 becomes Idle/Stand and the remaining frames become Walking.",
+		{ UseFrameGroups: true } => "This target stores Idle/Stand and Walking as separate outfit frame groups.",
+		_ => "This legacy target stores all outfit frames together in one frame group."
+	};
 	public int ThingSheetColumns => TryGetCombinedLayoutDimensions(out var columns, out _)
 		? columns
 		: ThingWidth > 0
@@ -274,7 +282,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public SlicerTargetViewModel? SelectedTarget
 	{
 		get => _selectedTarget;
-		set { if (SetProperty(ref _selectedTarget, value)) { RefreshThingChoices(); NotifyCommands(); } }
+		set { if (SetProperty(ref _selectedTarget, value)) { RefreshThingChoices(); OnPropertyChanged(nameof(OutfitFrameGroupHint)); NotifyCommands(); } }
 	}
 
 	public string TemplateSelectionLabel => SelectedTemplate is { } template
@@ -467,7 +475,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 				ThingPatternY, ThingPatternZ,
 				IsOutfit ? OutfitFrames : ThingFrames,
 				GetAnimationDuration(),
-				thingsPanel.UseFrameAnimations, template, replacement);
+				thingsPanel.UseFrameAnimations, template, replacement,
+				thingsPanel.UseFrameGroups);
 			var plan = SpritesheetThingBuilder.Build(request);
 			var ids = thingsPanel.ImportSlicerThings(plan.SpritePixels, plan.Things, plan.IsReplacement);
 			Status(false, plan.IsReplacement
@@ -736,6 +745,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		OnPropertyChanged(nameof(ThingSheetColumns));
 		OnPropertyChanged(nameof(ThingSheetRows));
 		OnPropertyChanged(nameof(UsesCombinedLayout));
+		OnPropertyChanged(nameof(OutfitFrameGroupHint));
 		NotifyCommands();
 	}
 

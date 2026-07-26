@@ -76,7 +76,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int ThingPatternZ { get; set; } = 1;
 			public int ThingFrames { get; set; } = 1;
 			public int OutfitDirections { get; set; } = 4;
-			public int OutfitFrames { get; set; } = 1;
+			public int OutfitFrames { get; set; } = 3;
 			public string ThingKind { get; set; } = "Item";
 			public bool ReplaceExisting { get; set; }
 		}
