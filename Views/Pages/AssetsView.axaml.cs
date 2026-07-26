@@ -10,8 +10,6 @@ namespace NyxAssetsEditor.Views.Pages
 	public partial class AssetsView : UserControl
 	{
 		private AssetsViewModel? _viewModel;
-		private SpritesheetSlicerWindow? _slicerWindow;
-		private Window? _mainWindow;
 
 		public AssetsView()
 		{
@@ -25,7 +23,6 @@ namespace NyxAssetsEditor.Views.Pages
 			{
 				_viewModel.CompileAsHandler = null;
 				_viewModel.PositionWebExportHandler = null;
-				_viewModel.OpenSlicerHandler = null;
 			}
 
 			_viewModel = DataContext as AssetsViewModel;
@@ -33,33 +30,7 @@ namespace NyxAssetsEditor.Views.Pages
 			{
 				_viewModel.CompileAsHandler = ShowCompileAsDialogAsync;
 				_viewModel.PositionWebExportHandler = PositionAndOpenWebExport;
-				_viewModel.OpenSlicerHandler = OpenSlicer;
 			}
-		}
-
-		private void OpenSlicer(ViewModels.ArchiveLoaders.FloatingSpriteLoaderViewModel? origin)
-		{
-			if (_viewModel == null) return;
-			if (_slicerWindow != null)
-			{
-				_slicerWindow.SelectTarget(origin);
-				_slicerWindow.Activate();
-				return;
-			}
-			_mainWindow = TopLevel.GetTopLevel(this) as Window;
-			_slicerWindow = new SpritesheetSlicerWindow(_viewModel, origin);
-			_slicerWindow.Closed += OnSlicerClosed;
-			if (_mainWindow != null) _mainWindow.Closed += OnMainWindowClosed;
-			_slicerWindow.Show();
-		}
-
-		private void OnMainWindowClosed(object? sender, EventArgs e) => _slicerWindow?.Close();
-
-		private void OnSlicerClosed(object? sender, EventArgs e)
-		{
-			if (_mainWindow != null) _mainWindow.Closed -= OnMainWindowClosed;
-			_mainWindow = null;
-			_slicerWindow = null;
 		}
 
 		private async Task ShowCompileAsDialogAsync()

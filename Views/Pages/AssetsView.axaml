@@ -3,6 +3,7 @@
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
 			 xmlns:panels="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
 			 xmlns:loaders="using:NyxAssetsEditor.Views.ArchiveLoaders"
+			 xmlns:local="using:NyxAssetsEditor.Views.Pages"
 			 xmlns:core="using:NyxAssetsEditor.ViewModels.Core"
 			 x:Class="NyxAssetsEditor.Views.Pages.AssetsView"
 			 x:DataType="vm:AssetsViewModel"
@@ -33,6 +34,9 @@
 		</DataTemplate>
 		<DataTemplate DataType="{x:Type panels:FloatingThingFinderViewModel}">
 			<loaders:FloatingThingFinderControl />
+		</DataTemplate>
+		<DataTemplate DataType="{x:Type vm:SpritesheetSlicerViewModel}">
+			<local:SpritesheetSlicerControl />
 		</DataTemplate>
 	</UserControl.DataTemplates>
 

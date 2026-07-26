@@ -7,30 +7,32 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using NyxAssetsEditor.Services.ImportExport;
-using NyxAssetsEditor.Services.Persistence;
-using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Pages;
+using NyxAssetsEditor.Views.ArchiveLoaders;
 
 namespace NyxAssetsEditor.Views.Pages;
 
-public partial class SpritesheetSlicerWindow : Window
+public partial class SpritesheetSlicerControl : UserControl
 {
 	private SpritesheetSlicerViewModel ViewModel => (SpritesheetSlicerViewModel)DataContext!;
 
-	public SpritesheetSlicerWindow()
+	public SpritesheetSlicerControl()
 	{
 		InitializeComponent();
 		RegisterZoomWheelHandler();
-	}
+		DataContextChanged += (_, _) => (DataContext as SpritesheetSlicerViewModel)?.RefreshTargets();
 
-	public SpritesheetSlicerWindow(AssetsViewModel assets, FloatingSpriteLoaderViewModel? origin = null)
-	{
-		InitializeComponent();
-		RegisterZoomWheelHandler();
-		DataContext = new SpritesheetSlicerViewModel(assets, origin);
-		Opened += OnOpened;
-		Activated += OnActivated;
-		Closing += OnClosing;
+		var titleBar = this.FindControl<Border>("TitleBar");
+		if (titleBar == null) return;
+		var interaction = new FloatingPanelInteraction(this, titleBar, minWidth: 1000, minHeight: 620);
+		RegisterResizeHandle(interaction, "ResizeLeft", 4);
+		RegisterResizeHandle(interaction, "ResizeRight", 1);
+		RegisterResizeHandle(interaction, "ResizeBottom", 2);
+		RegisterResizeHandle(interaction, "ResizeCorner", 3);
+		RegisterResizeHandle(interaction, "ResizeBottomLeft", 5);
+		RegisterResizeHandle(interaction, "ResizeTop", 6);
+		RegisterResizeHandle(interaction, "ResizeTopRight", 7);
+		RegisterResizeHandle(interaction, "ResizeTopLeft", 8);
 	}
 
 	private void RegisterZoomWheelHandler() => AddHandler(
@@ -39,33 +41,20 @@ public partial class SpritesheetSlicerWindow : Window
 		RoutingStrategies.Tunnel,
 		handledEventsToo: true);
 
-	private void OnActivated(object? sender, EventArgs e) => ViewModel.RefreshTargets();
-
-	private void OnOpened(object? sender, EventArgs e)
+	private void RegisterResizeHandle(FloatingPanelInteraction interaction, string name, int direction)
 	{
-		ViewModel.RefreshTargets();
-		if (PersistenceService.GetSlicerState().WasMaximized) WindowState = WindowState.Maximized;
-	}
-
-	public void SelectTarget(FloatingSpriteLoaderViewModel? origin)
-	{
-		ViewModel.RefreshTargets();
-		if (origin != null)
-			ViewModel.SelectedTarget = ViewModel.Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, origin)) ?? ViewModel.SelectedTarget;
-	}
-
-	private void OnClosing(object? sender, WindowClosingEventArgs e)
-	{
-		PersistenceService.SaveSlicerState(ViewModel.CreatePersistentState(WindowState == WindowState.Maximized));
-		ViewModel.Dispose();
+		var border = this.FindControl<Border>(name);
+		if (border != null) interaction.RegisterResizeHandle(border, direction);
 	}
 
 	private async void OnOpenClick(object? sender, RoutedEventArgs e)
 	{
+		var topLevel = TopLevel.GetTopLevel(this);
+		if (topLevel == null) return;
 		IStorageFolder? start = null;
 		if (Directory.Exists(ViewModel.LastOpenDirectory))
-			start = await StorageProvider.TryGetFolderFromPathAsync(ViewModel.LastOpenDirectory);
-		var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+			start = await topLevel.StorageProvider.TryGetFolderFromPathAsync(ViewModel.LastOpenDirectory);
+		var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
 		{
 			Title = "Open spritesheet",
 			AllowMultiple = false,
@@ -82,12 +71,13 @@ public partial class SpritesheetSlicerWindow : Window
 	{
 		try
 		{
+			if (TopLevel.GetTopLevel(this) is not Window owner) return;
 			var selectedSet = CroppedSpritesListBox.SelectedItems?
 				.OfType<SlicerPreviewViewModel>()
 				.ToHashSet() ?? new HashSet<SlicerPreviewViewModel>();
 			var selectedSprites = ViewModel.CroppedSprites.Where(selectedSet.Contains).ToList();
 			var dialog = new SlicerExportDialog(ViewModel.LastExportDirectory, selectedSprites.Count > 0);
-			await dialog.ShowDialog(this);
+			await dialog.ShowDialog(owner);
 			if (!dialog.IsConfirmed) return;
 			ViewModel.ExportCropped(
 				dialog.ExportPath,

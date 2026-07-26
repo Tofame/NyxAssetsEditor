@@ -45,8 +45,11 @@ public sealed class SlicerPreviewViewModel
 	public string Label => $"#{ExportIndex:0000}  ({SourceColumn + 1}, {SourceRow + 1})" + (IsEmpty ? " empty" : "");
 }
 
-public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IThingFinderContextActionProvider
+public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposable, IThingFinderContextActionProvider
 {
+	public const double DefaultPanelWidth = 1180;
+	public const double DefaultContentHeight = 700;
+
 	private readonly AssetsViewModel _assets;
 	private readonly SpriteRenderer _renderer = new();
 	private readonly FloatingSpriteLoaderViewModel? _origin;
@@ -100,6 +103,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	{
 		_assets = assets;
 		_origin = origin ?? assets.LastActivePair?.SpritePanel;
+		PanelWidth = DefaultPanelWidth;
+		ContentHeight = DefaultContentHeight;
 		_state = PersistenceService.GetSlicerState();
 		_snapSelectionToGrid = _state.SnapSelectionToGrid;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
@@ -130,6 +135,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	public ObservableCollection<SlicerTargetViewModel> Targets { get; } = new();
 	public ObservableCollection<SlicerPreviewViewModel> CroppedSprites { get; } = new();
+	public string Title => "Spritesheet Slicer";
 	public IReadOnlyList<int> AvailableCellSizes { get; } = new[] { SpriteModel.SpriteSize };
 	public IReadOnlyList<double> AvailableZoomLevels { get; } = new[] { 1d, 2d, 4d, 8d, 16d };
 	public IReadOnlyList<ThingKind> ThingKinds { get; } = new[] { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile };
@@ -442,7 +448,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			return;
 		}
 
-		var restored = previous == null ? null : Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, previous));
+		var restored = previous == null
+			? Targets.FirstOrDefault()
+			: Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, previous));
 		SelectedTarget = restored;
 		if (previous != null && restored == null)
 			Status(true, "The selected import target was closed. Choose another target before importing.");
@@ -981,8 +989,19 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private void Status(bool error, string message) { StatusIsError = error; StatusMessage = message; }
 	private void OnPanelsChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshTargets();
 
+	public void SelectTarget(FloatingSpriteLoaderViewModel? origin)
+	{
+		RefreshTargets();
+		if (origin != null)
+			SelectedTarget = Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, origin)) ?? SelectedTarget;
+	}
+
+	public void SavePersistentState() =>
+		PersistenceService.SaveSlicerState(CreatePersistentState(maximized: false));
+
 	public void Dispose()
 	{
+		SavePersistentState();
 		_assets.ActivePanels.CollectionChanged -= OnPanelsChanged;
 		_assets.UnregisterThingFinderContextActionProvider(this);
 		SheetBitmap?.Dispose(); ClearCropped();

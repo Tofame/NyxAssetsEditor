@@ -293,7 +293,7 @@ namespace NyxAssetsEditor.Services.Persistence
 				foreach (var panel in assetsVm.ActivePanels)
 				{
 					if (panel is FloatingThingFinderViewModel) continue;
-					// Existing archive panels restore only when docked; the generator is safe to restore floating.
+					// Archive and slicer panels restore only when docked; the generator is safe to restore floating.
 					if (panel.DockState == "Floating" && panel is not FloatingLooktypeGeneratorViewModel) continue;
 
 					var state = new PanelStateModel
@@ -338,6 +338,10 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.SelectedLooktypeSpritePath = looktypePanel.SelectedSpritePath;
 						state.SelectedLooktypeThingsPath = looktypePanel.SelectedThingsPath;
 					}
+					else if (panel is SpritesheetSlicerViewModel)
+					{
+						state.Type = "Slicer";
+					}
 
 					model.Assets.Panels.Add(state);
 				}
@@ -370,7 +374,7 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panelState in model.Assets.Panels)
 				{
-					// Existing archive panels restore only when docked; the generator may also restore floating.
+					// Archive and slicer panels restore only when docked; the generator may also restore floating.
 					if ((panelState.DockState == "Floating" && panelState.Type != "Looktype") || string.IsNullOrEmpty(panelState.DockState)) continue;
 
 					if (panelState.Type == "Sprite")
@@ -421,6 +425,23 @@ namespace NyxAssetsEditor.Services.Persistence
 					else if (panelState.Type == "Looktype")
 					{
 						looktypeStates.Add(panelState);
+					}
+					else if (panelState.Type == "Slicer")
+					{
+						assetsVm.RestorePanel(new SpritesheetSlicerViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? SpritesheetSlicerViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? SpritesheetSlicerViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						});
 					}
 				}
 

@@ -1,16 +1,35 @@
-<Window xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
 		xmlns:common="using:NyxAssetsEditor.Views.Common"
-		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerWindow"
+		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerControl"
 		x:DataType="vm:SpritesheetSlicerViewModel"
-		Title="Spritesheet Slicer"
-		Icon="/Assets/logos/nyx_white_logo.ico"
-		Width="1280" Height="800" MinWidth="1000" MinHeight="620"
-		WindowStartupLocation="CenterScreen" Background="#141414" RequestedThemeVariant="Dark"
+		Width="{Binding DisplayWidth}" Background="#141414" RequestedThemeVariant="Dark"
 		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
 		KeyDown="OnWindowKeyDown">
-	<Grid RowDefinitions="Auto,*,Auto">
+	<Border Background="#141414" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/>
+						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEEEEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Content="&#x2014;" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCCCCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCCCCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				</Grid>
+			</Border>
+
+			<Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Height="{Binding DisplayHeight}" IsVisible="{Binding !IsMinimized}">
 		<Border Grid.Row="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="10,7">
 			<Grid ColumnDefinitions="Auto,*,Auto,Auto">
 				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
@@ -208,5 +227,16 @@
 		<Border Grid.Row="2" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="10,7">
 			<TextBlock Text="{Binding StatusMessage}" Foreground="#E0B84D" TextWrapping="Wrap"/>
 		</Border>
-	</Grid>
-</Window>
+			</Grid>
+
+			<Border Name="ResizeLeft" Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeRight" Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeBottom" Grid.RowSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeCorner" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
+			<Border Name="ResizeBottomLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomLeftCorner"/>
+			<Border Name="ResizeTop" Grid.RowSpan="2" Height="5" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeTopRight" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopRightCorner"/>
+			<Border Name="ResizeTopLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopLeftCorner"/>
+		</Grid>
+	</Border>
+</UserControl>

@@ -45,7 +45,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
 		public Action<double, double>? PositionWebExportHandler { get; set; }
-		public Action<FloatingSpriteLoaderViewModel?>? OpenSlicerHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 		public bool CanCompileAs => GetCompilePairs().Any();
 
@@ -181,6 +180,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				generator.RefreshArchivePairs();
 			foreach (var export in ActivePanels.OfType<FloatingWebExportViewModel>())
 				export.RefreshArchivePairs();
+			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
+				slicer.RefreshTargets();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -587,9 +588,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand]
-		private void OpenSlicer() => OpenSlicerHandler?.Invoke(null);
+		private void OpenSlicer() => OpenSlicerPanel(null);
 
-		public void OpenSlicer(FloatingSpriteLoaderViewModel origin) => OpenSlicerHandler?.Invoke(origin);
+		public void OpenSlicer(FloatingSpriteLoaderViewModel origin) => OpenSlicerPanel(origin);
+
+		private void OpenSlicerPanel(FloatingSpriteLoaderViewModel? origin)
+		{
+			var existing = ActivePanels.OfType<SpritesheetSlicerViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.SelectTarget(origin);
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				if (existing.IsFloating)
+				{
+					FloatingPanels.Remove(existing);
+					FloatingPanels.Add(existing);
+				}
+				return;
+			}
+
+			AddPanel(new SpritesheetSlicerViewModel(this, origin)
+			{
+				DockState = "Floating",
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			});
+		}
 
 		public void AddPanelFromView(PanelViewModelBase panel)
 		{
