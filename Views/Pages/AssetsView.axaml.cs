@@ -11,6 +11,7 @@ namespace NyxAssetsEditor.Views.Pages
 	{
 		private AssetsViewModel? _viewModel;
 		private SpritesheetSlicerWindow? _slicerWindow;
+		private Window? _mainWindow;
 
 		public AssetsView()
 		{
@@ -45,11 +46,20 @@ namespace NyxAssetsEditor.Views.Pages
 				_slicerWindow.Activate();
 				return;
 			}
-			var owner = TopLevel.GetTopLevel(this) as Window;
+			_mainWindow = TopLevel.GetTopLevel(this) as Window;
 			_slicerWindow = new SpritesheetSlicerWindow(_viewModel, origin);
-			_slicerWindow.Closed += (_, _) => _slicerWindow = null;
-			if (owner != null) _slicerWindow.Show(owner);
-			else _slicerWindow.Show();
+			_slicerWindow.Closed += OnSlicerClosed;
+			if (_mainWindow != null) _mainWindow.Closed += OnMainWindowClosed;
+			_slicerWindow.Show();
+		}
+
+		private void OnMainWindowClosed(object? sender, EventArgs e) => _slicerWindow?.Close();
+
+		private void OnSlicerClosed(object? sender, EventArgs e)
+		{
+			if (_mainWindow != null) _mainWindow.Closed -= OnMainWindowClosed;
+			_mainWindow = null;
+			_slicerWindow = null;
 		}
 
 		private async Task ShowCompileAsDialogAsync()

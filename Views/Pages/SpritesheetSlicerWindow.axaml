@@ -5,8 +5,9 @@
 		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerWindow"
 		x:DataType="vm:SpritesheetSlicerViewModel"
 		Title="Spritesheet Slicer"
+		Icon="/Assets/logos/nyx_white_logo.ico"
 		Width="1280" Height="800" MinWidth="1000" MinHeight="620"
-		WindowStartupLocation="CenterOwner" Background="#141414" RequestedThemeVariant="Dark"
+		WindowStartupLocation="CenterScreen" Background="#141414" RequestedThemeVariant="Dark"
 		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
 		KeyDown="OnWindowKeyDown">
 	<Grid RowDefinitions="Auto,*,Auto">
