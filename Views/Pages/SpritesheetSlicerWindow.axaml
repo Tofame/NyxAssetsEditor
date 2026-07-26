@@ -24,6 +24,8 @@
 					<Button Content="Flip V" Command="{Binding FlipVerticalCommand}"/>
 					<Button Content="Magenta fill" Command="{Binding MagentaFillCommand}"/>
 					<Button Content="Undo transform" Command="{Binding UndoTransformCommand}"/>
+					<CheckBox Content="Snap to grid" IsChecked="{Binding SnapSelectionToGrid}" Margin="8,0,0,0"
+						ToolTip.Tip="Move the crop selection in complete sprite-cell steps while preserving its current offset."/>
 				</StackPanel>
 				<TextBlock Grid.Column="2" Text="Zoom" Foreground="#AAAAAA" VerticalAlignment="Center" Margin="0,0,8,0"/>
 				<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" MinWidth="220">

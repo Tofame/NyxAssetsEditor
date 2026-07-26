@@ -100,6 +100,42 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(new SlicerGrid(0, 0, 3, 2, 32), result);
 	}
 
+	[Theory]
+	[InlineData(15.9, true, 0)]
+	[InlineData(16, true, 32)]
+	[InlineData(-16, true, -32)]
+	[InlineData(17.4, false, 17)]
+	public void QuantizeDragDelta_SnapsOnlyWhenRequested(double delta, bool snap, int expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.QuantizeDragDelta(delta, 32, snap));
+	}
+
+	[Fact]
+	public void ResizeGridFromDrag_ResizesWholeCellsAndPreservesOppositeEdges()
+	{
+		var start = new SlicerGrid(32, 32, 3, 3, 32);
+
+		var left = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Left, 32, 0, 192, 192);
+		var bottomRight = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Right | SlicerResizeEdges.Bottom, 32, 32, 192, 192);
+
+		Assert.Equal(new SlicerGrid(64, 32, 2, 3, 32), left);
+		Assert.Equal(new SlicerGrid(32, 32, 4, 4, 32), bottomRight);
+		Assert.Equal(start.X + start.PixelWidth, left.X + left.PixelWidth);
+	}
+
+	[Fact]
+	public void ResizeGridFromDrag_ClampsAtOneCellAndImageBounds()
+	{
+		var start = new SlicerGrid(5, 5, 2, 2, 32);
+
+		var result = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Left | SlicerResizeEdges.Top, -500, 500, 96, 96);
+
+		Assert.Equal(new SlicerGrid(5, 37, 2, 1, 32), result);
+	}
+
 	[Fact]
 	public void RotateAndFlip_PreserveExactPixels()
 	{

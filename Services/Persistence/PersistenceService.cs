@@ -65,6 +65,7 @@ namespace NyxAssetsEditor.Services.Persistence
 		public class SlicerStateModel
 		{
 			public bool WasMaximized { get; set; }
+			public bool SnapSelectionToGrid { get; set; } = true;
 			public string LastOpenDirectory { get; set; } = "";
 			public string LastExportDirectory { get; set; } = "";
 			public int ThingWidth { get; set; }
@@ -237,6 +238,7 @@ namespace NyxAssetsEditor.Services.Persistence
 		public static SlicerStateModel GetSlicerState() => new()
 		{
 			WasMaximized = _slicerState.WasMaximized,
+			SnapSelectionToGrid = _slicerState.SnapSelectionToGrid,
 			LastOpenDirectory = _slicerState.LastOpenDirectory,
 			LastExportDirectory = _slicerState.LastExportDirectory,
 			ThingWidth = _slicerState.ThingWidth,

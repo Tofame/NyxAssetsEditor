@@ -65,6 +65,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _rows = 1;
 	private int _cellSize = SpriteModel.SpriteSize;
 	private double _zoom = 1;
+	private bool _snapSelectionToGrid = true;
 	private int _thingWidth;
 	private int _thingHeight;
 	private int _thingExactSize = 32;
@@ -99,6 +100,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_assets = assets;
 		_origin = origin ?? assets.LastActivePair?.SpritePanel;
 		_state = PersistenceService.GetSlicerState();
+		_snapSelectionToGrid = _state.SnapSelectionToGrid;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_thingExactSize = Math.Clamp(_state.ThingExactSize, 1, 255);
@@ -153,6 +155,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		}
 	}
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
+	public bool SnapSelectionToGrid { get => _snapSelectionToGrid; set => SetProperty(ref _snapSelectionToGrid, value); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingExactSize { get => _thingExactSize; set => SetProperty(ref _thingExactSize, Math.Clamp(value, 1, 255)); }
@@ -460,6 +463,16 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		ClampAndNotifyGrid(forceNotifications: true);
 	}
 
+	public void SetGrid(SlicerGrid grid)
+	{
+		_offsetX = grid.X;
+		_offsetY = grid.Y;
+		_columns = grid.Columns;
+		_rows = grid.Rows;
+		_cellSize = grid.CellSize;
+		ClampAndNotifyGrid(forceNotifications: true);
+	}
+
 	public void NudgeGrid(int dx, int dy) => MoveGridTo(OffsetX + dx, OffsetY + dy);
 	public void ZoomIn() => Zoom = AvailableZoomLevels.FirstOrDefault(level => level > Zoom, AvailableZoomLevels[^1]);
 	public void ZoomOut() => Zoom = AvailableZoomLevels.LastOrDefault(level => level < Zoom, AvailableZoomLevels[0]);
@@ -635,6 +648,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
 		_state.WasMaximized = maximized;
+		_state.SnapSelectionToGrid = SnapSelectionToGrid;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.ThingExactSize = ThingExactSize;
 		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
 		_state.ThingPatternY = ThingPatternY; _state.ThingPatternZ = ThingPatternZ; _state.ThingFrames = ThingFrames;

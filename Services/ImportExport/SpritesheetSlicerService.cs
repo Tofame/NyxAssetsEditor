@@ -17,6 +17,16 @@ public readonly record struct SlicerGrid(int X, int Y, int Columns, int Rows, in
 	public int PixelHeight => Rows * CellSize;
 }
 
+[Flags]
+public enum SlicerResizeEdges
+{
+	None = 0,
+	Left = 1,
+	Right = 2,
+	Top = 4,
+	Bottom = 8
+}
+
 public sealed record SlicerCell(int Column, int Row, byte[] Rgba, bool IsEmpty);
 
 public sealed record GridDetectionResult(bool Success, SlicerGrid Grid, string Message)
@@ -65,6 +75,57 @@ public static class SpritesheetSlicerService
 		var x = Math.Clamp(grid.X, 0, imageWidth - columns * cell);
 		var y = Math.Clamp(grid.Y, 0, imageHeight - rows * cell);
 		return new SlicerGrid(x, y, columns, rows, cell);
+	}
+
+	public static int QuantizeDragDelta(double delta, int cellSize, bool snapToGrid)
+	{
+		var step = snapToGrid ? Math.Max(1, cellSize) : 1;
+		return checked((int)Math.Round(delta / step, MidpointRounding.AwayFromZero) * step);
+	}
+
+	public static SlicerGrid ResizeGridFromDrag(
+		SlicerGrid startingGrid,
+		SlicerResizeEdges edges,
+		double deltaX,
+		double deltaY,
+		int imageWidth,
+		int imageHeight)
+	{
+		var grid = ClampGrid(startingGrid, imageWidth, imageHeight);
+		if (grid.Columns <= 0 || grid.Rows <= 0 || edges == SlicerResizeEdges.None) return grid;
+
+		var x = grid.X;
+		var y = grid.Y;
+		var columns = grid.Columns;
+		var rows = grid.Rows;
+		var columnDelta = checked((int)Math.Round(deltaX / grid.CellSize, MidpointRounding.AwayFromZero));
+		var rowDelta = checked((int)Math.Round(deltaY / grid.CellSize, MidpointRounding.AwayFromZero));
+
+		if (edges.HasFlag(SlicerResizeEdges.Left))
+		{
+			var applied = Math.Clamp(columnDelta, -(x / grid.CellSize), columns - 1);
+			x += applied * grid.CellSize;
+			columns -= applied;
+		}
+		else if (edges.HasFlag(SlicerResizeEdges.Right))
+		{
+			var available = (imageWidth - (x + columns * grid.CellSize)) / grid.CellSize;
+			columns += Math.Clamp(columnDelta, -(columns - 1), available);
+		}
+
+		if (edges.HasFlag(SlicerResizeEdges.Top))
+		{
+			var applied = Math.Clamp(rowDelta, -(y / grid.CellSize), rows - 1);
+			y += applied * grid.CellSize;
+			rows -= applied;
+		}
+		else if (edges.HasFlag(SlicerResizeEdges.Bottom))
+		{
+			var available = (imageHeight - (y + rows * grid.CellSize)) / grid.CellSize;
+			rows += Math.Clamp(rowDelta, -(rows - 1), available);
+		}
+
+		return new SlicerGrid(x, y, columns, rows, grid.CellSize);
 	}
 
 	public static IReadOnlyList<SlicerCell> Slice(SlicerImage image, SlicerGrid requestedGrid, bool includeEmpty)

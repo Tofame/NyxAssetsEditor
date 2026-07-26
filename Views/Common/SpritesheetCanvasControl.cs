@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.Views.Common;
@@ -13,9 +14,13 @@ namespace NyxAssetsEditor.Views.Common;
 public sealed class SpritesheetCanvasControl : Control
 {
 	private const double RulerSize = 24;
+	private const double ResizeHandleSize = 9;
+	private const double ResizeHandleHitSize = 14;
 	private SpritesheetSlicerViewModel? _viewModel;
 	private bool _dragging;
-	private Point _dragOffset;
+	private Point _dragStartSheetPoint;
+	private SlicerGrid _dragStartGrid;
+	private SlicerResizeEdges _resizeEdges;
 
 	public SpritesheetCanvasControl()
 	{
@@ -27,7 +32,10 @@ public sealed class SpritesheetCanvasControl : Control
 	protected override Size MeasureOverride(Size availableSize)
 	{
 		if (_viewModel?.HasImage != true) return new Size(640, 480);
-		return new Size(RulerSize + _viewModel.ImageWidth * _viewModel.Zoom, RulerSize + _viewModel.ImageHeight * _viewModel.Zoom);
+		var handleMargin = ResizeHandleSize / 2 + 1;
+		return new Size(
+			RulerSize + _viewModel.ImageWidth * _viewModel.Zoom + handleMargin,
+			RulerSize + _viewModel.ImageHeight * _viewModel.Zoom + handleMargin);
 	}
 
 	public override void Render(DrawingContext context)
@@ -106,6 +114,58 @@ public sealed class SpritesheetCanvasControl : Control
 			var pen = row % vm.ThingSheetRows == 0 ? thingBoundaryPen : gridPen;
 			context.DrawLine(pen, new Point(x, py), new Point(x + width, py));
 		}
+
+		DrawResizeHandles(context, new Rect(x, y, width, height));
+	}
+
+	private static void DrawResizeHandles(DrawingContext context, Rect selection)
+	{
+		var fill = new SolidColorBrush(Color.Parse("#FFF2F2F2"));
+		var border = new Pen(new SolidColorBrush(Color.Parse("#FFFF4D7A")), 1);
+		var middleX = selection.X + selection.Width / 2;
+		var middleY = selection.Y + selection.Height / 2;
+		DrawResizeHandle(context, fill, border, selection.Left, selection.Top);
+		DrawResizeHandle(context, fill, border, middleX, selection.Top);
+		DrawResizeHandle(context, fill, border, selection.Right, selection.Top);
+		DrawResizeHandle(context, fill, border, selection.Left, middleY);
+		DrawResizeHandle(context, fill, border, selection.Right, middleY);
+		DrawResizeHandle(context, fill, border, selection.Left, selection.Bottom);
+		DrawResizeHandle(context, fill, border, middleX, selection.Bottom);
+		DrawResizeHandle(context, fill, border, selection.Right, selection.Bottom);
+	}
+
+	private static void DrawResizeHandle(DrawingContext context, IBrush fill, Pen border, double x, double y)
+	{
+		var half = ResizeHandleSize / 2;
+		context.DrawRectangle(fill, border, new Rect(x - half, y - half, ResizeHandleSize, ResizeHandleSize));
+	}
+
+	private static SlicerResizeEdges HitTestResizeHandle(Point point, SpritesheetSlicerViewModel vm)
+	{
+		if (vm.Columns <= 0 || vm.Rows <= 0) return SlicerResizeEdges.None;
+		var zoom = vm.Zoom;
+		var left = RulerSize + vm.OffsetX * zoom;
+		var top = RulerSize + vm.OffsetY * zoom;
+		var right = left + vm.Columns * vm.CellSize * zoom;
+		var bottom = top + vm.Rows * vm.CellSize * zoom;
+		var middleX = (left + right) / 2;
+		var middleY = (top + bottom) / 2;
+
+		if (IsOnHandle(point, left, top)) return SlicerResizeEdges.Left | SlicerResizeEdges.Top;
+		if (IsOnHandle(point, right, top)) return SlicerResizeEdges.Right | SlicerResizeEdges.Top;
+		if (IsOnHandle(point, left, bottom)) return SlicerResizeEdges.Left | SlicerResizeEdges.Bottom;
+		if (IsOnHandle(point, right, bottom)) return SlicerResizeEdges.Right | SlicerResizeEdges.Bottom;
+		if (IsOnHandle(point, middleX, top)) return SlicerResizeEdges.Top;
+		if (IsOnHandle(point, middleX, bottom)) return SlicerResizeEdges.Bottom;
+		if (IsOnHandle(point, left, middleY)) return SlicerResizeEdges.Left;
+		if (IsOnHandle(point, right, middleY)) return SlicerResizeEdges.Right;
+		return SlicerResizeEdges.None;
+	}
+
+	private static bool IsOnHandle(Point point, double x, double y)
+	{
+		var half = ResizeHandleHitSize / 2;
+		return Math.Abs(point.X - x) <= half && Math.Abs(point.Y - y) <= half;
 	}
 
 	protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -115,8 +175,14 @@ public sealed class SpritesheetCanvasControl : Control
 		if (vm?.HasImage != true || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
 		Focus();
 		var point = e.GetPosition(this);
+		var resizeEdges = HitTestResizeHandle(point, vm);
 		var sheetX = (point.X - RulerSize) / vm.Zoom;
 		var sheetY = (point.Y - RulerSize) / vm.Zoom;
+		if (resizeEdges != SlicerResizeEdges.None)
+		{
+			BeginPointerInteraction(e, vm, new Point(sheetX, sheetY), resizeEdges);
+			return;
+		}
 		if (sheetX < 0 || sheetY < 0 || sheetX > vm.ImageWidth || sheetY > vm.ImageHeight) return;
 
 		var insideSelection = sheetX >= vm.OffsetX && sheetY >= vm.OffsetY &&
@@ -126,13 +192,29 @@ public sealed class SpritesheetCanvasControl : Control
 		{
 			// Clicking elsewhere on the sheet re-centres the selection, matching the
 			// quick positioning behavior artists expect from the classic slicer.
-			vm.MoveGridTo(
-				(int)Math.Round(sheetX - vm.Columns * vm.CellSize / 2d),
-				(int)Math.Round(sheetY - vm.Rows * vm.CellSize / 2d));
+			var desiredX = sheetX - vm.Columns * vm.CellSize / 2d;
+			var desiredY = sheetY - vm.Rows * vm.CellSize / 2d;
+			var x = vm.OffsetX + SpritesheetSlicerService.QuantizeDragDelta(
+				desiredX - vm.OffsetX, vm.CellSize, vm.SnapSelectionToGrid);
+			var y = vm.OffsetY + SpritesheetSlicerService.QuantizeDragDelta(
+				desiredY - vm.OffsetY, vm.CellSize, vm.SnapSelectionToGrid);
+			vm.MoveGridTo(x, y);
 		}
+		BeginPointerInteraction(e, vm, new Point(sheetX, sheetY), SlicerResizeEdges.None);
+	}
+
+	private void BeginPointerInteraction(
+		PointerPressedEventArgs e,
+		SpritesheetSlicerViewModel vm,
+		Point sheetPoint,
+		SlicerResizeEdges resizeEdges)
+	{
 		_dragging = true;
-		_dragOffset = new Point(sheetX - vm.OffsetX, sheetY - vm.OffsetY);
-		e.Pointer.Capture(this); e.Handled = true;
+		_dragStartSheetPoint = sheetPoint;
+		_dragStartGrid = new SlicerGrid(vm.OffsetX, vm.OffsetY, vm.Columns, vm.Rows, vm.CellSize);
+		_resizeEdges = resizeEdges;
+		e.Pointer.Capture(this);
+		e.Handled = true;
 	}
 
 	protected override void OnPointerMoved(PointerEventArgs e)
@@ -140,16 +222,42 @@ public sealed class SpritesheetCanvasControl : Control
 		base.OnPointerMoved(e);
 		if (!_dragging || _viewModel == null) return;
 		var point = e.GetPosition(this);
-		var x = (int)Math.Round((point.X - RulerSize) / _viewModel.Zoom - _dragOffset.X);
-		var y = (int)Math.Round((point.Y - RulerSize) / _viewModel.Zoom - _dragOffset.Y);
-		_viewModel.MoveGridTo(x, y); e.Handled = true;
+		var sheetX = (point.X - RulerSize) / _viewModel.Zoom;
+		var sheetY = (point.Y - RulerSize) / _viewModel.Zoom;
+		var deltaX = sheetX - _dragStartSheetPoint.X;
+		var deltaY = sheetY - _dragStartSheetPoint.Y;
+		if (_resizeEdges != SlicerResizeEdges.None)
+		{
+			_viewModel.SetGrid(SpritesheetSlicerService.ResizeGridFromDrag(
+				_dragStartGrid, _resizeEdges, deltaX, deltaY,
+				_viewModel.ImageWidth, _viewModel.ImageHeight));
+		}
+		else
+		{
+			var x = _dragStartGrid.X + SpritesheetSlicerService.QuantizeDragDelta(
+				deltaX, _dragStartGrid.CellSize, _viewModel.SnapSelectionToGrid);
+			var y = _dragStartGrid.Y + SpritesheetSlicerService.QuantizeDragDelta(
+				deltaY, _dragStartGrid.CellSize, _viewModel.SnapSelectionToGrid);
+			_viewModel.MoveGridTo(x, y);
+		}
+		e.Handled = true;
 	}
 
 	protected override void OnPointerReleased(PointerReleasedEventArgs e)
 	{
 		base.OnPointerReleased(e);
 		if (!_dragging) return;
-		_dragging = false; e.Pointer.Capture(null); e.Handled = true;
+		_dragging = false;
+		_resizeEdges = SlicerResizeEdges.None;
+		e.Pointer.Capture(null);
+		e.Handled = true;
+	}
+
+	protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+	{
+		base.OnPointerCaptureLost(e);
+		_dragging = false;
+		_resizeEdges = SlicerResizeEdges.None;
 	}
 
 	protected override void OnKeyDown(KeyEventArgs e)
