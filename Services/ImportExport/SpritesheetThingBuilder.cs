@@ -118,7 +118,7 @@ public static class SpritesheetThingBuilder
 		var directions = request.OutfitDirections;
 		var frames = request.OutfitFrames;
 		if (directions <= 0 || frames <= 0 || request.Grid.Columns % directions != 0 || request.Grid.Rows % frames != 0)
-			throw new InvalidOperationException($"Outfit selection must be divisible by {directions} directions and {frames} frames.");
+			throw new InvalidOperationException($"The {request.Grid.Columns}×{request.Grid.Rows} selection cannot be arranged as {directions} directions and {frames} frames.");
 
 		var width = request.Grid.Columns / directions;
 		var height = request.Grid.Rows / frames;

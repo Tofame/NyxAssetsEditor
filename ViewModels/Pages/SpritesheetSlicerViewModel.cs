@@ -186,7 +186,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(UsesFootprint));
 			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
 			OnPropertyChanged(nameof(ReplacementSelectionLabel));
-			RefreshThingChoices(); NotifyValidation();
+			RefreshThingChoices();
+			if (IsOutfit) InitializeOutfitGridIfUntouched();
+			NotifyValidation();
 		}
 	}
 
@@ -196,15 +198,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
 	public bool CanChooseTemplate => ShowTemplatePicker && SelectedTarget?.HasThings == true;
 	public bool CanChooseReplacement => ReplaceExisting && SelectedTarget?.HasThings == true;
-	public bool IsOutfitLayoutValid => HasImage && Columns % OutfitDirections == 0 && Rows % OutfitFrames == 0;
-	public bool IsFootprintLayoutValid => ThingWidth == 0 && ThingHeight == 0 ||
-		ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0;
-	public bool ProducesSingleThing => IsOutfit || ThingWidth == 0 && ThingHeight == 0 ||
-		ThingWidth > 0 && ThingHeight > 0 && Columns == ThingWidth && Rows == ThingHeight;
-	public bool IsThingLayoutValid => IsOutfit ? IsOutfitLayoutValid : IsFootprintLayoutValid;
-	public string OutfitLayoutHint => IsOutfitLayoutValid
-		? $"Creates a {Columns / OutfitDirections} × {Rows / OutfitFrames} outfit with {OutfitDirections} directions and {OutfitFrames} frames."
-		: $"Invalid layout. Columns must be a multiple of {OutfitDirections}; rows must be a multiple of {OutfitFrames}.";
 	public string SplitHint => ThingWidth == 0 && ThingHeight == 0
 		? $"One {Columns}×{Rows} thing"
 		: ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0
@@ -216,8 +209,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public bool CanUndoTransform => _undoImage != null;
 	public bool CanCrop => HasImage && Columns > 0 && Rows > 0;
 	public bool CanImportRaw => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
-	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true && IsThingLayoutValid &&
-		(!ReplaceExisting || ProducesSingleThing && SelectedReplacement != null) &&
+	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true &&
+		(!ReplaceExisting || SelectedReplacement != null) &&
 		(ReplaceExisting || !UseTemplate || SelectedTemplate != null);
 	public bool CanExport => CroppedSprites.Count > 0;
 
@@ -494,12 +487,22 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			_columns = 1; _rows = 1; _offsetX = 0; _offsetY = 0; Zoom = 1;
 		}
 		ClampAndNotifyGrid(forceNotifications: true);
+		if (resetGrid && IsOutfit) InitializeOutfitGridIfUntouched();
 		if (clearCropped) ClearCropped();
 		OnPropertyChanged(nameof(Image)); OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(ImageWidth)); OnPropertyChanged(nameof(ImageHeight));
 		NotifyCommands();
 	}
 
 	private SlicerGrid CurrentGrid() => SpritesheetSlicerService.ClampGrid(new SlicerGrid(OffsetX, OffsetY, Columns, Rows, CellSize), ImageWidth, ImageHeight);
+
+	private void InitializeOutfitGridIfUntouched()
+	{
+		if (_image == null || _columns != 1 || _rows != 1) return;
+		if (_image.Width < OutfitDirections * CellSize || _image.Height < OutfitFrames * CellSize) return;
+		_columns = OutfitDirections;
+		_rows = OutfitFrames;
+		ClampAndNotifyGrid(forceNotifications: true);
+	}
 
 	private void ClampAndNotifyGrid(bool forceNotifications = false)
 	{
@@ -518,9 +521,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	private void NotifyValidation()
 	{
-		OnPropertyChanged(nameof(IsOutfitLayoutValid)); OnPropertyChanged(nameof(IsFootprintLayoutValid));
-		OnPropertyChanged(nameof(ProducesSingleThing)); OnPropertyChanged(nameof(IsThingLayoutValid));
-		OnPropertyChanged(nameof(OutfitLayoutHint)); OnPropertyChanged(nameof(SplitHint)); NotifyCommands();
+		OnPropertyChanged(nameof(SplitHint)); NotifyCommands();
 	}
 
 	private void NotifyCommands()

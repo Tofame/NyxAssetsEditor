@@ -77,7 +77,6 @@
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0"/>
 						</Grid>
-						<TextBlock Text="{Binding OutfitLayoutHint}" Foreground="#E0B84D" TextWrapping="Wrap" FontSize="11"/>
 					</StackPanel>
 
 					<StackPanel IsVisible="{Binding ShowTemplatePicker}" Spacing="5">
