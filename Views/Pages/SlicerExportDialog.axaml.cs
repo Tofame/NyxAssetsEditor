@@ -10,6 +10,7 @@ public partial class SlicerExportDialog : Window
 {
 	public bool IsConfirmed { get; private set; }
 	public string ExportPath => PathInput?.Text?.Trim() ?? string.Empty;
+	public bool ExportSelectedOnly => ExportSelectedOnlyCheckBox?.IsVisible == true && ExportSelectedOnlyCheckBox.IsChecked == true;
 
 	public string SelectedFormat
 	{
@@ -26,10 +27,12 @@ public partial class SlicerExportDialog : Window
 		InitializeComponent();
 	}
 
-	public SlicerExportDialog(string? initialDirectory) : this()
+	public SlicerExportDialog(string? initialDirectory, bool hasSelection = false) : this()
 	{
 		if (!string.IsNullOrWhiteSpace(initialDirectory))
 			PathInput.Text = initialDirectory;
+		ExportSelectedOnlyCheckBox.IsVisible = hasSelection;
+		ExportSelectedOnlyCheckBox.IsChecked = hasSelection;
 		PathInput.TextChanged += (_, _) => UpdateExportEnabled();
 		UpdateExportEnabled();
 	}

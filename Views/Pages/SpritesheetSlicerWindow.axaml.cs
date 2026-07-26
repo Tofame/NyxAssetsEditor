@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
@@ -81,10 +82,17 @@ public partial class SpritesheetSlicerWindow : Window
 	{
 		try
 		{
-			var dialog = new SlicerExportDialog(ViewModel.LastExportDirectory);
+			var selectedSet = CroppedSpritesListBox.SelectedItems?
+				.OfType<SlicerPreviewViewModel>()
+				.ToHashSet() ?? new HashSet<SlicerPreviewViewModel>();
+			var selectedSprites = ViewModel.CroppedSprites.Where(selectedSet.Contains).ToList();
+			var dialog = new SlicerExportDialog(ViewModel.LastExportDirectory, selectedSprites.Count > 0);
 			await dialog.ShowDialog(this);
 			if (!dialog.IsConfirmed) return;
-			ViewModel.ExportCropped(dialog.ExportPath, dialog.SelectedFormat);
+			ViewModel.ExportCropped(
+				dialog.ExportPath,
+				dialog.SelectedFormat,
+				dialog.ExportSelectedOnly ? selectedSprites : null);
 		}
 		catch (Exception ex) { ViewModel.ReportError(ex.Message); }
 	}

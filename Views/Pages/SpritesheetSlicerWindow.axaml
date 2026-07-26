@@ -162,7 +162,8 @@
 					<TextBlock Text="Cropped sprites" FontSize="15" FontWeight="SemiBold"/>
 					<TextBlock Text="Crop lists non-empty cells. Original slot numbers are retained for folder export; thing import reads every live-grid slot directly." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
 				</StackPanel>
-				<ListBox Grid.Row="1" ItemsSource="{Binding CroppedSprites}" Background="#181818" BorderBrush="#333333">
+				<ListBox Name="CroppedSpritesListBox" Grid.Row="1" ItemsSource="{Binding CroppedSprites}"
+					Background="#181818" BorderBrush="#333333" SelectionMode="Multiple,Toggle">
 					<ListBox.ItemTemplate>
 						<DataTemplate x:DataType="vm:SlicerPreviewViewModel">
 							<Grid ColumnDefinitions="42,*,Auto" Margin="4">

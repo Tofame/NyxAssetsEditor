@@ -609,11 +609,15 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		Status(false, "Undid the last sheet transform.");
 	}
 
-	public IReadOnlyList<string> ExportCropped(string directory, string format = "png")
+	public IReadOnlyList<string> ExportCropped(
+		string directory,
+		string format = "png",
+		IReadOnlyList<SlicerPreviewViewModel>? selectedSprites = null)
 	{
-		if (CroppedSprites.Count == 0) throw new InvalidOperationException("Crop sprites before exporting.");
+		IReadOnlyList<SlicerPreviewViewModel> sprites = selectedSprites ?? CroppedSprites;
+		if (sprites.Count == 0) throw new InvalidOperationException("Crop sprites before exporting.");
 		var name = string.IsNullOrEmpty(_sourcePath) ? "sprite" : Path.GetFileNameWithoutExtension(_sourcePath);
-		var written = CroppedSprites.Select(sprite => SpritesheetSlicerService.ExportImage(
+		var written = sprites.Select(sprite => SpritesheetSlicerService.ExportImage(
 			sprite.Pixels, CellSize, directory, name, sprite.ExportIndex, format)).ToList();
 		_state.LastExportDirectory = directory;
 		var label = format.ToLowerInvariant() switch

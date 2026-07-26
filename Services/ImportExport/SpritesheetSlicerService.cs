@@ -29,7 +29,7 @@ public static class SpritesheetSlicerService
 {
 	public static double RecommendZoom(int width, int height)
 	{
-		if (width > 0 && height > 0 && width < 128 && height < 128) return 4;
+		if (width > 0 && height > 0 && width <= 128 && height <= 128) return 4;
 		if (width > 0 && height > 0 && width < 256 && height < 256) return 2;
 		return 1;
 	}
