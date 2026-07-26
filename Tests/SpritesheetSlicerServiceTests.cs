@@ -113,13 +113,12 @@ public class SpritesheetSlicerServiceTests
 			{
 				WasMaximized = true, LastOpenDirectory = "images", LastExportDirectory = "exports",
 				ThingWidth = 2, ThingHeight = 3,
-				TemplateItemId = 77, OutfitDirections = 8, OutfitFrames = 4, ThingKind = "Missile", ReplaceExisting = true
+				OutfitDirections = 8, OutfitFrames = 4, ThingKind = "Missile", ReplaceExisting = true
 			}
 		};
 		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>(TomlSerializer.Serialize(model));
 		Assert.NotNull(restored);
 		Assert.True(restored!.Slicer.WasMaximized);
-		Assert.Equal((uint)77, restored.Slicer.TemplateItemId);
 		Assert.Equal("Missile", restored.Slicer.ThingKind);
 		Assert.True(restored.Slicer.ReplaceExisting);
 	}
@@ -197,6 +196,43 @@ public class SpritesheetThingBuilderTests
 		Assert.Throws<InvalidOperationException>(() => SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Effect, new SlicerGrid(0, 0, 2, 1, 32), Cells(2, 1), 1, 7,
 			1, 1, 4, 3, 100, true, null, replacement)));
+	}
+
+	[Fact]
+	public void EffectTemplate_PreservesDefinitionAndReplacesFrameGroups()
+	{
+		var template = new ThingType { Id = 12, Kind = ThingKind.Effect, HasLight = true, LightLevel = 7 };
+		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 44 } });
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Effect, new SlicerGrid(0, 0, 1, 1, 32), Cells(1, 1), 800, 20,
+			0, 0, 4, 3, 100, true, template, null));
+		var thing = result.Things.Single();
+
+		Assert.Equal((uint)20, thing.Id);
+		Assert.True(thing.HasLight);
+		Assert.Equal((uint)7, thing.LightLevel);
+		Assert.Equal((uint)800, thing.FrameGroups.Single().SpriteIds.Single());
+	}
+
+	[Fact]
+	public void OutfitTemplate_PreservesDefinitionAndUsesConfiguredLayout()
+	{
+		var template = new ThingType { Id = 30, Kind = ThingKind.Outfit, HasLight = true, LightLevel = 9 };
+		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 55 } });
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 900, 40,
+			0, 0, 4, 3, 250, true, template, null));
+		var thing = result.Things.Single();
+		var group = thing.FrameGroups.Single();
+
+		Assert.Equal((uint)40, thing.Id);
+		Assert.True(thing.HasLight);
+		Assert.Equal((uint)9, thing.LightLevel);
+		Assert.Equal((uint)4, group.PatternX);
+		Assert.Equal((uint)3, group.Frames);
+		Assert.DoesNotContain((uint)55, group.SpriteIds);
 	}
 
 	[Theory]

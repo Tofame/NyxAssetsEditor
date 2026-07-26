@@ -69,7 +69,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string LastExportDirectory { get; set; } = "";
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
-			public uint TemplateItemId { get; set; }
 			public int OutfitDirections { get; set; } = 4;
 			public int OutfitFrames { get; set; } = 3;
 			public string ThingKind { get; set; } = "Item";
@@ -233,7 +232,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			LastExportDirectory = _slicerState.LastExportDirectory,
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
-			TemplateItemId = _slicerState.TemplateItemId,
 			OutfitDirections = _slicerState.OutfitDirections,
 			OutfitFrames = _slicerState.OutfitFrames,
 			ThingKind = _slicerState.ThingKind,

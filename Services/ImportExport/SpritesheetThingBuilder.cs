@@ -32,6 +32,8 @@ public static class SpritesheetThingBuilder
 			throw new InvalidOperationException("Select at least one complete sprite cell.");
 		if (request.Replacement != null && request.Replacement.Kind != request.Kind)
 			throw new InvalidOperationException("The replacement target must have the selected thing kind.");
+		if (request.Template != null && request.Template.Kind != request.Kind)
+			throw new InvalidOperationException("The template must have the selected thing kind.");
 
 		var byCoordinate = request.Cells.ToDictionary(c => (c.Column, c.Row));
 		if (byCoordinate.Count != request.Grid.Columns * request.Grid.Rows)
@@ -85,10 +87,8 @@ public static class SpritesheetThingBuilder
 			ThingType thing;
 			if (request.Replacement != null)
 				thing = ThingCloner.Clone(request.Replacement, id);
-			else if (request.Kind == ThingKind.Item && request.Template != null)
+			else if (request.Template != null)
 			{
-				if (request.Template.Kind != ThingKind.Item)
-					throw new InvalidOperationException("The selected template is not an item.");
 				thing = ThingCloner.Clone(request.Template, id);
 			}
 			else
@@ -125,7 +125,9 @@ public static class SpritesheetThingBuilder
 		var id = request.Replacement?.Id ?? request.FirstThingId;
 		var thing = request.Replacement != null
 			? ThingCloner.Clone(request.Replacement, id)
-			: new ThingType { Id = id, Kind = ThingKind.Outfit };
+			: request.Template != null
+				? ThingCloner.Clone(request.Template, id)
+				: new ThingType { Id = id, Kind = ThingKind.Outfit };
 		thing.Id = id;
 		thing.Kind = ThingKind.Outfit;
 		thing.FrameGroups.Clear();

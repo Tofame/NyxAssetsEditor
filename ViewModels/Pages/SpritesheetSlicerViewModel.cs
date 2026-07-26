@@ -4,12 +4,14 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
 using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
+using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Core;
 
@@ -41,7 +43,7 @@ public sealed class SlicerPreviewViewModel
 	public string Label => $"({SourceColumn}, {SourceRow})" + (IsEmpty ? " empty" : "");
 }
 
-public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
+public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IThingFinderContextActionProvider
 {
 	private readonly AssetsViewModel _assets;
 	private readonly SpriteRenderer _renderer = new();
@@ -65,15 +67,14 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private int _thingHeight;
 	private int _outfitDirections = 4;
 	private int _outfitFrames = 3;
-	private uint _templateItemId;
+	private uint _templateThingId;
 	private uint _replacementThingId;
+	private bool _useTemplate;
 	private bool _replaceExisting;
 	private ThingKind _selectedKind = ThingKind.Item;
 	private string _statusMessage = "Open or drop an image to begin.";
 	private bool _statusIsError;
 	private SlicerTargetViewModel? _selectedTarget;
-	private string _templateSearch = "";
-	private string _replacementSearch = "";
 	private SlicerThingChoiceViewModel? _selectedTemplate;
 	private SlicerThingChoiceViewModel? _selectedReplacement;
 	private WriteableBitmap? _templatePreview;
@@ -91,17 +92,15 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_outfitDirections = Math.Max(1, _state.OutfitDirections);
 		_outfitFrames = Math.Max(1, _state.OutfitFrames);
-		_templateItemId = _state.TemplateItemId;
 		_replaceExisting = _state.ReplaceExisting;
 		if (Enum.TryParse<ThingKind>(_state.ThingKind, out var kind)) _selectedKind = kind;
 		_assets.ActivePanels.CollectionChanged += OnPanelsChanged;
+		_assets.RegisterThingFinderContextActionProvider(this);
 		RefreshTargets();
 	}
 
 	public ObservableCollection<SlicerTargetViewModel> Targets { get; } = new();
 	public ObservableCollection<SlicerPreviewViewModel> CroppedSprites { get; } = new();
-	public ObservableCollection<SlicerThingChoiceViewModel> TemplateChoices { get; } = new();
-	public ObservableCollection<SlicerThingChoiceViewModel> ReplacementChoices { get; } = new();
 	public IReadOnlyList<int> AvailableCellSizes { get; } = new[] { 32 };
 	public IReadOnlyList<ThingKind> ThingKinds { get; } = new[] { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile };
 
@@ -124,13 +123,14 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitFrames { get => _outfitFrames; set { if (SetProperty(ref _outfitFrames, Math.Max(1, value))) NotifyValidation(); } }
-	public uint TemplateItemId
+	public uint TemplateThingId
 	{
-		get => _templateItemId;
+		get => _templateThingId;
 		set
 		{
-			if (!SetProperty(ref _templateItemId, value)) return;
+			if (!SetProperty(ref _templateThingId, value)) return;
 			if (SelectedTemplate?.Thing.Id != value) SelectedTemplate = _allTemplates.FirstOrDefault(c => c.Thing.Id == value);
+			OnPropertyChanged(nameof(TemplateSelectionLabel));
 			NotifyValidation();
 		}
 	}
@@ -141,10 +141,39 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		{
 			if (!SetProperty(ref _replacementThingId, value)) return;
 			if (SelectedReplacement?.Thing.Id != value) SelectedReplacement = _allReplacements.FirstOrDefault(c => c.Thing.Id == value);
+			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			NotifyValidation();
 		}
 	}
-	public bool ReplaceExisting { get => _replaceExisting; set { if (SetProperty(ref _replaceExisting, value)) { OnPropertyChanged(nameof(IsCreateMode)); NotifyValidation(); } } }
+	public bool UseTemplate
+	{
+		get => _useTemplate;
+		set
+		{
+			if (!SetProperty(ref _useTemplate, value)) return;
+			if (!value)
+			{
+				_templateThingId = 0;
+				OnPropertyChanged(nameof(TemplateThingId));
+				SelectedTemplate = null;
+			}
+			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
+			NotifyValidation();
+		}
+	}
+
+	public bool ReplaceExisting
+	{
+		get => _replaceExisting;
+		set
+		{
+			if (!SetProperty(ref _replaceExisting, value)) return;
+			if (value) UseTemplate = false;
+			OnPropertyChanged(nameof(IsCreateMode)); OnPropertyChanged(nameof(ShowTemplatePicker));
+			OnPropertyChanged(nameof(CanChooseTemplate)); OnPropertyChanged(nameof(CanChooseReplacement));
+			NotifyValidation();
+		}
+	}
 	public bool IsCreateMode => !ReplaceExisting;
 
 	public ThingKind SelectedKind
@@ -153,7 +182,10 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		set
 		{
 			if (!SetProperty(ref _selectedKind, value)) return;
+			TemplateThingId = 0;
 			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(UsesFootprint));
+			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
+			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			RefreshThingChoices(); NotifyValidation();
 		}
 	}
@@ -161,6 +193,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public bool IsItem => SelectedKind == ThingKind.Item;
 	public bool IsOutfit => SelectedKind == ThingKind.Outfit;
 	public bool UsesFootprint => SelectedKind != ThingKind.Outfit;
+	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
+	public bool CanChooseTemplate => ShowTemplatePicker && SelectedTarget?.HasThings == true;
+	public bool CanChooseReplacement => ReplaceExisting && SelectedTarget?.HasThings == true;
 	public bool IsOutfitLayoutValid => HasImage && Columns % OutfitDirections == 0 && Rows % OutfitFrames == 0;
 	public bool IsFootprintLayoutValid => ThingWidth == 0 && ThingHeight == 0 ||
 		ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0;
@@ -168,8 +203,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		ThingWidth > 0 && ThingHeight > 0 && Columns == ThingWidth && Rows == ThingHeight;
 	public bool IsThingLayoutValid => IsOutfit ? IsOutfitLayoutValid : IsFootprintLayoutValid;
 	public string OutfitLayoutHint => IsOutfitLayoutValid
-		? $"Valid: {Columns / OutfitDirections}×{Rows / OutfitFrames} cells, {OutfitDirections} directions, {OutfitFrames} frames"
-		: $"Need columns % {OutfitDirections} = 0 and rows % {OutfitFrames} = 0";
+		? $"Creates a {Columns / OutfitDirections} × {Rows / OutfitFrames} outfit with {OutfitDirections} directions and {OutfitFrames} frames."
+		: $"Invalid layout. Columns must be a multiple of {OutfitDirections}; rows must be a multiple of {OutfitFrames}.";
 	public string SplitHint => ThingWidth == 0 && ThingHeight == 0
 		? $"One {Columns}×{Rows} thing"
 		: ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0
@@ -183,7 +218,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public bool CanImportRaw => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
 	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true && IsThingLayoutValid &&
 		(!ReplaceExisting || ProducesSingleThing && SelectedReplacement != null) &&
-		(ReplaceExisting || !IsItem || TemplateItemId == 0 || SelectedTemplate != null);
+		(ReplaceExisting || !UseTemplate || SelectedTemplate != null);
 	public bool CanExport => CroppedSprites.Count > 0;
 
 	public SlicerTargetViewModel? SelectedTarget
@@ -192,8 +227,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		set { if (SetProperty(ref _selectedTarget, value)) { RefreshThingChoices(); NotifyCommands(); } }
 	}
 
-	public string TemplateSearch { get => _templateSearch; set { if (SetProperty(ref _templateSearch, value)) ApplyChoiceFilters(); } }
-	public string ReplacementSearch { get => _replacementSearch; set { if (SetProperty(ref _replacementSearch, value)) ApplyChoiceFilters(); } }
+	public string TemplateSelectionLabel => SelectedTemplate?.DisplayName ?? (TemplateThingId == 0 ? "No template selected" : $"{SelectedKind} #{TemplateThingId} was not found");
+	public string ReplacementSelectionLabel => SelectedReplacement?.DisplayName ?? (ReplacementThingId == 0 ? "No thing selected" : $"{SelectedKind} #{ReplacementThingId} was not found");
 	public WriteableBitmap? TemplatePreview { get => _templatePreview; private set => SetProperty(ref _templatePreview, value); }
 	public WriteableBitmap? ReplacementPreview { get => _replacementPreview; private set => SetProperty(ref _replacementPreview, value); }
 	public SlicerThingChoiceViewModel? SelectedTemplate
@@ -202,8 +237,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		set
 		{
 			if (!SetProperty(ref _selectedTemplate, value)) return;
-			if (value != null) TemplateItemId = value.Thing.Id;
+			if (value != null) TemplateThingId = value.Thing.Id;
 			TemplatePreview?.Dispose(); TemplatePreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
+			OnPropertyChanged(nameof(TemplateSelectionLabel));
 			NotifyValidation();
 		}
 	}
@@ -215,6 +251,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 			if (!SetProperty(ref _selectedReplacement, value)) return;
 			if (value != null) ReplacementThingId = value.Thing.Id;
 			ReplacementPreview?.Dispose(); ReplacementPreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
+			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			NotifyValidation();
 		}
 	}
@@ -331,11 +368,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 			var target = SelectedTarget!;
 			var thingsPanel = target.ThingsPanel!;
 			var allCells = SpritesheetSlicerService.Slice(_image!, CurrentGrid(), includeEmpty: true);
-			var template = !ReplaceExisting && IsItem && TemplateItemId > 0
-				? thingsPanel.EnumerateThings(ThingKind.Item).FirstOrDefault(t => t.Id == TemplateItemId)
+			var template = !ReplaceExisting && UseTemplate && TemplateThingId > 0
+				? thingsPanel.EnumerateThings(SelectedKind).FirstOrDefault(t => t.Id == TemplateThingId)
 				: null;
-			if (!ReplaceExisting && IsItem && TemplateItemId > 0 && template == null)
-				throw new InvalidOperationException($"Template item #{TemplateItemId} does not exist.");
+			if (!ReplaceExisting && UseTemplate && template == null)
+				throw new InvalidOperationException($"Template {SelectedKind.ToString().ToLowerInvariant()} #{TemplateThingId} does not exist.");
 			var replacement = ReplaceExisting
 				? thingsPanel.EnumerateThings(SelectedKind).FirstOrDefault(t => t.Id == ReplacementThingId)
 				: null;
@@ -367,6 +404,21 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		_cellSize = result.Grid.CellSize; _offsetX = result.Grid.X; _offsetY = result.Grid.Y;
 		_columns = result.Grid.Columns; _rows = result.Grid.Rows;
 		NotifyGridProperties(); Status(false, result.Message);
+	}
+
+	[RelayCommand(CanExecute = nameof(CanChooseTemplate))]
+	private void FindTemplate()
+	{
+		if (SelectedTarget?.ThingsPanel is { } things) _assets.OpenThingFinder(things, SelectedKind);
+	}
+
+	[RelayCommand]
+	private void ClearTemplate() => TemplateThingId = 0;
+
+	[RelayCommand(CanExecute = nameof(CanChooseReplacement))]
+	private void FindReplacement()
+	{
+		if (SelectedTarget?.ThingsPanel is { } things) _assets.OpenThingFinder(things, SelectedKind);
 	}
 
 	[RelayCommand(CanExecute = nameof(HasImage))] private void RotateLeft() => Transform(SpritesheetSlicerService.RotateCounterClockwise);
@@ -414,7 +466,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
 		_state.WasMaximized = maximized;
-		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.TemplateItemId = TemplateItemId;
+		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight;
 		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames; _state.ThingKind = SelectedKind.ToString();
 		_state.ReplaceExisting = ReplaceExisting;
 		return _state;
@@ -476,6 +528,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		OnPropertyChanged(nameof(CanCrop)); OnPropertyChanged(nameof(CanImportRaw)); OnPropertyChanged(nameof(CanImportThing)); OnPropertyChanged(nameof(CanExport));
 		CropCommand.NotifyCanExecuteChanged(); DetectGridCommand.NotifyCanExecuteChanged(); ImportRawSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
+		FindTemplateCommand.NotifyCanExecuteChanged(); FindReplacementCommand.NotifyCanExecuteChanged();
 		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
 	}
 
@@ -485,24 +538,35 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		var things = SelectedTarget?.ThingsPanel;
 		if (things != null)
 		{
-			foreach (var thing in things.EnumerateThings(ThingKind.Item))
+			foreach (var thing in things.EnumerateThings(SelectedKind))
 				_allTemplates.Add(new SlicerThingChoiceViewModel { Thing = thing });
 			foreach (var thing in things.EnumerateThings(SelectedKind))
 				_allReplacements.Add(new SlicerThingChoiceViewModel { Thing = thing });
 		}
-		ApplyChoiceFilters();
-		SelectedTemplate = _allTemplates.FirstOrDefault(c => c.Thing.Id == TemplateItemId);
+		SelectedTemplate = _allTemplates.FirstOrDefault(c => c.Thing.Id == TemplateThingId);
 		SelectedReplacement = _allReplacements.FirstOrDefault(c => c.Thing.Id == ReplacementThingId);
 	}
 
-	private void ApplyChoiceFilters()
+	public IEnumerable<ThingFinderContextAction> GetThingFinderContextActions(FloatingThingsLoaderViewModel source, ThingType thing)
 	{
-		ReplaceCollection(TemplateChoices, _allTemplates.Where(c => Matches(c, TemplateSearch)).Take(200));
-		ReplaceCollection(ReplacementChoices, _allReplacements.Where(c => Matches(c, ReplacementSearch)).Take(200));
+		if (!ReferenceEquals(SelectedTarget?.ThingsPanel, source)) yield break;
+		if (ShowTemplatePicker && thing.Kind == SelectedKind)
+		{
+			yield return new ThingFinderContextAction("Use as slicer template", () =>
+			{
+				TemplateThingId = thing.Id;
+				return Task.CompletedTask;
+			});
+		}
+		if (ReplaceExisting && thing.Kind == SelectedKind)
+		{
+			yield return new ThingFinderContextAction("Replace this thing in slicer", () =>
+			{
+				ReplacementThingId = thing.Id;
+				return Task.CompletedTask;
+			});
+		}
 	}
-
-	private static bool Matches(SlicerThingChoiceViewModel choice, string search) => string.IsNullOrWhiteSpace(search) || choice.DisplayName.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase);
-	private static void ReplaceCollection<T>(ObservableCollection<T> target, IEnumerable<T> source) { target.Clear(); foreach (var item in source) target.Add(item); }
 
 	private void Status(bool error, string message) { StatusIsError = error; StatusMessage = message; }
 	private void OnPanelsChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshTargets();
@@ -510,6 +574,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public void Dispose()
 	{
 		_assets.ActivePanels.CollectionChanged -= OnPanelsChanged;
+		_assets.UnregisterThingFinderContextActionProvider(this);
 		SheetBitmap?.Dispose(); ClearCropped();
 		TemplatePreview?.Dispose(); ReplacementPreview?.Dispose();
 	}

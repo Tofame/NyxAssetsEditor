@@ -52,52 +52,69 @@
 					</Grid>
 					<Button Content="Detect grid from separators" Command="{Binding DetectGridCommand}" HorizontalAlignment="Stretch"/>
 					<Separator/>
-					<Expander Header="Thing creation and replacement" IsExpanded="False">
-					<StackPanel Spacing="8" Margin="0,8,0,0">
-						<TextBlock Text="Advanced: build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
-						<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
-						<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
+					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="Build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
+					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
+					<CheckBox Content="Use an existing thing as template" IsChecked="{Binding UseTemplate}" IsVisible="{Binding IsCreateMode}"/>
 
 					<StackPanel IsVisible="{Binding UsesFootprint}" Spacing="6">
-						<TextBlock Text="Thing width / height (cells)" Foreground="#AAAAAA"/>
-						<StackPanel Orientation="Horizontal" Spacing="6">
-							<NumericUpDown Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0" Width="90"/>
-							<NumericUpDown Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0" Width="90"/>
-						</StackPanel>
+						<TextBlock Text="Thing footprint (cells)" Foreground="#AAAAAA"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Thing width:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Thing height:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0"/>
+						</Grid>
 						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
 					</StackPanel>
 
 					<StackPanel IsVisible="{Binding IsOutfit}" Spacing="6">
-						<TextBlock Text="Outfit directions / frames" Foreground="#AAAAAA"/>
-						<StackPanel Orientation="Horizontal" Spacing="6">
-							<NumericUpDown Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0" Width="90"/>
-							<NumericUpDown Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" Width="90"/>
-						</StackPanel>
+						<TextBlock Text="Outfit layout" Foreground="#AAAAAA"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Directions:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0"/>
+						</Grid>
 						<TextBlock Text="{Binding OutfitLayoutHint}" Foreground="#E0B84D" TextWrapping="Wrap" FontSize="11"/>
 					</StackPanel>
 
-					<StackPanel IsVisible="{Binding IsItem}" Spacing="5">
-						<TextBlock Text="Template item (0 = none)" Foreground="#AAAAAA"/>
-						<NumericUpDown Value="{Binding TemplateItemId}" Minimum="0" Maximum="4294967295" FormatString="0" IsEnabled="{Binding IsCreateMode}"/>
-						<TextBox Watermark="Search template ID…" Text="{Binding TemplateSearch}" IsEnabled="{Binding IsCreateMode}"/>
-						<ComboBox ItemsSource="{Binding TemplateChoices}" SelectedItem="{Binding SelectedTemplate}" IsEnabled="{Binding IsCreateMode}">
-							<ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SlicerThingChoiceViewModel"><TextBlock Text="{Binding DisplayName}"/></DataTemplate></ComboBox.ItemTemplate>
-						</ComboBox>
-						<Border Width="44" Height="44" HorizontalAlignment="Left" Background="#555555"><Image Source="{Binding TemplatePreview}" Stretch="Uniform"/></Border>
+					<StackPanel IsVisible="{Binding ShowTemplatePicker}" Spacing="5">
+						<TextBlock Text="Template thing" Foreground="#AAAAAA"/>
+						<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="5">
+							<NumericUpDown Value="{Binding TemplateThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
+							<Button Grid.Column="1" Width="30" Height="28" Padding="7" Command="{Binding FindTemplateCommand}" ToolTip.Tip="Find a template thing">
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
+							</Button>
+							<Button Grid.Column="2" Content="Clear" Command="{Binding ClearTemplateCommand}"/>
+						</Grid>
+						<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6">
+							<Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+								<Border Width="44" Height="44" Background="#555555"><Image Source="{Binding TemplatePreview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding TemplateSelectionLabel}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+							</Grid>
+						</Border>
+						<TextBlock Text="Use search, then right-click a result and choose ‘Use as slicer template’." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
 					</StackPanel>
 
 					<StackPanel IsVisible="{Binding ReplaceExisting}" Spacing="5">
-						<TextBlock Text="Existing thing ID" Foreground="#AAAAAA"/>
-						<NumericUpDown Value="{Binding ReplacementThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
-						<TextBox Watermark="Search target ID…" Text="{Binding ReplacementSearch}"/>
-						<ComboBox ItemsSource="{Binding ReplacementChoices}" SelectedItem="{Binding SelectedReplacement}">
-							<ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SlicerThingChoiceViewModel"><TextBlock Text="{Binding DisplayName}"/></DataTemplate></ComboBox.ItemTemplate>
-						</ComboBox>
-						<Border Width="44" Height="44" HorizontalAlignment="Left" Background="#555555"><Image Source="{Binding ReplacementPreview}" Stretch="Uniform"/></Border>
+						<TextBlock Text="Thing to replace" Foreground="#AAAAAA"/>
+						<Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
+							<NumericUpDown Value="{Binding ReplacementThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
+							<Button Grid.Column="1" Width="30" Height="28" Padding="7" Command="{Binding FindReplacementCommand}" ToolTip.Tip="Find a thing to replace">
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
+							</Button>
+						</Grid>
+						<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6">
+							<Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+								<Border Width="44" Height="44" Background="#555555"><Image Source="{Binding ReplacementPreview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding ReplacementSelectionLabel}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+							</Grid>
+						</Border>
+						<TextBlock Text="Use search, then right-click a result and choose ‘Replace this thing in slicer’." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
 					</StackPanel>
-						<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
-					</StackPanel>
-					</Expander>
+					<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
 				</StackPanel>
 			</ScrollViewer>
 
