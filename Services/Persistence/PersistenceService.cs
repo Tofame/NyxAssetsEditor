@@ -16,6 +16,7 @@ namespace NyxAssetsEditor.Services.Persistence
 		private static readonly string AppStatePath = Path.Combine(AppContext.BaseDirectory, "app_state.toml");
 
 		private static bool _isRestoring;
+		private static SlicerStateModel _slicerState = new();
 
 		static PersistenceService()
 		{
@@ -58,6 +59,23 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int UndoLimit { get; set; } = 10;
 			public bool AllowUnknownSignatures { get; set; } = true;
 			public bool CompileLinkedPairTogether { get; set; } = true;
+			public SlicerStateModel Slicer { get; set; } = new();
+		}
+
+		public class SlicerStateModel
+		{
+			public bool WasMaximized { get; set; }
+			public string LastOpenDirectory { get; set; } = "";
+			public string LastExportDirectory { get; set; } = "";
+			public bool Subdivisions { get; set; }
+			public bool IncludeEmptySprites { get; set; } = true;
+			public int ThingWidth { get; set; }
+			public int ThingHeight { get; set; }
+			public uint TemplateItemId { get; set; }
+			public int OutfitDirections { get; set; } = 4;
+			public int OutfitFrames { get; set; } = 3;
+			public string ThingKind { get; set; } = "Item";
+			public bool ReplaceExisting { get; set; }
 		}
 
 		public class AppStateTomlModel
@@ -135,6 +153,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					var model = TomlSerializer.Deserialize<SettingsTomlModel>(toml);
 					if (model != null)
 					{
+						_slicerState = model.Slicer ?? new SlicerStateModel();
 						SettingsViewModel.SetSettings(
 							model.DefaultPageSize,
 							model.UseTransparentPixels,
@@ -197,7 +216,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations,
 					UndoLimit = SettingsViewModel.UndoLimit,
 					AllowUnknownSignatures = SettingsViewModel.AllowUnknownSignatures,
-					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether
+					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether,
+					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);
@@ -206,6 +226,28 @@ namespace NyxAssetsEditor.Services.Persistence
 			{
 				Debug.WriteLine($"Failed to save settings.toml: {ex.Message}");
 			}
+		}
+
+		public static SlicerStateModel GetSlicerState() => new()
+		{
+			WasMaximized = _slicerState.WasMaximized,
+			LastOpenDirectory = _slicerState.LastOpenDirectory,
+			LastExportDirectory = _slicerState.LastExportDirectory,
+			Subdivisions = _slicerState.Subdivisions,
+			IncludeEmptySprites = _slicerState.IncludeEmptySprites,
+			ThingWidth = _slicerState.ThingWidth,
+			ThingHeight = _slicerState.ThingHeight,
+			TemplateItemId = _slicerState.TemplateItemId,
+			OutfitDirections = _slicerState.OutfitDirections,
+			OutfitFrames = _slicerState.OutfitFrames,
+			ThingKind = _slicerState.ThingKind,
+			ReplaceExisting = _slicerState.ReplaceExisting
+		};
+
+		public static void SaveSlicerState(SlicerStateModel state)
+		{
+			_slicerState = state;
+			SaveSettings();
 		}
 
 		public static void SaveAppState(AssetsViewModel assetsVm)

@@ -44,6 +44,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
 		public Action<double, double>? PositionWebExportHandler { get; set; }
+		public Action<FloatingSpriteLoaderViewModel?>? OpenSlicerHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 		public bool CanCompileAs => GetCompilePairs().Any();
 
@@ -583,6 +584,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				IsVisible = true,
 			});
 		}
+
+		[RelayCommand]
+		private void OpenSlicer() => OpenSlicerHandler?.Invoke(null);
+
+		public void OpenSlicer(FloatingSpriteLoaderViewModel origin) => OpenSlicerHandler?.Invoke(origin);
 
 		public void AddPanelFromView(PanelViewModelBase panel)
 		{

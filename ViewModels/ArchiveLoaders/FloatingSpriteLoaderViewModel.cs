@@ -712,6 +712,83 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				UpdatePage();
 		}
 
+		internal sealed record SlicerAppendCheckpoint(
+			uint SpriteCountBefore,
+			bool HasSavedChangesBefore,
+			HashSet<uint> AddedBefore,
+			HashSet<uint> RemovedBefore,
+			HashSet<uint> ModifiedBefore,
+			IReadOnlyList<uint> AddedIds);
+
+		internal SlicerAppendCheckpoint BeginSlicerAppend(IReadOnlyList<byte[]> pixelBuffers)
+		{
+			if (!IsArchiveLoaded)
+				throw new InvalidOperationException("A sprite archive must be loaded before importing.");
+			if (pixelBuffers.Any(p => p.Length != NyxAssets.Sprites.SpritePixelCodec.RgbaBufferLength))
+				throw new InvalidOperationException("Every imported sprite must be an exact 32×32 RGBA buffer.");
+
+			var ids = Enumerable.Range(1, pixelBuffers.Count).Select(i => Loader.SpriteCount + (uint)i).ToList();
+			var checkpoint = new SlicerAppendCheckpoint(
+				Loader.SpriteCount,
+				HasSavedChanges,
+				new HashSet<uint>(AddedSpriteIds),
+				new HashSet<uint>(RemovedSpriteIds),
+				new HashSet<uint>(ModifiedSpriteIds),
+				ids);
+			if (pixelBuffers.Count == 0) return checkpoint;
+			StartSpriteTransaction(ids);
+			try
+			{
+				for (var i = 0; i < pixelBuffers.Count; i++)
+				{
+					var id = Loader.AddNewSprite();
+					if (id != ids[i]) throw new InvalidOperationException("Sprite storage changed during import.");
+					Loader.SetSpritePixels(id, pixelBuffers[i]);
+					AddedSpriteIds.Add(id);
+				}
+				return checkpoint;
+			}
+			catch
+			{
+				RollbackSlicerAppend(checkpoint);
+				throw;
+			}
+		}
+
+		internal void CommitSlicerAppend(SlicerAppendCheckpoint checkpoint)
+		{
+			if (checkpoint.AddedIds.Count == 0) return;
+			HasSavedChanges = true;
+			TotalSprites = Loader.SpriteCount;
+			var lastPage = TotalPages;
+			if (CurrentPage != lastPage) CurrentPage = lastPage;
+			else UpdatePage();
+			EndSpriteTransaction(checkpoint.AddedIds);
+			GetLinkedThingsPanel()?.RefreshPreviews();
+		}
+
+		internal void RollbackSlicerAppend(SlicerAppendCheckpoint checkpoint)
+		{
+			if (checkpoint.AddedIds.Count == 0) return;
+			while (Loader.SpriteCount > checkpoint.SpriteCountBefore) Loader.RemoveLastSprite();
+			AddedSpriteIds.Clear(); foreach (var id in checkpoint.AddedBefore) AddedSpriteIds.Add(id);
+			RemovedSpriteIds.Clear(); foreach (var id in checkpoint.RemovedBefore) RemovedSpriteIds.Add(id);
+			ModifiedSpriteIds.Clear(); foreach (var id in checkpoint.ModifiedBefore) ModifiedSpriteIds.Add(id);
+			HasSavedChanges = checkpoint.HasSavedChangesBefore;
+			_currentAction = null;
+			TotalSprites = Loader.SpriteCount;
+			UpdatePage();
+			RefreshUndoRedoCommands();
+		}
+
+		public IReadOnlyList<uint> ImportSlicerSprites(IReadOnlyList<byte[]> pixelBuffers)
+		{
+			if (pixelBuffers.Count == 0) return Array.Empty<uint>();
+			var checkpoint = BeginSlicerAppend(pixelBuffers);
+			CommitSlicerAppend(checkpoint);
+			return checkpoint.AddedIds;
+		}
+
 		public void RemoveSprite(SpriteViewModel sprite) => RemoveSprites(new[] { sprite });
 
 		public void RemoveSprites(IEnumerable<SpriteViewModel> sprites)
@@ -948,6 +1025,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			RequestSpritesOptimizer?.Invoke(this, EventArgs.Empty);
 		}
+
+		[RelayCommand]
+		private void OpenSpritesheetSlicer() => ParentViewModel?.OpenSlicer(this);
 
 		public FloatingThingsLoaderViewModel? GetLinkedThingsPanel()
 		{

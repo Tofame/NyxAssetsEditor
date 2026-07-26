@@ -684,6 +684,80 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			EndThingTransaction(affected);
 		}
 
+		public uint GetNextThingId(ThingKind kind)
+		{
+			if (_catalog == null) throw new InvalidOperationException("A things archive must be loaded before importing.");
+			return ThingExchangeHelper.GetNextAppendId(_catalog, kind);
+		}
+
+		public IReadOnlyList<uint> ImportSlicerThings(
+			IReadOnlyList<byte[]> spritePixels,
+			IReadOnlyList<ThingType> things,
+			bool replaceExisting)
+		{
+			if (_catalog == null) throw new InvalidOperationException("A things archive must be loaded before importing.");
+			if (things.Count == 0) return Array.Empty<uint>();
+			var spritePanel = LinkedSpritePanel;
+			if (spritePanel is not { IsArchiveLoaded: true })
+				throw new InvalidOperationException("The selected things archive is not linked to a loaded sprite archive.");
+			var kind = things[0].Kind;
+			if (things.Any(t => t.Kind != kind)) throw new InvalidOperationException("A slicer batch must contain one thing kind.");
+
+			if (replaceExisting)
+			{
+				if (things.Count != 1 || GetThingFromCatalog(kind, things[0].Id) == null)
+					throw new InvalidOperationException("The replacement target no longer exists.");
+			}
+			else
+			{
+				var expected = GetNextThingId(kind);
+				for (var i = 0; i < things.Count; i++)
+					if (things[i].Id != expected + (uint)i)
+						throw new InvalidOperationException("Thing storage changed during import. Review the target and try again.");
+			}
+
+			var affected = things.Select(t => (t.Kind, t.Id)).ToList();
+			StartThingTransaction(affected);
+			var thingCheckpoint = _currentAction ?? throw new InvalidOperationException("Could not start the thing import transaction.");
+			FloatingSpriteLoaderViewModel.SlicerAppendCheckpoint? spriteCheckpoint = null;
+			try
+			{
+				spriteCheckpoint = spritePanel.BeginSlicerAppend(spritePixels);
+				foreach (var thing in things)
+				{
+					PutThingIntoCatalog(thing.Kind, thing);
+					if (replaceExisting)
+					{
+						if (!AddedThingIds.Contains(thing.Id)) ModifiedThingIds.Add(thing.Id);
+					}
+					else AddedThingIds.Add(thing.Id);
+				}
+
+				HasSavedChanges = true;
+				if (SelectedSection != kind) SelectedSection = kind;
+				else ReloadThingsForSection();
+				spritePanel.CommitSlicerAppend(spriteCheckpoint);
+				EndThingTransaction(affected);
+				return things.Select(t => t.Id).ToList();
+			}
+			catch
+			{
+				if (spriteCheckpoint != null) spritePanel.RollbackSlicerAppend(spriteCheckpoint);
+				RevertCounts(thingCheckpoint.ItemCountBefore, thingCheckpoint.OutfitCountBefore, thingCheckpoint.EffectCountBefore, thingCheckpoint.MissileCountBefore);
+				foreach (var entry in thingCheckpoint.ThingsBefore)
+				foreach (var pair in entry.Value)
+					PutThingIntoCatalog(entry.Key, pair.Value);
+				AddedThingIds.Clear(); foreach (var id in thingCheckpoint.AddedBefore) AddedThingIds.Add(id);
+				RemovedThingIds.Clear(); foreach (var id in thingCheckpoint.RemovedBefore) RemovedThingIds.Add(id);
+				ModifiedThingIds.Clear(); foreach (var id in thingCheckpoint.ModifiedBefore) ModifiedThingIds.Add(id);
+				HasSavedChanges = thingCheckpoint.HasSavedChangesBefore;
+				_currentAction = null;
+				ReloadThingsForSection();
+				RefreshUndoRedoCommands();
+				throw;
+			}
+		}
+
 		private bool _hasSavedChanges;
 		public bool HasSavedChanges
 		{

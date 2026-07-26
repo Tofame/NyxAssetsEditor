@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+		xmlns:common="using:NyxAssetsEditor.Views.Common"
+		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerWindow"
+		x:DataType="vm:SpritesheetSlicerViewModel"
+		Title="Spritesheet Slicer"
+		Width="1380" Height="850" MinWidth="1050" MinHeight="650"
+		WindowStartupLocation="CenterOwner" Background="#141414" RequestedThemeVariant="Dark"
+		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
+		PointerWheelChanged="OnPointerWheelChanged" KeyDown="OnWindowKeyDown">
+	<Grid RowDefinitions="Auto,*,Auto">
+		<Border Grid.Row="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="10,7">
+			<Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,300">
+				<Button Grid.Column="0" Content="Open…" Click="OnOpenClick" Margin="0,0,6,0"/>
+				<Button Grid.Column="1" Content="↶ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="Rotate left" Margin="0,0,4,0"/>
+				<Button Grid.Column="2" Content="↷ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="Rotate right" Margin="0,0,4,0"/>
+				<Button Grid.Column="3" Content="Flip H" Command="{Binding FlipHorizontalCommand}" Margin="0,0,4,0"/>
+				<Button Grid.Column="4" Content="Flip V" Command="{Binding FlipVerticalCommand}" Margin="0,0,4,0"/>
+				<Button Grid.Column="5" Content="Magenta fill" Command="{Binding MagentaFillCommand}" Margin="0,0,4,0"/>
+				<Button Grid.Column="6" Content="Undo transform" Command="{Binding UndoTransformCommand}"/>
+				<StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+					<TextBlock Text="Import target" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+					<ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberBinding="{Binding DisplayName}" Width="210"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<Grid Grid.Row="1" ColumnDefinitions="300,6,*,6,330">
+			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+				<StackPanel Margin="12" Spacing="10">
+					<TextBlock Text="Grid and selection" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding SourceFileName}" Foreground="#AAAAAA" TextTrimming="CharacterEllipsis"/>
+					<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+						<TextBlock Grid.Row="0" Grid.Column="0" Text="Cell size" Foreground="#AAAAAA"/>
+						<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableCellSizes}" SelectedItem="{Binding CellSize}"/>
+						<TextBlock Grid.Row="1" Grid.Column="0" Text="X offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0"/>
+						<TextBlock Grid.Row="2" Grid.Column="0" Text="Y offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0"/>
+						<TextBlock Grid.Row="3" Grid.Column="0" Text="Columns × rows" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+							<NumericUpDown Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0" Width="72"/>
+							<NumericUpDown Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0" Width="72"/>
+						</StackPanel>
+					</Grid>
+					<StackPanel Orientation="Horizontal" Spacing="5">
+						<Button Content="X −cell" Click="OnCoarseNudgeClick" Tag="x-"/>
+						<Button Content="X +cell" Click="OnCoarseNudgeClick" Tag="x+"/>
+						<Button Content="Y −cell" Click="OnCoarseNudgeClick" Tag="y-"/>
+						<Button Content="Y +cell" Click="OnCoarseNudgeClick" Tag="y+"/>
+					</StackPanel>
+					<CheckBox Content="Draw subdivisions" IsChecked="{Binding Subdivisions}"/>
+					<CheckBox Content="Keep empty sprites in crop list" IsChecked="{Binding IncludeEmptySprites}"/>
+					<Button Content="Detect grid from separators" Command="{Binding DetectGridCommand}" HorizontalAlignment="Stretch"/>
+					<Separator/>
+					<TextBlock Text="Zoom" FontWeight="SemiBold"/>
+					<Grid ColumnDefinitions="*,60">
+						<Slider Minimum="0.1" Maximum="5" Value="{Binding Zoom}" SmallChange="0.1" LargeChange="0.5"/>
+						<TextBlock Grid.Column="1" Text="{Binding Zoom, StringFormat={}{0:0.0}×}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+					</Grid>
+					<Separator/>
+					<TextBlock Text="Thing import" FontSize="15" FontWeight="SemiBold"/>
+					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
+					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
+
+					<StackPanel IsVisible="{Binding UsesFootprint}" Spacing="6">
+						<TextBlock Text="Thing width / height (cells)" Foreground="#AAAAAA"/>
+						<StackPanel Orientation="Horizontal" Spacing="6">
+							<NumericUpDown Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0" Width="90"/>
+							<NumericUpDown Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0" Width="90"/>
+						</StackPanel>
+						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
+					</StackPanel>
+
+					<StackPanel IsVisible="{Binding IsOutfit}" Spacing="6">
+						<TextBlock Text="Outfit directions / frames" Foreground="#AAAAAA"/>
+						<StackPanel Orientation="Horizontal" Spacing="6">
+							<NumericUpDown Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0" Width="90"/>
+							<NumericUpDown Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" Width="90"/>
+						</StackPanel>
+						<TextBlock Text="{Binding OutfitLayoutHint}" Foreground="#E0B84D" TextWrapping="Wrap" FontSize="11"/>
+					</StackPanel>
+
+					<StackPanel IsVisible="{Binding IsItem}" Spacing="5">
+						<TextBlock Text="Template item (0 = none)" Foreground="#AAAAAA"/>
+						<NumericUpDown Value="{Binding TemplateItemId}" Minimum="0" Maximum="4294967295" FormatString="0" IsEnabled="{Binding IsCreateMode}"/>
+						<TextBox Watermark="Search template ID…" Text="{Binding TemplateSearch}" IsEnabled="{Binding IsCreateMode}"/>
+						<ComboBox ItemsSource="{Binding TemplateChoices}" SelectedItem="{Binding SelectedTemplate}" IsEnabled="{Binding IsCreateMode}">
+							<ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SlicerThingChoiceViewModel"><TextBlock Text="{Binding DisplayName}"/></DataTemplate></ComboBox.ItemTemplate>
+						</ComboBox>
+						<Border Width="44" Height="44" HorizontalAlignment="Left" Background="#555555"><Image Source="{Binding TemplatePreview}" Stretch="Uniform"/></Border>
+					</StackPanel>
+
+					<StackPanel IsVisible="{Binding ReplaceExisting}" Spacing="5">
+						<TextBlock Text="Existing thing ID" Foreground="#AAAAAA"/>
+						<NumericUpDown Value="{Binding ReplacementThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
+						<TextBox Watermark="Search target ID…" Text="{Binding ReplacementSearch}"/>
+						<ComboBox ItemsSource="{Binding ReplacementChoices}" SelectedItem="{Binding SelectedReplacement}">
+							<ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SlicerThingChoiceViewModel"><TextBlock Text="{Binding DisplayName}"/></DataTemplate></ComboBox.ItemTemplate>
+						</ComboBox>
+						<Border Width="44" Height="44" HorizontalAlignment="Left" Background="#555555"><Image Source="{Binding ReplacementPreview}" Stretch="Uniform"/></Border>
+					</StackPanel>
+					<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<GridSplitter Grid.Column="1" Background="#292929" ResizeBehavior="PreviousAndNext"/>
+			<Border Grid.Column="2" Background="#111111" DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop">
+				<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+					<common:SpritesheetCanvasControl DataContext="{Binding}"/>
+				</ScrollViewer>
+			</Border>
+			<GridSplitter Grid.Column="3" Background="#292929" ResizeBehavior="PreviousAndNext"/>
+
+			<Grid Grid.Column="4" RowDefinitions="Auto,*,Auto" Margin="10">
+				<StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
+					<TextBlock Text="Cropped sprites" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="Crop appends cells here. Thing import reads the live grid directly." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+				</StackPanel>
+				<ListBox Grid.Row="1" ItemsSource="{Binding CroppedSprites}" Background="#181818" BorderBrush="#333333">
+					<ListBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:SlicerPreviewViewModel">
+							<Grid ColumnDefinitions="42,*,Auto" Margin="4">
+								<Border Width="36" Height="36" Background="#555555"><Image Source="{Binding Preview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding Label}" Margin="8,0" VerticalAlignment="Center"/>
+								<Button Grid.Column="2" Content="×" Tag="{Binding}" Click="OnRemoveCroppedClick" ToolTip.Tip="Remove"/>
+							</Grid>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+				<StackPanel Grid.Row="2" Spacing="6" Margin="0,8,0,0">
+					<Button Content="Crop selection (Enter)" Command="{Binding CropCommand}" Background="#3A7BD5" Foreground="White"/>
+					<Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+						<Button Content="Clear" Command="{Binding ClearCroppedCommand}"/>
+						<Button Grid.Column="1" Content="Export PNGs…" Click="OnExportClick" IsEnabled="{Binding CanExport}"/>
+					</Grid>
+					<Button Content="Import cropped sprites" Command="{Binding ImportRawSpritesCommand}" IsEnabled="{Binding CanImportRaw}"/>
+				</StackPanel>
+			</Grid>
+		</Grid>
+
+		<Border Grid.Row="2" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="10,7">
+			<TextBlock Text="{Binding StatusMessage}" Foreground="#E0B84D" TextWrapping="Wrap"/>
+		</Border>
+	</Grid>
+</Window>

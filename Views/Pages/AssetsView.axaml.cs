@@ -10,6 +10,7 @@ namespace NyxAssetsEditor.Views.Pages
 	public partial class AssetsView : UserControl
 	{
 		private AssetsViewModel? _viewModel;
+		private SpritesheetSlicerWindow? _slicerWindow;
 
 		public AssetsView()
 		{
@@ -23,6 +24,7 @@ namespace NyxAssetsEditor.Views.Pages
 			{
 				_viewModel.CompileAsHandler = null;
 				_viewModel.PositionWebExportHandler = null;
+				_viewModel.OpenSlicerHandler = null;
 			}
 
 			_viewModel = DataContext as AssetsViewModel;
@@ -30,7 +32,24 @@ namespace NyxAssetsEditor.Views.Pages
 			{
 				_viewModel.CompileAsHandler = ShowCompileAsDialogAsync;
 				_viewModel.PositionWebExportHandler = PositionAndOpenWebExport;
+				_viewModel.OpenSlicerHandler = OpenSlicer;
 			}
+		}
+
+		private void OpenSlicer(ViewModels.ArchiveLoaders.FloatingSpriteLoaderViewModel? origin)
+		{
+			if (_viewModel == null) return;
+			if (_slicerWindow != null)
+			{
+				_slicerWindow.SelectTarget(origin);
+				_slicerWindow.Activate();
+				return;
+			}
+			var owner = TopLevel.GetTopLevel(this) as Window;
+			_slicerWindow = new SpritesheetSlicerWindow(_viewModel, origin);
+			_slicerWindow.Closed += (_, _) => _slicerWindow = null;
+			if (owner != null) _slicerWindow.Show(owner);
+			else _slicerWindow.Show();
 		}
 
 		private async Task ShowCompileAsDialogAsync()
