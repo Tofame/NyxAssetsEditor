@@ -153,6 +153,40 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
+	public void TransformCells_TransformsEachSelectedCellWithoutReorderingTheSheet()
+	{
+		var pixels = new byte[]
+		{
+			1,0,0,255, 2,0,0,255, 5,0,0,255, 6,0,0,255,
+			3,0,0,255, 4,0,0,255, 7,0,0,255, 8,0,0,255
+		};
+		var image = new SlicerImage(4, 2, pixels);
+
+		var transformed = SpritesheetSlicerService.TransformCells(
+			image, new SlicerGrid(0, 0, 2, 1, 2), SpritesheetSlicerService.RotateClockwise);
+
+		Assert.Equal((4, 2), (transformed.Width, transformed.Height));
+		Assert.Equal(new byte[] { 3, 1, 7, 5, 4, 2, 8, 6 }, RedChannel(transformed));
+		Assert.Equal(new byte[] { 1, 2, 5, 6, 3, 4, 7, 8 }, RedChannel(image));
+	}
+
+	[Fact]
+	public void TransformCells_DoesNotTouchCellsOutsideTheSelection()
+	{
+		var pixels = new byte[]
+		{
+			1,0,0,255, 2,0,0,255, 5,0,0,255, 6,0,0,255,
+			3,0,0,255, 4,0,0,255, 7,0,0,255, 8,0,0,255
+		};
+		var image = new SlicerImage(4, 2, pixels);
+
+		var transformed = SpritesheetSlicerService.TransformCells(
+			image, new SlicerGrid(2, 0, 1, 1, 2), SpritesheetSlicerService.FlipHorizontal);
+
+		Assert.Equal(new byte[] { 1, 2, 6, 5, 3, 4, 8, 7 }, RedChannel(transformed));
+	}
+
+	[Fact]
 	public void DetectGrid_UsesTheCompleteExactGridWithoutTrimmingTransparentCells()
 	{
 		var pixels = new byte[64 * 64 * 4];

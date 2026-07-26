@@ -18,10 +18,18 @@
 				</StackPanel>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
 					<Button Content="Open…" Click="OnOpenClick" Margin="0,0,2,0"/>
-					<Button Content="↶ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="Rotate left"/>
-					<Button Content="↷ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="Rotate right"/>
-					<Button Content="Flip H" Command="{Binding FlipHorizontalCommand}"/>
-					<Button Content="Flip V" Command="{Binding FlipVerticalCommand}"/>
+					<Button Content="Transform selection ▾" IsEnabled="{Binding CanCrop}"
+						ToolTip.Tip="Apply a transform to each selected sprite cell without changing cell order.">
+						<Button.Flyout>
+							<MenuFlyout Placement="BottomEdgeAlignedLeft">
+								<MenuItem Header="Rotate left 90°" Command="{Binding RotateLeftCommand}"/>
+								<MenuItem Header="Rotate right 90°" Command="{Binding RotateRightCommand}"/>
+								<Separator/>
+								<MenuItem Header="Flip horizontally" Command="{Binding FlipHorizontalCommand}"/>
+								<MenuItem Header="Flip vertically" Command="{Binding FlipVerticalCommand}"/>
+							</MenuFlyout>
+						</Button.Flyout>
+					</Button>
 					<Button Content="Magenta fill" Command="{Binding MagentaFillCommand}"/>
 					<Button Content="Undo transform" Command="{Binding UndoTransformCommand}"/>
 					<CheckBox Content="Snap to grid" IsChecked="{Binding SnapSelectionToGrid}" Margin="8,0,0,0"

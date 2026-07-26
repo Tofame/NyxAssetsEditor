@@ -598,11 +598,16 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		if (SelectedTarget?.ThingsPanel is { } things) _assets.OpenThingFinder(things, SelectedKind);
 	}
 
-	[RelayCommand(CanExecute = nameof(HasImage))] private void RotateLeft() => Transform(SpritesheetSlicerService.RotateCounterClockwise);
-	[RelayCommand(CanExecute = nameof(HasImage))] private void RotateRight() => Transform(SpritesheetSlicerService.RotateClockwise);
-	[RelayCommand(CanExecute = nameof(HasImage))] private void FlipHorizontal() => Transform(SpritesheetSlicerService.FlipHorizontal);
-	[RelayCommand(CanExecute = nameof(HasImage))] private void FlipVertical() => Transform(SpritesheetSlicerService.FlipVertical);
-	[RelayCommand(CanExecute = nameof(HasImage))] private void MagentaFill() => Transform(SpritesheetSlicerService.FillTransparentWithMagenta);
+	[RelayCommand(CanExecute = nameof(CanCrop))]
+	private void RotateLeft() => TransformSelection(SpritesheetSlicerService.RotateCounterClockwise, "Rotated left");
+	[RelayCommand(CanExecute = nameof(CanCrop))]
+	private void RotateRight() => TransformSelection(SpritesheetSlicerService.RotateClockwise, "Rotated right");
+	[RelayCommand(CanExecute = nameof(CanCrop))]
+	private void FlipHorizontal() => TransformSelection(SpritesheetSlicerService.FlipHorizontal, "Flipped horizontally");
+	[RelayCommand(CanExecute = nameof(CanCrop))]
+	private void FlipVertical() => TransformSelection(SpritesheetSlicerService.FlipVertical, "Flipped vertically");
+	[RelayCommand(CanExecute = nameof(HasImage))]
+	private void MagentaFill() => TransformImage(SpritesheetSlicerService.FillTransparentWithMagenta, "Filled transparent pixels with magenta.");
 
 	[RelayCommand(CanExecute = nameof(CanUndoTransform))]
 	private void UndoTransform()
@@ -660,7 +665,19 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		return _state;
 	}
 
-	private void Transform(Func<SlicerImage, SlicerImage> operation)
+	private void TransformSelection(Func<SlicerImage, SlicerImage> operation, string action)
+	{
+		if (_image == null) return;
+		var grid = CurrentGrid();
+		_undoImage = _image.Copy();
+		_undoGrid = grid;
+		ApplyImage(SpritesheetSlicerService.TransformCells(_image, grid, operation), resetGrid: false, clearCropped: false);
+		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
+		var count = grid.Columns * grid.Rows;
+		Status(false, $"{action} {count} selected sprite cell{(count == 1 ? "" : "s")}.");
+	}
+
+	private void TransformImage(Func<SlicerImage, SlicerImage> operation, string status)
 	{
 		if (_image == null) return;
 		_undoImage = _image.Copy();
@@ -669,7 +686,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		var dimensionsChanged = transformed.Width != _image.Width || transformed.Height != _image.Height;
 		ApplyImage(transformed, resetGrid: dimensionsChanged, clearCropped: false);
 		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
-		Status(false, "Sheet transform applied in memory.");
+		Status(false, status);
 	}
 
 	private void ApplyImage(SlicerImage image, bool resetGrid, bool clearCropped)

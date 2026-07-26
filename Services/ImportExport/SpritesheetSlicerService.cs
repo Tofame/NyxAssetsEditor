@@ -222,6 +222,39 @@ public static class SpritesheetSlicerService
 		return new SlicerImage(source.Width, source.Height, output);
 	}
 
+	public static SlicerImage TransformCells(
+		SlicerImage source,
+		SlicerGrid requestedGrid,
+		Func<SlicerImage, SlicerImage> operation)
+	{
+		ArgumentNullException.ThrowIfNull(operation);
+		var grid = ClampGrid(requestedGrid, source.Width, source.Height);
+		if (grid.Columns <= 0 || grid.Rows <= 0)
+			throw new InvalidOperationException("Select at least one complete sprite cell to transform.");
+
+		var output = (byte[])source.Rgba.Clone();
+		var bytesPerRow = grid.CellSize * 4;
+		for (var column = 0; column < grid.Columns; column++)
+		for (var row = 0; row < grid.Rows; row++)
+		{
+			var x = grid.X + column * grid.CellSize;
+			var y = grid.Y + row * grid.CellSize;
+			var cell = new SlicerImage(grid.CellSize, grid.CellSize, CopyCell(source, x, y, grid.CellSize));
+			var transformed = operation(cell);
+			if (transformed.Width != grid.CellSize || transformed.Height != grid.CellSize ||
+				transformed.Rgba.Length != cell.Rgba.Length)
+				throw new InvalidOperationException("A selected-cell transform must preserve the sprite cell dimensions.");
+
+			for (var pixelRow = 0; pixelRow < grid.CellSize; pixelRow++)
+				Buffer.BlockCopy(
+					transformed.Rgba, pixelRow * bytesPerRow,
+					output, ((y + pixelRow) * source.Width + x) * 4,
+					bytesPerRow);
+		}
+
+		return new SlicerImage(source.Width, source.Height, output);
+	}
+
 	public static SlicerImage FillTransparentWithMagenta(SlicerImage source)
 	{
 		var output = (byte[])source.Rgba.Clone();
