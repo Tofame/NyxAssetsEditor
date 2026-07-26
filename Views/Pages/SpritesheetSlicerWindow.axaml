@@ -11,17 +11,24 @@
 		PointerWheelChanged="OnPointerWheelChanged" KeyDown="OnWindowKeyDown">
 	<Grid RowDefinitions="Auto,*,Auto">
 		<Border Grid.Row="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="10,7">
-			<Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,300">
-				<Button Grid.Column="0" Content="Open…" Click="OnOpenClick" Margin="0,0,6,0"/>
-				<Button Grid.Column="1" Content="↶ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="Rotate left" Margin="0,0,4,0"/>
-				<Button Grid.Column="2" Content="↷ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="Rotate right" Margin="0,0,4,0"/>
-				<Button Grid.Column="3" Content="Flip H" Command="{Binding FlipHorizontalCommand}" Margin="0,0,4,0"/>
-				<Button Grid.Column="4" Content="Flip V" Command="{Binding FlipVerticalCommand}" Margin="0,0,4,0"/>
-				<Button Grid.Column="5" Content="Magenta fill" Command="{Binding MagentaFillCommand}" Margin="0,0,4,0"/>
-				<Button Grid.Column="6" Content="Undo transform" Command="{Binding UndoTransformCommand}"/>
-				<StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+			<Grid ColumnDefinitions="Auto,*,Auto,Auto">
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
 					<TextBlock Text="Import target" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 					<ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberBinding="{Binding DisplayName}" Width="210"/>
+				</StackPanel>
+				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+					<Button Content="Open…" Click="OnOpenClick" Margin="0,0,2,0"/>
+					<Button Content="↶ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="Rotate left"/>
+					<Button Content="↷ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="Rotate right"/>
+					<Button Content="Flip H" Command="{Binding FlipHorizontalCommand}"/>
+					<Button Content="Flip V" Command="{Binding FlipVerticalCommand}"/>
+					<Button Content="Magenta fill" Command="{Binding MagentaFillCommand}"/>
+					<Button Content="Undo transform" Command="{Binding UndoTransformCommand}"/>
+				</StackPanel>
+				<TextBlock Grid.Column="2" Text="Zoom" Foreground="#AAAAAA" VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" MinWidth="200">
+					<Slider Width="140" Minimum="0.1" Maximum="5" Value="{Binding Zoom}" SmallChange="0.1" LargeChange="0.5" VerticalAlignment="Center"/>
+					<TextBlock Text="{Binding Zoom, StringFormat={}{0:0.0}×}" VerticalAlignment="Center" MinWidth="36"/>
 				</StackPanel>
 			</Grid>
 		</Border>
@@ -53,12 +60,6 @@
 					<CheckBox Content="Draw subdivisions" IsChecked="{Binding Subdivisions}"/>
 					<CheckBox Content="Keep empty sprites in crop list" IsChecked="{Binding IncludeEmptySprites}"/>
 					<Button Content="Detect grid from separators" Command="{Binding DetectGridCommand}" HorizontalAlignment="Stretch"/>
-					<Separator/>
-					<TextBlock Text="Zoom" FontWeight="SemiBold"/>
-					<Grid ColumnDefinitions="*,60">
-						<Slider Minimum="0.1" Maximum="5" Value="{Binding Zoom}" SmallChange="0.1" LargeChange="0.5"/>
-						<TextBlock Grid.Column="1" Text="{Binding Zoom, StringFormat={}{0:0.0}×}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-					</Grid>
 					<Separator/>
 					<TextBlock Text="Thing import" FontSize="15" FontWeight="SemiBold"/>
 					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
