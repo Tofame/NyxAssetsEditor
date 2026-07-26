@@ -27,6 +27,13 @@ public sealed record GridDetectionResult(bool Success, SlicerGrid Grid, string M
 /// <summary>Pure pixel and grid operations used by the spritesheet slicer.</summary>
 public static class SpritesheetSlicerService
 {
+	public static double RecommendZoom(int width, int height)
+	{
+		if (width > 0 && height > 0 && width < 128 && height < 128) return 4;
+		if (width > 0 && height > 0 && width < 256 && height < 256) return 2;
+		return 1;
+	}
+
 	public static SlicerImage Load(string path)
 	{
 		using var bitmap = SKBitmap.Decode(path) ?? throw new InvalidOperationException("The selected image could not be decoded.");
@@ -37,7 +44,14 @@ public static class SpritesheetSlicerService
 			canvas.Clear(SKColors.Transparent);
 			canvas.DrawBitmap(bitmap, 0, 0);
 		}
-		return new SlicerImage(converted.Width, converted.Height, converted.Bytes);
+		return RemoveOpaqueMagenta(new SlicerImage(converted.Width, converted.Height, converted.Bytes));
+	}
+
+	public static SlicerImage RemoveOpaqueMagenta(SlicerImage source)
+	{
+		var pixels = (byte[])source.Rgba.Clone();
+		NormalizeMagentaInPlace(pixels);
+		return new SlicerImage(source.Width, source.Height, pixels);
 	}
 
 	public static SlicerGrid ClampGrid(SlicerGrid grid, int imageWidth, int imageHeight)

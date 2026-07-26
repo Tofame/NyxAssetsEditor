@@ -13,6 +13,36 @@ namespace NyxAssetsEditor.Tests;
 public class SpritesheetSlicerServiceTests
 {
 	[Fact]
+	public void RemoveOpaqueMagenta_PreservesNonKeyPixels()
+	{
+		var image = new SlicerImage(3, 1, new byte[]
+		{
+			255, 0, 255, 255,
+			254, 0, 255, 255,
+			255, 0, 255, 128
+		});
+
+		var normalized = SpritesheetSlicerService.RemoveOpaqueMagenta(image);
+
+		Assert.Equal(new byte[] { 0, 0, 0, 0 }, normalized.Rgba[..4]);
+		Assert.Equal(new byte[] { 254, 0, 255, 255 }, normalized.Rgba[4..8]);
+		Assert.Equal(new byte[] { 255, 0, 255, 128 }, normalized.Rgba[8..12]);
+		Assert.Equal(new byte[] { 255, 0, 255, 255 }, image.Rgba[..4]);
+	}
+
+	[Theory]
+	[InlineData(32, 32, 4)]
+	[InlineData(127, 127, 4)]
+	[InlineData(128, 128, 2)]
+	[InlineData(255, 255, 2)]
+	[InlineData(256, 256, 1)]
+	[InlineData(64, 256, 1)]
+	public void RecommendZoom_UsesPixelSafeLevelsForSmallSheets(int width, int height, double expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.RecommendZoom(width, height));
+	}
+
+	[Fact]
 	public void Slice_NormalizesMagentaAndHonorsEmptyOption()
 	{
 		var pixels = new byte[64 * 32 * 4];

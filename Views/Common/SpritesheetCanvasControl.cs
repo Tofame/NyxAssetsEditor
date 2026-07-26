@@ -164,8 +164,8 @@ public sealed class SpritesheetCanvasControl : Control
 			case Key.Up: _viewModel.NudgeGrid(0, -1); e.Handled = true; break;
 			case Key.Down: _viewModel.NudgeGrid(0, 1); e.Handled = true; break;
 			case Key.Enter when !control && _viewModel.CropCommand.CanExecute(null): _viewModel.CropCommand.Execute(null); e.Handled = true; break;
-			case Key.OemPlus when control: _viewModel.Zoom += 0.1; e.Handled = true; break;
-			case Key.OemMinus when control: _viewModel.Zoom -= 0.1; e.Handled = true; break;
+			case Key.OemPlus when control: _viewModel.ZoomIn(); e.Handled = true; break;
+			case Key.OemMinus when control: _viewModel.ZoomOut(); e.Handled = true; break;
 		}
 	}
 

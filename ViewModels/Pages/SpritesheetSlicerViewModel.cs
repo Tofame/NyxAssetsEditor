@@ -106,6 +106,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public ObservableCollection<SlicerTargetViewModel> Targets { get; } = new();
 	public ObservableCollection<SlicerPreviewViewModel> CroppedSprites { get; } = new();
 	public IReadOnlyList<int> AvailableCellSizes { get; } = new[] { SpriteModel.SpriteSize };
+	public IReadOnlyList<double> AvailableZoomLevels { get; } = new[] { 1d, 2d, 4d, 8d, 16d };
 	public IReadOnlyList<ThingKind> ThingKinds { get; } = new[] { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile };
 
 	public SlicerImage? Image => _image;
@@ -140,7 +141,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			if (value) ApplyAutomaticGrid(showStatus: true);
 		}
 	}
-	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, Math.Clamp(value, 0.1, 5)); }
+	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
@@ -317,6 +318,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	}
 
 	public void NudgeGrid(int dx, int dy) => MoveGridTo(OffsetX + dx, OffsetY + dy);
+	public void ZoomIn() => Zoom = AvailableZoomLevels.FirstOrDefault(level => level > Zoom, AvailableZoomLevels[^1]);
+	public void ZoomOut() => Zoom = AvailableZoomLevels.LastOrDefault(level => level < Zoom, AvailableZoomLevels[0]);
 
 	[RelayCommand(CanExecute = nameof(CanCrop))]
 	private void Crop()
@@ -498,7 +501,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		SheetBitmap?.Dispose(); SheetBitmap = _renderer.ConvertRgba(image.Width, image.Height, image.Rgba);
 		if (resetGrid)
 		{
-			_columns = 1; _rows = 1; _offsetX = 0; _offsetY = 0; Zoom = 1;
+			_columns = 1; _rows = 1; _offsetX = 0; _offsetY = 0;
+			Zoom = SpritesheetSlicerService.RecommendZoom(image.Width, image.Height);
 		}
 		ClampAndNotifyGrid(forceNotifications: true);
 		if (resetGrid && AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: false);
@@ -509,6 +513,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	}
 
 	private SlicerGrid CurrentGrid() => SpritesheetSlicerService.ClampGrid(new SlicerGrid(OffsetX, OffsetY, Columns, Rows, CellSize), ImageWidth, ImageHeight);
+
+	private double SnapZoom(double requested)
+	{
+		var rounded = Math.Round(Math.Clamp(requested, AvailableZoomLevels[0], AvailableZoomLevels[^1]), 1);
+		var preset = AvailableZoomLevels.OrderBy(level => Math.Abs(level - rounded)).First();
+		return Math.Abs(preset - rounded) <= 0.15 ? preset : rounded;
+	}
 
 	private void ManualGridChanged()
 	{

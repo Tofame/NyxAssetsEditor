@@ -19,16 +19,24 @@ public partial class SpritesheetSlicerWindow : Window
 	public SpritesheetSlicerWindow()
 	{
 		InitializeComponent();
+		RegisterZoomWheelHandler();
 	}
 
 	public SpritesheetSlicerWindow(AssetsViewModel assets, FloatingSpriteLoaderViewModel? origin = null)
 	{
 		InitializeComponent();
+		RegisterZoomWheelHandler();
 		DataContext = new SpritesheetSlicerViewModel(assets, origin);
 		Opened += OnOpened;
 		Activated += OnActivated;
 		Closing += OnClosing;
 	}
+
+	private void RegisterZoomWheelHandler() => AddHandler(
+		InputElement.PointerWheelChangedEvent,
+		OnPointerWheelChanged,
+		RoutingStrategies.Tunnel,
+		handledEventsToo: true);
 
 	private void OnActivated(object? sender, EventArgs e) => ViewModel.RefreshTargets();
 
@@ -108,7 +116,8 @@ public partial class SpritesheetSlicerWindow : Window
 	private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
 	{
 		if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-		ViewModel.Zoom += e.Delta.Y > 0 ? 0.1 : -0.1;
+		if (e.Delta.Y > 0) ViewModel.ZoomIn();
+		else ViewModel.ZoomOut();
 		e.Handled = true;
 	}
 
@@ -133,7 +142,7 @@ public partial class SpritesheetSlicerWindow : Window
 			}
 		}
 		if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-		if (e.Key is Key.OemPlus or Key.Add) { ViewModel.Zoom += 0.1; e.Handled = true; }
-		else if (e.Key is Key.OemMinus or Key.Subtract) { ViewModel.Zoom -= 0.1; e.Handled = true; }
+		if (e.Key is Key.OemPlus or Key.Add) { ViewModel.ZoomIn(); e.Handled = true; }
+		else if (e.Key is Key.OemMinus or Key.Subtract) { ViewModel.ZoomOut(); e.Handled = true; }
 	}
 }
