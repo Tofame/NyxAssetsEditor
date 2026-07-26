@@ -75,23 +75,40 @@
 
 					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
 						<TextBlock Text="Frame-group layout" Foreground="#AAAAAA"/>
-						<TextBlock Text="Matches Object Builder's Layers, Pattern X/Y/Z, and Frames fields." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
+						<TextBlock Text="Describes how the selected cells map into the DAT frame group." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
 						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
-							<TextBlock Grid.Row="0" Grid.Column="0" Text="Layers:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingLayers}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Layers:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingLayers}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Content="Recolour channels (mask layer)" IsChecked="{Binding OutfitHasRecolourMask}"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Each base sprite is followed by its visible head/body/legs/feet mask sprite."/>
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Pattern X:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingPatternX}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Directions:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding IsOutfit}"/>
-							<TextBlock Grid.Row="2" Grid.Column="0" Text="Pattern Y:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingPatternY}" Minimum="1" Maximum="32" FormatString="0"/>
-							<TextBlock Grid.Row="3" Grid.Column="0" Text="Pattern Z:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-							<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding ThingPatternZ}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Pattern Y:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Addons:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingPatternY}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OutfitAddonCount}" Minimum="0" Maximum="31" FormatString="0"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Number of addon patterns after the base body. Two addons are stored internally as Pattern Y = 3."/>
+							<TextBlock Grid.Row="3" Grid.Column="0" Text="Pattern Z:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding ThingPatternZ}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="Mounted rider pose" IsChecked="{Binding OutfitHasMountedPose}"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Adds the mounted rider pose as Pattern Z = 2. The mount itself remains a separate outfit ID."/>
 							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding ThingFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
 							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding IsOutfit}"/>
 						</Grid>
 						<TextBlock Text="Missiles commonly use a 3 × 3 Pattern X/Y direction grid; use the values stored by the source thing." Foreground="#888888" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsMissile}"/>
+						<Border Background="#182128" BorderBrush="#35566A" BorderThickness="1" CornerRadius="4" Padding="7" IsVisible="{Binding IsOutfit}">
+							<StackPanel Spacing="4">
+								<TextBlock Text="Recolourable outfit sheets use 2 visible sprite layers: base artwork, then its mask. Mask colours are yellow = head, red = body, green = legs, and blue = feet." Foreground="#9FC7DC" FontSize="10" TextWrapping="Wrap"/>
+								<TextBlock Text="The mask cells are part of the raw spritesheet. Keep them inside the selection; the slicer imports their pixels unchanged and stores them as the second layer." Foreground="#9FC7DC" FontSize="10" TextWrapping="Wrap"/>
+								<TextBlock Text="Addon count maps to Pattern Y after the base body. Mounted rider pose maps to Pattern Z; the selected mount is stored as a separate outfit ID in the looktype." Foreground="#9FC7DC" FontSize="10" TextWrapping="Wrap"/>
+							</StackPanel>
+						</Border>
 						<TextBlock Text="{Binding OutfitFrameGroupHint}" Foreground="#C8B98F" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsOutfit}"/>
 						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
 						<Border Background="#211E19" BorderBrush="#4B4437" BorderThickness="1" CornerRadius="4" Padding="7">

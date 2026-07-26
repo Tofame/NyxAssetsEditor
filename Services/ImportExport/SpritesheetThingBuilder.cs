@@ -141,7 +141,10 @@ public static class SpritesheetThingBuilder
 			for (var screenY = 0; screenY < height; screenY++)
 			for (var screenX = 0; screenX < width; screenX++)
 			{
-				// Object Builder packs textures in frame -> Z -> Y -> X -> layer order.
+				// DAT textures are packed in frame -> Z -> Y -> X -> layer order.
+				// For outfits, X is direction, Y is the base body plus addon patterns,
+				// Z selects normal/mounted rider poses, and the usual two layers are
+				// base artwork followed by the combined head/body/legs/feet colour mask.
 				// Its sheet uses textureIndex % totalX for the texture column and
 				// textureIndex / totalX for the row. Keep this formula beside the
 				// GetSpriteIndex call to prevent row-major packing regressions.

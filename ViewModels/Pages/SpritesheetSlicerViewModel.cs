@@ -160,13 +160,55 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
-	public int ThingLayers { get => _thingLayers; set { if (SetProperty(ref _thingLayers, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingLayers
+	{
+		get => _thingLayers;
+		set
+		{
+			if (!SetProperty(ref _thingLayers, Math.Max(1, value))) return;
+			OnPropertyChanged(nameof(OutfitHasRecolourMask));
+			NotifyValidation();
+		}
+	}
 	public int ThingPatternX { get => _thingPatternX; set { if (SetProperty(ref _thingPatternX, Math.Max(1, value))) NotifyValidation(); } }
-	public int ThingPatternY { get => _thingPatternY; set { if (SetProperty(ref _thingPatternY, Math.Max(1, value))) NotifyValidation(); } }
-	public int ThingPatternZ { get => _thingPatternZ; set { if (SetProperty(ref _thingPatternZ, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingPatternY
+	{
+		get => _thingPatternY;
+		set
+		{
+			if (!SetProperty(ref _thingPatternY, Math.Max(1, value))) return;
+			OnPropertyChanged(nameof(OutfitAddonCount));
+			NotifyValidation();
+		}
+	}
+	public int ThingPatternZ
+	{
+		get => _thingPatternZ;
+		set
+		{
+			if (!SetProperty(ref _thingPatternZ, Math.Max(1, value))) return;
+			OnPropertyChanged(nameof(OutfitHasMountedPose));
+			NotifyValidation();
+		}
+	}
 	public int ThingFrames { get => _thingFrames; set { if (SetProperty(ref _thingFrames, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitFrames { get => _outfitFrames; set { if (SetProperty(ref _outfitFrames, Math.Max(1, value))) NotifyValidation(); } }
+	public bool OutfitHasRecolourMask
+	{
+		get => ThingLayers >= 2;
+		set => ThingLayers = value ? 2 : 1;
+	}
+	public int OutfitAddonCount
+	{
+		get => Math.Max(0, ThingPatternY - 1);
+		set => ThingPatternY = checked(Math.Max(0, value) + 1);
+	}
+	public bool OutfitHasMountedPose
+	{
+		get => ThingPatternZ >= 2;
+		set => ThingPatternZ = value ? 2 : 1;
+	}
 	public uint TemplateThingId
 	{
 		get => _templateThingId;

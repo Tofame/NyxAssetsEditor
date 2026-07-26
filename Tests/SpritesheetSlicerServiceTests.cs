@@ -30,6 +30,20 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(new byte[] { 255, 0, 255, 255 }, image.Rgba[..4]);
 	}
 
+	[Fact]
+	public void Slice_PreservesOutfitMaskChannelValues()
+	{
+		var mask = new byte[]
+		{
+			255, 255, 0, 255, 128, 0, 0, 255,
+			0, 96, 0, 255, 0, 0, 64, 255
+		};
+		var cells = SpritesheetSlicerService.Slice(
+			new SlicerImage(2, 2, mask), new SlicerGrid(0, 0, 1, 1, 2), includeEmpty: true);
+
+		Assert.Equal(mask, cells.Single().Rgba);
+	}
+
 	[Theory]
 	[InlineData(32, 32, 4)]
 	[InlineData(127, 127, 4)]
@@ -334,6 +348,24 @@ public class SpritesheetThingBuilderTests
 		Assert.Equal((uint)4, group.PatternX);
 		Assert.Equal((uint)3, group.Frames);
 		Assert.DoesNotContain((uint)55, group.SpriteIds);
+	}
+
+	[Fact]
+	public void Outfit_PreservesRecolourAddonAndMountedPoseAxes()
+	{
+		// 4 directions, 2 sprite layers, 3 PatternY entries (body + two addons),
+		// and 2 PatternZ entries (normal + mounted rider) occupy 16 x 3 cells.
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 16, 3, 32), Cells(16, 3), 1000, 60,
+			0, 0, 2, 4, 3, 2, 1, 250, true, null, null));
+		var group = result.Things.Single().FrameGroups.Single();
+
+		Assert.Equal((uint)2, group.Layers);
+		Assert.Equal((uint)4, group.PatternX);
+		Assert.Equal((uint)3, group.PatternY);
+		Assert.Equal((uint)2, group.PatternZ);
+		Assert.True(group.TryGetSpriteId(0, 0, 1, 3, 2, 1, 0, out var lastMaskSlot));
+		Assert.Equal((uint)1047, lastMaskSlot);
 	}
 
 	[Theory]
