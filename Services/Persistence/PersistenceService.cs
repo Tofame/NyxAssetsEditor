@@ -71,6 +71,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
 			public int ThingExactSize { get; set; } = 32;
+			public bool AutomaticCropSize { get; set; } = true;
 			public int ThingLayers { get; set; } = 1;
 			public int ThingPatternX { get; set; } = 1;
 			public int ThingPatternY { get; set; } = 1;
@@ -244,6 +245,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
 			ThingExactSize = _slicerState.ThingExactSize,
+			AutomaticCropSize = _slicerState.AutomaticCropSize,
 			ThingLayers = _slicerState.ThingLayers,
 			ThingPatternX = _slicerState.ThingPatternX,
 			ThingPatternY = _slicerState.ThingPatternY,

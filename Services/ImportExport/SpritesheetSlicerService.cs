@@ -44,6 +44,14 @@ public static class SpritesheetSlicerService
 		return 1;
 	}
 
+	public static int RecommendExactSize(int widthCells, int heightCells, int cellSize)
+	{
+		if (widthCells <= 0) throw new ArgumentOutOfRangeException(nameof(widthCells));
+		if (heightCells <= 0) throw new ArgumentOutOfRangeException(nameof(heightCells));
+		if (cellSize <= 0) throw new ArgumentOutOfRangeException(nameof(cellSize));
+		return (int)Math.Clamp((long)Math.Max(widthCells, heightCells) * cellSize, 1, byte.MaxValue);
+	}
+
 	public static SlicerImage Load(string path)
 	{
 		using var bitmap = SKBitmap.Decode(path) ?? throw new InvalidOperationException("The selected image could not be decoded.");

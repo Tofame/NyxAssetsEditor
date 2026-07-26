@@ -69,6 +69,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _thingWidth;
 	private int _thingHeight;
 	private int _thingExactSize = 32;
+	private bool _automaticCropSize = true;
 	private int _thingLayers = 1;
 	private int _thingPatternX = 1;
 	private int _thingPatternY = 1;
@@ -104,6 +105,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_thingExactSize = Math.Clamp(_state.ThingExactSize, 1, 255);
+		_automaticCropSize = _state.AutomaticCropSize;
 		_thingLayers = Math.Max(1, _state.ThingLayers);
 		_thingPatternX = Math.Max(1, _state.ThingPatternX);
 		_thingPatternY = Math.Max(1, _state.ThingPatternY);
@@ -159,6 +161,15 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingExactSize { get => _thingExactSize; set => SetProperty(ref _thingExactSize, Math.Clamp(value, 1, 255)); }
+	public bool AutomaticCropSize
+	{
+		get => _automaticCropSize;
+		set
+		{
+			if (!SetProperty(ref _automaticCropSize, value)) return;
+			UpdateAutomaticCropSize();
+		}
+	}
 	public int ThingLayers
 	{
 		get => _thingLayers;
@@ -308,6 +319,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		{
 			if (!SetProperty(ref _selectedKind, value)) return;
 			TemplateThingId = 0;
+			AutomaticCropSize = true;
 			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(IsMissile));
 			OnPropertyChanged(nameof(ShowSingleOutfitFrames)); OnPropertyChanged(nameof(ShowSeparateOutfitFrames));
 			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
@@ -655,6 +667,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_state.WasMaximized = maximized;
 		_state.SnapSelectionToGrid = SnapSelectionToGrid;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.ThingExactSize = ThingExactSize;
+		_state.AutomaticCropSize = AutomaticCropSize;
 		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
 		_state.ThingPatternY = ThingPatternY; _state.ThingPatternZ = ThingPatternZ; _state.ThingFrames = ThingFrames;
 		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames;
@@ -750,6 +763,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	{
 		var group = thing.FrameGroups.FirstOrDefault();
 		if (group == null) return;
+		AutomaticCropSize = false;
 		ThingWidth = (int)(group.Width == 0 ? 1u : group.Width);
 		ThingHeight = (int)(group.Height == 0 ? 1u : group.Height);
 		ThingExactSize = (int)(group.ExactSize == 0 ? 32u : group.ExactSize);
@@ -866,12 +880,57 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	private void NotifyValidation()
 	{
+		UpdateAutomaticCropSize();
 		OnPropertyChanged(nameof(SplitHint));
 		OnPropertyChanged(nameof(ThingSheetColumns));
 		OnPropertyChanged(nameof(ThingSheetRows));
 		OnPropertyChanged(nameof(UsesCombinedLayout));
 		OnPropertyChanged(nameof(OutfitFrameGroupHint));
 		NotifyCommands();
+	}
+
+	private void UpdateAutomaticCropSize()
+	{
+		if (!AutomaticCropSize || !TryGetEffectiveFootprint(out var width, out var height)) return;
+		var exactSize = SpritesheetSlicerService.RecommendExactSize(width, height, CellSize);
+		if (_thingExactSize == exactSize) return;
+		_thingExactSize = exactSize;
+		OnPropertyChanged(nameof(ThingExactSize));
+	}
+
+	private bool TryGetEffectiveFootprint(out int width, out int height)
+	{
+		width = 0;
+		height = 0;
+		var source = ReplaceExisting ? SelectedReplacement?.Thing : UseTemplate ? SelectedTemplate?.Thing : null;
+		if (source is { FrameGroups.Count: > 1 })
+		{
+			width = checked((int)source.FrameGroups.Max(group => Math.Max(1u, group.Width)));
+			height = checked((int)source.FrameGroups.Max(group => Math.Max(1u, group.Height)));
+			return true;
+		}
+
+		if (ThingWidth > 0 && ThingHeight > 0)
+		{
+			width = ThingWidth;
+			height = ThingHeight;
+			return true;
+		}
+		if (ThingWidth != 0 || ThingHeight != 0) return false;
+
+		var patternX = IsOutfit ? OutfitDirections : ThingPatternX;
+		var frames = IsOutfit ? OutfitLayoutFrames : ThingFrames;
+		var textureColumns = (long)ThingLayers * patternX * ThingPatternZ;
+		var textureRows = (long)frames * ThingPatternY;
+		if (textureColumns <= 0 || textureRows <= 0 ||
+			Columns % textureColumns != 0 || Rows % textureRows != 0) return false;
+
+		var inferredWidth = Columns / textureColumns;
+		var inferredHeight = Rows / textureRows;
+		if (inferredWidth <= 0 || inferredHeight <= 0 || inferredWidth > int.MaxValue || inferredHeight > int.MaxValue) return false;
+		width = (int)inferredWidth;
+		height = (int)inferredHeight;
+		return true;
 	}
 
 	private void NotifyCommands()

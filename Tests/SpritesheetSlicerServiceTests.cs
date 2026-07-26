@@ -59,6 +59,16 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(expected, SpritesheetSlicerService.RecommendZoom(width, height));
 	}
 
+	[Theory]
+	[InlineData(1, 1, 32)]
+	[InlineData(2, 1, 64)]
+	[InlineData(2, 2, 64)]
+	[InlineData(8, 8, 255)]
+	public void RecommendExactSize_UsesTheSafeFullFootprint(int width, int height, int expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.RecommendExactSize(width, height, 32));
+	}
+
 	[Fact]
 	public void Slice_NormalizesMagentaAndHonorsEmptyOption()
 	{
@@ -248,7 +258,7 @@ public class SpritesheetSlicerServiceTests
 			Slicer = new PersistenceService.SlicerStateModel
 			{
 				WasMaximized = true, LastOpenDirectory = "images", LastExportDirectory = "exports",
-				ThingWidth = 2, ThingHeight = 3, ThingExactSize = 48, ThingLayers = 2,
+				ThingWidth = 2, ThingHeight = 3, ThingExactSize = 48, AutomaticCropSize = false, ThingLayers = 2,
 				ThingPatternX = 4, ThingPatternY = 3, ThingPatternZ = 2, ThingFrames = 6,
 				OutfitDirections = 8, OutfitFrames = 4, OutfitSeparateFrameGroups = true,
 				OutfitIdleFrames = 8, OutfitWalkingFrames = 8, ThingKind = "Missile", ReplaceExisting = true
@@ -258,6 +268,7 @@ public class SpritesheetSlicerServiceTests
 		Assert.NotNull(restored);
 		Assert.True(restored!.Slicer.WasMaximized);
 		Assert.Equal(48, restored.Slicer.ThingExactSize);
+		Assert.False(restored.Slicer.AutomaticCropSize);
 		Assert.Equal(2, restored.Slicer.ThingLayers);
 		Assert.Equal(4, restored.Slicer.ThingPatternX);
 		Assert.Equal(3, restored.Slicer.ThingPatternY);
@@ -277,6 +288,7 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(4, defaults.OutfitDirections);
 		Assert.Equal(3, defaults.OutfitFrames);
 		Assert.Equal(32, defaults.ThingExactSize);
+		Assert.True(defaults.AutomaticCropSize);
 		Assert.Equal(1, defaults.OutfitIdleFrames);
 		Assert.Equal(2, defaults.OutfitWalkingFrames);
 		Assert.Equal(1, defaults.ThingLayers);
