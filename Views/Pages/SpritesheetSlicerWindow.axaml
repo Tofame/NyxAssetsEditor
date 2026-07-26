@@ -39,18 +39,20 @@
 					<TextBlock Text="Grid and selection" FontSize="15" FontWeight="SemiBold"/>
 					<TextBlock Text="{Binding SourceFileName}" Foreground="#AAAAAA" TextTrimming="CharacterEllipsis"/>
 					<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
-						<TextBlock Grid.Row="0" Grid.Column="0" Text="Cell size" Foreground="#AAAAAA"/>
-						<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableCellSizes}" SelectedItem="{Binding CellSize}"/>
+						<TextBlock Grid.Row="0" Grid.Column="0" Text="Crop size" Foreground="#AAAAAA"/>
+						<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableCellSizes}" SelectedItem="{Binding CellSize}"
+							ToolTip.Tip="Uses the project sprite size. Display-size settings do not change SPR pixel dimensions."/>
 						<TextBlock Grid.Row="1" Grid.Column="0" Text="X offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0"/>
+						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
 						<TextBlock Grid.Row="2" Grid.Column="0" Text="Y offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0"/>
+						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
 						<TextBlock Grid.Row="3" Grid.Column="0" Text="Columns:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0"/>
+						<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
 						<TextBlock Grid.Row="4" Grid.Column="0" Text="Rows:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0"/>
+						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
 					</Grid>
-					<Button Content="Detect grid from separators" Command="{Binding DetectGridCommand}" HorizontalAlignment="Stretch"/>
+					<CheckBox Content="Auto-detect sprite grid" IsChecked="{Binding AutoDetectSpriteGrid}"
+						ToolTip.Tip="Fits the grid to the project sprite size and uses transparent separators when detected. Turn off to edit the grid manually."/>
 					<Separator/>
 					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
 					<TextBlock Text="Build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>

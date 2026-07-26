@@ -112,6 +112,7 @@ public class SpritesheetSlicerServiceTests
 			Slicer = new PersistenceService.SlicerStateModel
 			{
 				WasMaximized = true, LastOpenDirectory = "images", LastExportDirectory = "exports",
+				AutoDetectSpriteGrid = false,
 				ThingWidth = 2, ThingHeight = 3,
 				OutfitDirections = 8, OutfitFrames = 4, ThingKind = "Missile", ReplaceExisting = true
 			}
@@ -119,8 +120,15 @@ public class SpritesheetSlicerServiceTests
 		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>(TomlSerializer.Serialize(model));
 		Assert.NotNull(restored);
 		Assert.True(restored!.Slicer.WasMaximized);
+		Assert.False(restored.Slicer.AutoDetectSpriteGrid);
 		Assert.Equal("Missile", restored.Slicer.ThingKind);
 		Assert.True(restored.Slicer.ReplaceExisting);
+	}
+
+	[Fact]
+	public void SlicerSettings_EnableAutomaticGridByDefault()
+	{
+		Assert.True(new PersistenceService.SlicerStateModel().AutoDetectSpriteGrid);
 	}
 
 	private static void Fill(byte[] pixels, int strideWidth, int x, int y, int width, int height, byte r, byte g, byte b, byte a)

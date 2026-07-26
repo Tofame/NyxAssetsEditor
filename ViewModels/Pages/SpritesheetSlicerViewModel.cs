@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
+using NyxAssetsEditor.Models;
 using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
@@ -61,7 +62,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _offsetY;
 	private int _columns = 1;
 	private int _rows = 1;
-	private int _cellSize = 32;
+	private int _cellSize = SpriteModel.SpriteSize;
+	private bool _autoDetectSpriteGrid = true;
+	private bool _applyingAutomaticGrid;
 	private double _zoom = 1;
 	private int _thingWidth;
 	private int _thingHeight;
@@ -88,6 +91,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_assets = assets;
 		_origin = origin ?? assets.LastActivePair?.SpritePanel;
 		_state = PersistenceService.GetSlicerState();
+		_autoDetectSpriteGrid = _state.AutoDetectSpriteGrid;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_outfitDirections = Math.Max(1, _state.OutfitDirections);
@@ -101,7 +105,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	public ObservableCollection<SlicerTargetViewModel> Targets { get; } = new();
 	public ObservableCollection<SlicerPreviewViewModel> CroppedSprites { get; } = new();
-	public IReadOnlyList<int> AvailableCellSizes { get; } = new[] { 32 };
+	public IReadOnlyList<int> AvailableCellSizes { get; } = new[] { SpriteModel.SpriteSize };
 	public IReadOnlyList<ThingKind> ThingKinds { get; } = new[] { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile };
 
 	public SlicerImage? Image => _image;
@@ -113,11 +117,29 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public string LastOpenDirectory => _state.LastOpenDirectory;
 	public string LastExportDirectory => _state.LastExportDirectory;
 
-	public int OffsetX { get => _offsetX; set { if (SetProperty(ref _offsetX, value)) ClampAndNotifyGrid(); } }
-	public int OffsetY { get => _offsetY; set { if (SetProperty(ref _offsetY, value)) ClampAndNotifyGrid(); } }
-	public int Columns { get => _columns; set { if (SetProperty(ref _columns, value)) ClampAndNotifyGrid(); } }
-	public int Rows { get => _rows; set { if (SetProperty(ref _rows, value)) ClampAndNotifyGrid(); } }
-	public int CellSize { get => _cellSize; set { if (SetProperty(ref _cellSize, value)) ClampAndNotifyGrid(); } }
+	public int OffsetX { get => _offsetX; set { if (SetProperty(ref _offsetX, value)) ManualGridChanged(); } }
+	public int OffsetY { get => _offsetY; set { if (SetProperty(ref _offsetY, value)) ManualGridChanged(); } }
+	public int Columns { get => _columns; set { if (SetProperty(ref _columns, value)) ManualGridChanged(); } }
+	public int Rows { get => _rows; set { if (SetProperty(ref _rows, value)) ManualGridChanged(); } }
+	public int CellSize
+	{
+		get => _cellSize;
+		set
+		{
+			if (!SetProperty(ref _cellSize, value)) return;
+			if (AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: true);
+			else ClampAndNotifyGrid();
+		}
+	}
+	public bool AutoDetectSpriteGrid
+	{
+		get => _autoDetectSpriteGrid;
+		set
+		{
+			if (!SetProperty(ref _autoDetectSpriteGrid, value)) return;
+			if (value) ApplyAutomaticGrid(showStatus: true);
+		}
+	}
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, Math.Clamp(value, 0.1, 5)); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
@@ -289,6 +311,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	public void MoveGridTo(int x, int y)
 	{
+		if (!_applyingAutomaticGrid) AutoDetectSpriteGrid = false;
 		_offsetX = x; _offsetY = y;
 		ClampAndNotifyGrid(forceNotifications: true);
 	}
@@ -389,16 +412,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		catch (Exception ex) { Status(true, ex.Message); }
 	}
 
-	[RelayCommand(CanExecute = nameof(HasImage))]
-	private void DetectGrid()
-	{
-		var result = SpritesheetSlicerService.DetectGrid(_image!, AvailableCellSizes);
-		if (!result.Success) { Status(true, result.Message); return; }
-		_cellSize = result.Grid.CellSize; _offsetX = result.Grid.X; _offsetY = result.Grid.Y;
-		_columns = result.Grid.Columns; _rows = result.Grid.Rows;
-		NotifyGridProperties(); Status(false, result.Message);
-	}
-
 	[RelayCommand(CanExecute = nameof(CanChooseTemplate))]
 	private void FindTemplate()
 	{
@@ -459,6 +472,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
 		_state.WasMaximized = maximized;
+		_state.AutoDetectSpriteGrid = AutoDetectSpriteGrid;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight;
 		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames; _state.ThingKind = SelectedKind.ToString();
 		_state.ReplaceExisting = ReplaceExisting;
@@ -487,13 +501,45 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			_columns = 1; _rows = 1; _offsetX = 0; _offsetY = 0; Zoom = 1;
 		}
 		ClampAndNotifyGrid(forceNotifications: true);
-		if (resetGrid && IsOutfit) InitializeOutfitGridIfUntouched();
+		if (resetGrid && AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: false);
+		else if (resetGrid && IsOutfit) InitializeOutfitGridIfUntouched();
 		if (clearCropped) ClearCropped();
 		OnPropertyChanged(nameof(Image)); OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(ImageWidth)); OnPropertyChanged(nameof(ImageHeight));
 		NotifyCommands();
 	}
 
 	private SlicerGrid CurrentGrid() => SpritesheetSlicerService.ClampGrid(new SlicerGrid(OffsetX, OffsetY, Columns, Rows, CellSize), ImageWidth, ImageHeight);
+
+	private void ManualGridChanged()
+	{
+		if (!_applyingAutomaticGrid) AutoDetectSpriteGrid = false;
+		ClampAndNotifyGrid();
+	}
+
+	private void ApplyAutomaticGrid(bool showStatus)
+	{
+		if (_image == null || CellSize <= 0) return;
+		_applyingAutomaticGrid = true;
+		try
+		{
+			var detected = SpritesheetSlicerService.DetectGrid(_image, new[] { CellSize });
+			if (detected.Success)
+			{
+				_offsetX = detected.Grid.X; _offsetY = detected.Grid.Y;
+				_columns = detected.Grid.Columns; _rows = detected.Grid.Rows;
+				ClampAndNotifyGrid(forceNotifications: true);
+				if (showStatus) Status(false, "Detected the sprite grid from transparent separators. Review it before cropping.");
+				return;
+			}
+
+			_offsetX = 0; _offsetY = 0;
+			_columns = Math.Max(1, _image.Width / CellSize);
+			_rows = Math.Max(1, _image.Height / CellSize);
+			ClampAndNotifyGrid(forceNotifications: true);
+			if (showStatus) Status(false, $"Fitted a {_columns}×{_rows} grid using the {CellSize}×{CellSize} project sprite size.");
+		}
+		finally { _applyingAutomaticGrid = false; }
+	}
 
 	private void InitializeOutfitGridIfUntouched()
 	{
@@ -527,7 +573,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private void NotifyCommands()
 	{
 		OnPropertyChanged(nameof(CanCrop)); OnPropertyChanged(nameof(CanImportRaw)); OnPropertyChanged(nameof(CanImportThing)); OnPropertyChanged(nameof(CanExport));
-		CropCommand.NotifyCanExecuteChanged(); DetectGridCommand.NotifyCanExecuteChanged(); ImportRawSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
+		CropCommand.NotifyCanExecuteChanged(); ImportRawSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
 		FindTemplateCommand.NotifyCanExecuteChanged(); FindReplacementCommand.NotifyCanExecuteChanged();
 		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
