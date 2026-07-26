@@ -290,11 +290,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public bool UsesCombinedLayout => TryGetCombinedLayoutDimensions(out _, out _);
 	public string OutfitFrameGroupHint => SelectedTarget?.ThingsPanel switch
 	{
-		null => "Choose a things target to determine how Idle/Stand and Walking frames will be stored.",
+		null => "Choose a target to resolve idle and walking frames.",
 		{ UseFrameGroups: true } when OutfitFrames >= 3 && !UsesCombinedLayout =>
-			"This target uses outfit frame groups: frame 1 becomes Idle/Stand and the remaining frames become Walking.",
-		{ UseFrameGroups: true } => "This target stores Idle/Stand and Walking as separate outfit frame groups.",
-		_ => "This legacy target stores all outfit frames together in one frame group."
+			"Frame 1 = idle; remaining frames = walking.",
+		{ UseFrameGroups: true } => "Idle and walking use separate frame groups.",
+		_ => "Idle and walking share one legacy frame group."
 	};
 	public int ThingSheetColumns => TryGetCombinedLayoutDimensions(out var columns, out _)
 		? columns
@@ -729,15 +729,15 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		if (ThingWidth == 0)
 		{
 			if (Columns % textureColumns != 0 || Rows % textureRows != 0)
-				return (false, $"This layout needs columns divisible by {textureColumns} and rows divisible by {textureRows}.");
-			return (true, $"One thing: {(Columns / textureColumns)}×{(Rows / textureRows)} cells, {textureColumns}×{textureRows} texture blocks.");
+				return (false, $"Grid must be a multiple of {textureColumns} × {textureRows} cells.");
+			return (true, $"One {(Columns / textureColumns)} × {(Rows / textureRows)} cell thing.");
 		}
 
 		var sheetColumns = ThingWidth * textureColumns;
 		var sheetRows = ThingHeight * textureRows;
 		if (sheetColumns > int.MaxValue || sheetRows > int.MaxValue || Columns % sheetColumns != 0 || Rows % sheetRows != 0)
-			return (false, $"Each thing needs a {sheetColumns}×{sheetRows} cell sheet with this layout.");
-		return (true, $"{(Columns / sheetColumns) * (Rows / sheetRows)} thing(s), each {ThingWidth}×{ThingHeight} cells in a {sheetColumns}×{sheetRows} sheet.");
+			return (false, $"Each thing needs {sheetColumns} × {sheetRows} cells.");
+		return (true, $"{(Columns / sheetColumns) * (Rows / sheetRows)} thing(s), {sheetColumns} × {sheetRows} cells each.");
 	}
 
 	private bool TryGetCombinedLayoutDimensions(out int columns, out int rows)
