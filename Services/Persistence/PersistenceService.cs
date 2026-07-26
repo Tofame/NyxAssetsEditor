@@ -67,7 +67,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool WasMaximized { get; set; }
 			public string LastOpenDirectory { get; set; } = "";
 			public string LastExportDirectory { get; set; } = "";
-			public bool AutoDetectSpriteGrid { get; set; } = true;
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
 			public int ThingLayers { get; set; } = 1;
@@ -236,7 +235,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			WasMaximized = _slicerState.WasMaximized,
 			LastOpenDirectory = _slicerState.LastOpenDirectory,
 			LastExportDirectory = _slicerState.LastExportDirectory,
-			AutoDetectSpriteGrid = _slicerState.AutoDetectSpriteGrid,
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
 			ThingLayers = _slicerState.ThingLayers,

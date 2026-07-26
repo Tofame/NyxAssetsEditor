@@ -45,16 +45,14 @@
 						<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableCellSizes}" SelectedItem="{Binding CellSize}"
 							ToolTip.Tip="Uses the project sprite size. Display-size settings do not change SPR pixel dimensions."/>
 						<TextBlock Grid.Row="1" Grid.Column="0" Text="X offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
+						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0"/>
 						<TextBlock Grid.Row="2" Grid.Column="0" Text="Y offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
+						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0"/>
 						<TextBlock Grid.Row="3" Grid.Column="0" Text="Columns:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
+						<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0"/>
 						<TextBlock Grid.Row="4" Grid.Column="0" Text="Rows:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
+						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0"/>
 					</Grid>
-					<CheckBox Content="Auto-detect sprite grid" IsChecked="{Binding AutoDetectSpriteGrid}"
-						ToolTip.Tip="Selects the complete image when its dimensions exactly fit the project sprite size. Transparent cells are always preserved."/>
 					<Separator/>
 					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
 					<TextBlock Text="Build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
@@ -110,7 +108,7 @@
 							<TextBlock Grid.Row="0" Grid.Column="0" Text="Layers:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
 							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingLayers}" Minimum="1" Maximum="32" FormatString="0"
 								IsVisible="{Binding !IsOutfit}"/>
-							<CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Content="Recolour channels (mask layer)" IsChecked="{Binding OutfitHasRecolourMask}"
+							<CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Content="Mask layer" IsChecked="{Binding OutfitHasRecolourMask}"
 								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Each base sprite is followed by its visible head/body/legs/feet mask sprite."/>
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Pattern X:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingPatternX}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding !IsOutfit}"/>

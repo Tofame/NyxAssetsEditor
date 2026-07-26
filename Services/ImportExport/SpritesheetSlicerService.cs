@@ -194,7 +194,7 @@ public static class SpritesheetSlicerService
 			.ToList();
 
 		if (candidates.Count == 0)
-			return GridDetectionResult.Failed("The image dimensions are not an exact multiple of the selected sprite size. Turn off automatic grid fitting and set the offsets manually.");
+			return GridDetectionResult.Failed("The image dimensions are not an exact multiple of the selected sprite size. Set the grid offsets and dimensions manually.");
 		if (candidates.Count > 1)
 			return GridDetectionResult.Failed("More than one project sprite size fits this image. Select the intended sprite size before cropping.");
 

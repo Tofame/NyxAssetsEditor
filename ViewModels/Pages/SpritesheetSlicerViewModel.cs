@@ -64,8 +64,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private int _columns = 1;
 	private int _rows = 1;
 	private int _cellSize = SpriteModel.SpriteSize;
-	private bool _autoDetectSpriteGrid = true;
-	private bool _applyingAutomaticGrid;
 	private double _zoom = 1;
 	private int _thingWidth;
 	private int _thingHeight;
@@ -97,7 +95,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_assets = assets;
 		_origin = origin ?? assets.LastActivePair?.SpritePanel;
 		_state = PersistenceService.GetSlicerState();
-		_autoDetectSpriteGrid = _state.AutoDetectSpriteGrid;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_thingLayers = Math.Max(1, _state.ThingLayers);
@@ -144,17 +141,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		set
 		{
 			if (!SetProperty(ref _cellSize, value)) return;
-			if (AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: true);
-			else ClampAndNotifyGrid();
-		}
-	}
-	public bool AutoDetectSpriteGrid
-	{
-		get => _autoDetectSpriteGrid;
-		set
-		{
-			if (!SetProperty(ref _autoDetectSpriteGrid, value)) return;
-			if (value) ApplyAutomaticGrid(showStatus: true);
+			FitGridToImage(showStatus: true);
 		}
 	}
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
@@ -296,16 +283,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		{ UseFrameGroups: true } => "Idle and walking use separate frame groups.",
 		_ => "Idle and walking share one legacy frame group."
 	};
-	public int ThingSheetColumns => TryGetCombinedLayoutDimensions(out var columns, out _)
-		? columns
-		: ThingWidth > 0
-			? ClampLayoutDimension((long)ThingWidth * ThingLayers * (IsOutfit ? OutfitDirections : ThingPatternX) * ThingPatternZ)
-			: Columns;
-	public int ThingSheetRows => TryGetCombinedLayoutDimensions(out _, out var rows)
-		? rows
-		: ThingHeight > 0
-			? ClampLayoutDimension((long)ThingHeight * (IsOutfit ? OutfitFrames : ThingFrames) * ThingPatternY)
-			: Rows;
 	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
 	public bool CanChooseTemplate => ShowTemplatePicker && SelectedTarget?.HasThings == true;
 	public bool CanChooseReplacement => ReplaceExisting && SelectedTarget?.HasThings == true;
@@ -404,10 +381,10 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			_state.LastOpenDirectory = Path.GetDirectoryName(path) ?? "";
 			ApplyImage(loaded, resetGrid: true, clearCropped: true);
 			OnPropertyChanged(nameof(SourceFileName));
-			if (AutoDetectSpriteGrid && loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
+			if (loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
 				Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
 			else if (loaded.Width % CellSize != 0 || loaded.Height % CellSize != 0)
-				Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Automatic fitting was disabled; align the grid manually.");
+				Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Align the grid manually.");
 			else
 				Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}).");
 		}
@@ -416,7 +393,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	public void MoveGridTo(int x, int y)
 	{
-		if (!_applyingAutomaticGrid) AutoDetectSpriteGrid = false;
 		_offsetX = x; _offsetY = y;
 		ClampAndNotifyGrid(forceNotifications: true);
 	}
@@ -590,7 +566,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
 		_state.WasMaximized = maximized;
-		_state.AutoDetectSpriteGrid = AutoDetectSpriteGrid;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight;
 		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
 		_state.ThingPatternY = ThingPatternY; _state.ThingPatternZ = ThingPatternZ; _state.ThingFrames = ThingFrames;
@@ -622,7 +597,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			Zoom = SpritesheetSlicerService.RecommendZoom(image.Width, image.Height);
 		}
 		ClampAndNotifyGrid(forceNotifications: true);
-		if (resetGrid && AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: false);
+		if (resetGrid) FitGridToImage(showStatus: false);
 		if (clearCropped) ClearCropped();
 		OnPropertyChanged(nameof(Image)); OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(ImageWidth)); OnPropertyChanged(nameof(ImageHeight));
 		NotifyCommands();
@@ -639,31 +614,24 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	private void ManualGridChanged()
 	{
-		if (!_applyingAutomaticGrid) AutoDetectSpriteGrid = false;
 		ClampAndNotifyGrid();
 	}
 
-	private void ApplyAutomaticGrid(bool showStatus)
+	private void FitGridToImage(bool showStatus)
 	{
 		if (_image == null || CellSize <= 0) return;
-		_applyingAutomaticGrid = true;
-		try
+		var detected = SpritesheetSlicerService.DetectGrid(_image, new[] { CellSize });
+		if (detected.Success)
 		{
-			var detected = SpritesheetSlicerService.DetectGrid(_image, new[] { CellSize });
-			if (detected.Success)
-			{
-				_offsetX = detected.Grid.X; _offsetY = detected.Grid.Y;
-				_columns = detected.Grid.Columns; _rows = detected.Grid.Rows;
-				ClampAndNotifyGrid(forceNotifications: true);
-				if (showStatus) Status(false, detected.Message);
-				return;
-			}
-
-			_autoDetectSpriteGrid = false;
-			OnPropertyChanged(nameof(AutoDetectSpriteGrid));
-			if (showStatus) Status(true, detected.Message);
+			_offsetX = detected.Grid.X; _offsetY = detected.Grid.Y;
+			_columns = detected.Grid.Columns; _rows = detected.Grid.Rows;
+			ClampAndNotifyGrid(forceNotifications: true);
+			if (showStatus) Status(false, detected.Message);
+			return;
 		}
-		finally { _applyingAutomaticGrid = false; }
+
+		ClampAndNotifyGrid(forceNotifications: true);
+		if (showStatus) Status(true, detected.Message);
 	}
 
 	private uint GetAnimationDuration() => SelectedKind switch
@@ -704,8 +672,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			? $"{choice.DisplayName} — {groups} frame groups; combined-sheet layout will be preserved"
 			: $"{choice.DisplayName} — {groups} frame groups; combined-sheet layout will be copied";
 	}
-
-	private static int ClampLayoutDimension(long value) => value is > 0 and <= int.MaxValue ? (int)value : int.MaxValue;
 
 	private (bool Valid, string Message) GetLayoutStatus()
 	{
@@ -784,8 +750,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private void NotifyValidation()
 	{
 		OnPropertyChanged(nameof(SplitHint));
-		OnPropertyChanged(nameof(ThingSheetColumns));
-		OnPropertyChanged(nameof(ThingSheetRows));
 		OnPropertyChanged(nameof(UsesCombinedLayout));
 		OnPropertyChanged(nameof(OutfitFrameGroupHint));
 		NotifyCommands();
