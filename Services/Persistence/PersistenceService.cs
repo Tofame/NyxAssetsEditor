@@ -70,8 +70,13 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool AutoDetectSpriteGrid { get; set; } = true;
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
+			public int ThingLayers { get; set; } = 1;
+			public int ThingPatternX { get; set; } = 1;
+			public int ThingPatternY { get; set; } = 1;
+			public int ThingPatternZ { get; set; } = 1;
+			public int ThingFrames { get; set; } = 1;
 			public int OutfitDirections { get; set; } = 4;
-			public int OutfitFrames { get; set; } = 3;
+			public int OutfitFrames { get; set; } = 1;
 			public string ThingKind { get; set; } = "Item";
 			public bool ReplaceExisting { get; set; }
 		}
@@ -234,6 +239,11 @@ namespace NyxAssetsEditor.Services.Persistence
 			AutoDetectSpriteGrid = _slicerState.AutoDetectSpriteGrid,
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
+			ThingLayers = _slicerState.ThingLayers,
+			ThingPatternX = _slicerState.ThingPatternX,
+			ThingPatternY = _slicerState.ThingPatternY,
+			ThingPatternZ = _slicerState.ThingPatternZ,
+			ThingFrames = _slicerState.ThingFrames,
 			OutfitDirections = _slicerState.OutfitDirections,
 			OutfitFrames = _slicerState.OutfitFrames,
 			ThingKind = _slicerState.ThingKind,

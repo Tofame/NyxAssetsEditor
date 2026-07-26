@@ -38,10 +38,11 @@ public sealed class SlicerPreviewViewModel
 {
 	public required int SourceColumn { get; init; }
 	public required int SourceRow { get; init; }
+	public required int ExportIndex { get; init; }
 	public required byte[] Pixels { get; init; }
 	public required bool IsEmpty { get; init; }
 	public required WriteableBitmap Preview { get; init; }
-	public string Label => $"({SourceColumn}, {SourceRow})" + (IsEmpty ? " empty" : "");
+	public string Label => $"#{ExportIndex:0000}  ({SourceColumn + 1}, {SourceRow + 1})" + (IsEmpty ? " empty" : "");
 }
 
 public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IThingFinderContextActionProvider
@@ -68,8 +69,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	private double _zoom = 1;
 	private int _thingWidth;
 	private int _thingHeight;
+	private int _thingLayers = 1;
+	private int _thingPatternX = 1;
+	private int _thingPatternY = 1;
+	private int _thingPatternZ = 1;
+	private int _thingFrames = 1;
 	private int _outfitDirections = 4;
-	private int _outfitFrames = 3;
+	private int _outfitFrames = 1;
 	private uint _templateThingId;
 	private uint _replacementThingId;
 	private bool _useTemplate;
@@ -94,10 +100,20 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_autoDetectSpriteGrid = _state.AutoDetectSpriteGrid;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
+		_thingLayers = Math.Max(1, _state.ThingLayers);
+		_thingPatternX = Math.Max(1, _state.ThingPatternX);
+		_thingPatternY = Math.Max(1, _state.ThingPatternY);
+		_thingPatternZ = Math.Max(1, _state.ThingPatternZ);
+		_thingFrames = Math.Max(1, _state.ThingFrames);
 		_outfitDirections = Math.Max(1, _state.OutfitDirections);
 		_outfitFrames = Math.Max(1, _state.OutfitFrames);
 		_replaceExisting = _state.ReplaceExisting;
 		if (Enum.TryParse<ThingKind>(_state.ThingKind, out var kind)) _selectedKind = kind;
+		if (_selectedKind == ThingKind.Missile && _thingPatternX == 1 && _thingPatternY == 1)
+		{
+			_thingPatternX = 3;
+			_thingPatternY = 3;
+		}
 		_assets.ActivePanels.CollectionChanged += OnPanelsChanged;
 		_assets.RegisterThingFinderContextActionProvider(this);
 		RefreshTargets();
@@ -144,6 +160,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
+	public int ThingLayers { get => _thingLayers; set { if (SetProperty(ref _thingLayers, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingPatternX { get => _thingPatternX; set { if (SetProperty(ref _thingPatternX, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingPatternY { get => _thingPatternY; set { if (SetProperty(ref _thingPatternY, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingPatternZ { get => _thingPatternZ; set { if (SetProperty(ref _thingPatternZ, Math.Max(1, value))) NotifyValidation(); } }
+	public int ThingFrames { get => _thingFrames; set { if (SetProperty(ref _thingFrames, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
 	public int OutfitFrames { get => _outfitFrames; set { if (SetProperty(ref _outfitFrames, Math.Max(1, value))) NotifyValidation(); } }
 	public uint TemplateThingId
@@ -206,33 +227,46 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		{
 			if (!SetProperty(ref _selectedKind, value)) return;
 			TemplateThingId = 0;
-			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(UsesFootprint));
+			OnPropertyChanged(nameof(IsItem)); OnPropertyChanged(nameof(IsOutfit)); OnPropertyChanged(nameof(IsMissile));
 			OnPropertyChanged(nameof(ShowTemplatePicker)); OnPropertyChanged(nameof(CanChooseTemplate));
 			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			RefreshThingChoices();
-			if (IsOutfit) InitializeOutfitGridIfUntouched();
+			if (IsMissile && ThingPatternX == 1 && ThingPatternY == 1)
+			{
+				_thingPatternX = 3;
+				_thingPatternY = 3;
+				OnPropertyChanged(nameof(ThingPatternX));
+				OnPropertyChanged(nameof(ThingPatternY));
+			}
 			NotifyValidation();
 		}
 	}
 
 	public bool IsItem => SelectedKind == ThingKind.Item;
 	public bool IsOutfit => SelectedKind == ThingKind.Outfit;
-	public bool UsesFootprint => SelectedKind != ThingKind.Outfit;
+	public bool IsMissile => SelectedKind == ThingKind.Missile;
+	public bool UsesCombinedLayout => TryGetCombinedLayoutDimensions(out _, out _);
+	public int ThingSheetColumns => TryGetCombinedLayoutDimensions(out var columns, out _)
+		? columns
+		: ThingWidth > 0
+			? ClampLayoutDimension((long)ThingWidth * ThingLayers * (IsOutfit ? OutfitDirections : ThingPatternX) * ThingPatternZ)
+			: Columns;
+	public int ThingSheetRows => TryGetCombinedLayoutDimensions(out _, out var rows)
+		? rows
+		: ThingHeight > 0
+			? ClampLayoutDimension((long)ThingHeight * (IsOutfit ? OutfitFrames : ThingFrames) * ThingPatternY)
+			: Rows;
 	public bool ShowTemplatePicker => IsCreateMode && UseTemplate;
 	public bool CanChooseTemplate => ShowTemplatePicker && SelectedTarget?.HasThings == true;
 	public bool CanChooseReplacement => ReplaceExisting && SelectedTarget?.HasThings == true;
-	public string SplitHint => ThingWidth == 0 && ThingHeight == 0
-		? $"One {Columns}×{Rows} thing"
-		: ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0
-			? $"{(Columns / ThingWidth) * (Rows / ThingHeight)} things, each {ThingWidth}×{ThingHeight}"
-			: "Width and height must both be 0, or divide the selection exactly.";
+	public string SplitHint => GetLayoutStatus().Message;
 
 	public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
 	public bool StatusIsError { get => _statusIsError; private set => SetProperty(ref _statusIsError, value); }
 	public bool CanUndoTransform => _undoImage != null;
 	public bool CanCrop => HasImage && Columns > 0 && Rows > 0;
 	public bool CanImportRaw => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
-	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true &&
+	public bool CanImportThing => CanCrop && GetLayoutStatus().Valid && SelectedTarget?.HasThings == true &&
 		(!ReplaceExisting || SelectedReplacement != null) &&
 		(ReplaceExisting || !UseTemplate || SelectedTemplate != null);
 	public bool CanExport => CroppedSprites.Count > 0;
@@ -243,8 +277,12 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		set { if (SetProperty(ref _selectedTarget, value)) { RefreshThingChoices(); NotifyCommands(); } }
 	}
 
-	public string TemplateSelectionLabel => SelectedTemplate?.DisplayName ?? (TemplateThingId == 0 ? "No template selected" : $"{SelectedKind} #{TemplateThingId} was not found");
-	public string ReplacementSelectionLabel => SelectedReplacement?.DisplayName ?? (ReplacementThingId == 0 ? "No thing selected" : $"{SelectedKind} #{ReplacementThingId} was not found");
+	public string TemplateSelectionLabel => SelectedTemplate is { } template
+		? DescribeThingSelection(template, replacing: false)
+		: TemplateThingId == 0 ? "No template selected" : $"{SelectedKind} #{TemplateThingId} was not found";
+	public string ReplacementSelectionLabel => SelectedReplacement is { } replacement
+		? DescribeThingSelection(replacement, replacing: true)
+		: ReplacementThingId == 0 ? "No thing selected" : $"{SelectedKind} #{ReplacementThingId} was not found";
 	public WriteableBitmap? TemplatePreview { get => _templatePreview; private set => SetProperty(ref _templatePreview, value); }
 	public WriteableBitmap? ReplacementPreview { get => _replacementPreview; private set => SetProperty(ref _replacementPreview, value); }
 	public SlicerThingChoiceViewModel? SelectedTemplate
@@ -252,8 +290,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		get => _selectedTemplate;
 		set
 		{
+			var previousThing = _selectedTemplate?.Thing;
 			if (!SetProperty(ref _selectedTemplate, value)) return;
-			if (value != null) TemplateThingId = value.Thing.Id;
+			if (value != null)
+			{
+				TemplateThingId = value.Thing.Id;
+				if (!ReferenceEquals(previousThing, value.Thing)) ApplyLayoutFromThing(value.Thing);
+			}
 			TemplatePreview?.Dispose(); TemplatePreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
 			OnPropertyChanged(nameof(TemplateSelectionLabel));
 			NotifyValidation();
@@ -264,8 +307,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		get => _selectedReplacement;
 		set
 		{
+			var previousThing = _selectedReplacement?.Thing;
 			if (!SetProperty(ref _selectedReplacement, value)) return;
-			if (value != null) ReplacementThingId = value.Thing.Id;
+			if (value != null)
+			{
+				ReplacementThingId = value.Thing.Id;
+				if (!ReferenceEquals(previousThing, value.Thing)) ApplyLayoutFromThing(value.Thing);
+			}
 			ReplacementPreview?.Dispose(); ReplacementPreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
 			OnPropertyChanged(nameof(ReplacementSelectionLabel));
 			NotifyValidation();
@@ -301,11 +349,17 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		{
 			_undoImage = null;
 			_undoGrid = null;
-			ApplyImage(SpritesheetSlicerService.Load(path), resetGrid: true, clearCropped: true);
+			var loaded = SpritesheetSlicerService.Load(path);
 			_sourcePath = path;
 			_state.LastOpenDirectory = Path.GetDirectoryName(path) ?? "";
+			ApplyImage(loaded, resetGrid: true, clearCropped: true);
 			OnPropertyChanged(nameof(SourceFileName));
-			Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}).");
+			if (AutoDetectSpriteGrid && loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
+				Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
+			else if (loaded.Width % CellSize != 0 || loaded.Height % CellSize != 0)
+				Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Automatic fitting was disabled; align the grid manually.");
+			else
+				Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}).");
 		}
 		catch (Exception ex) { Status(true, ex.Message); }
 	}
@@ -339,6 +393,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 			{
 				SourceColumn = cell.Column,
 				SourceRow = cell.Row,
+				// Object Builder's raw slicer walks down each column before moving right.
+				// Keep that original slot number even when transparent cells are omitted.
+				ExportIndex = cell.Column * grid.Rows + cell.Row + 1,
 				Pixels = cell.Rgba,
 				IsEmpty = cell.IsEmpty,
 				Preview = _renderer.ConvertRgba(CellSize, CellSize, cell.Rgba)
@@ -347,7 +404,10 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		}
 		_lastCropRevision = _imageRevision;
 		_lastCropGrid = grid;
-		Status(false, $"Added {added} sprite{(added == 1 ? "" : "s")} ({CroppedSprites.Count} total).");
+		var emptySlots = grid.Columns * grid.Rows - added;
+		Status(false, emptySlots > 0
+			? $"Added {added} sprite{(added == 1 ? "" : "s")}; preserved {emptySlots} empty slot number{(emptySlots == 1 ? "" : "s")} ({CroppedSprites.Count} total)."
+			: $"Added {added} sprite{(added == 1 ? "" : "s")} ({CroppedSprites.Count} total).");
 		NotifyCommands();
 	}
 
@@ -402,8 +462,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 				SelectedKind, CurrentGrid(), allCells,
 				target.SpritePanel.Loader.SpriteCount + 1,
 				replacement?.Id ?? thingsPanel.GetNextThingId(SelectedKind),
-				ThingWidth, ThingHeight, OutfitDirections, OutfitFrames,
-				SettingsViewModel.OutfitAnimationDurationMs,
+				ThingWidth, ThingHeight, ThingLayers,
+				IsOutfit ? OutfitDirections : ThingPatternX,
+				ThingPatternY, ThingPatternZ,
+				IsOutfit ? OutfitFrames : ThingFrames,
+				GetAnimationDuration(),
 				thingsPanel.UseFrameAnimations, template, replacement);
 			var plan = SpritesheetThingBuilder.Build(request);
 			var ids = thingsPanel.ImportSlicerThings(plan.SpritePixels, plan.Things, plan.IsReplacement);
@@ -458,7 +521,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 	{
 		if (CroppedSprites.Count == 0) throw new InvalidOperationException("Crop sprites before exporting.");
 		var name = string.IsNullOrEmpty(_sourcePath) ? "sprite" : Path.GetFileNameWithoutExtension(_sourcePath);
-		var written = CroppedSprites.Select((sprite, i) => SpritesheetSlicerService.ExportImage(sprite.Pixels, CellSize, directory, name, i + 1, format)).ToList();
+		var written = CroppedSprites.Select(sprite => SpritesheetSlicerService.ExportImage(
+			sprite.Pixels, CellSize, directory, name, sprite.ExportIndex, format)).ToList();
 		_state.LastExportDirectory = directory;
 		var label = format.ToLowerInvariant() switch
 		{
@@ -477,6 +541,8 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		_state.WasMaximized = maximized;
 		_state.AutoDetectSpriteGrid = AutoDetectSpriteGrid;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight;
+		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
+		_state.ThingPatternY = ThingPatternY; _state.ThingPatternZ = ThingPatternZ; _state.ThingFrames = ThingFrames;
 		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames; _state.ThingKind = SelectedKind.ToString();
 		_state.ReplaceExisting = ReplaceExisting;
 		return _state;
@@ -506,7 +572,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 		}
 		ClampAndNotifyGrid(forceNotifications: true);
 		if (resetGrid && AutoDetectSpriteGrid) ApplyAutomaticGrid(showStatus: false);
-		else if (resetGrid && IsOutfit) InitializeOutfitGridIfUntouched();
 		if (clearCropped) ClearCropped();
 		OnPropertyChanged(nameof(Image)); OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(ImageWidth)); OnPropertyChanged(nameof(ImageHeight));
 		NotifyCommands();
@@ -539,26 +604,115 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 				_offsetX = detected.Grid.X; _offsetY = detected.Grid.Y;
 				_columns = detected.Grid.Columns; _rows = detected.Grid.Rows;
 				ClampAndNotifyGrid(forceNotifications: true);
-				if (showStatus) Status(false, "Detected the sprite grid from transparent separators. Review it before cropping.");
+				if (showStatus) Status(false, detected.Message);
 				return;
 			}
 
-			_offsetX = 0; _offsetY = 0;
-			_columns = Math.Max(1, _image.Width / CellSize);
-			_rows = Math.Max(1, _image.Height / CellSize);
-			ClampAndNotifyGrid(forceNotifications: true);
-			if (showStatus) Status(false, $"Fitted a {_columns}×{_rows} grid using the {CellSize}×{CellSize} project sprite size.");
+			_autoDetectSpriteGrid = false;
+			OnPropertyChanged(nameof(AutoDetectSpriteGrid));
+			if (showStatus) Status(true, detected.Message);
 		}
 		finally { _applyingAutomaticGrid = false; }
 	}
 
-	private void InitializeOutfitGridIfUntouched()
+	private uint GetAnimationDuration() => SelectedKind switch
 	{
-		if (_image == null || _columns != 1 || _rows != 1) return;
-		if (_image.Width < OutfitDirections * CellSize || _image.Height < OutfitFrames * CellSize) return;
-		_columns = OutfitDirections;
-		_rows = OutfitFrames;
-		ClampAndNotifyGrid(forceNotifications: true);
+		ThingKind.Item => SettingsViewModel.ItemAnimationDurationMs,
+		ThingKind.Outfit => SettingsViewModel.OutfitAnimationDurationMs,
+		ThingKind.Effect => SettingsViewModel.EffectAnimationDurationMs,
+		ThingKind.Missile => SettingsViewModel.MissileAnimationDurationMs,
+		_ => SettingsViewModel.ItemAnimationDurationMs
+	};
+
+	private void ApplyLayoutFromThing(ThingType thing)
+	{
+		var group = thing.FrameGroups.FirstOrDefault();
+		if (group == null) return;
+		ThingWidth = (int)(group.Width == 0 ? 1u : group.Width);
+		ThingHeight = (int)(group.Height == 0 ? 1u : group.Height);
+		ThingLayers = (int)(group.Layers == 0 ? 1u : group.Layers);
+		ThingPatternY = (int)(group.PatternY == 0 ? 1u : group.PatternY);
+		ThingPatternZ = (int)(group.PatternZ == 0 ? 1u : group.PatternZ);
+		if (thing.Kind == ThingKind.Outfit)
+		{
+			OutfitDirections = (int)(group.PatternX == 0 ? 1u : group.PatternX);
+			OutfitFrames = (int)(group.Frames == 0 ? 1u : group.Frames);
+		}
+		else
+		{
+			ThingPatternX = (int)(group.PatternX == 0 ? 1u : group.PatternX);
+			ThingFrames = (int)(group.Frames == 0 ? 1u : group.Frames);
+		}
+	}
+
+	private static string DescribeThingSelection(SlicerThingChoiceViewModel choice, bool replacing)
+	{
+		var groups = choice.Thing.FrameGroups.Count;
+		if (groups <= 1) return choice.DisplayName;
+		return replacing
+			? $"{choice.DisplayName} — {groups} frame groups; combined-sheet layout will be preserved"
+			: $"{choice.DisplayName} — {groups} frame groups; combined-sheet layout will be copied";
+	}
+
+	private static int ClampLayoutDimension(long value) => value is > 0 and <= int.MaxValue ? (int)value : int.MaxValue;
+
+	private (bool Valid, string Message) GetLayoutStatus()
+	{
+		if (TryGetCombinedLayoutDimensions(out var combinedColumns, out var combinedRows))
+		{
+			return Columns == combinedColumns && Rows == combinedRows
+				? (true, $"Combined Object Builder sheet: {combinedColumns}×{combinedRows} cells; all source frame groups will be preserved.")
+				: (false, $"The selected multi-group thing needs a complete {combinedColumns}×{combinedRows} cell Object Builder sheet.");
+		}
+
+		var patternX = IsOutfit ? OutfitDirections : ThingPatternX;
+		var frames = IsOutfit ? OutfitFrames : ThingFrames;
+		if ((ThingWidth == 0) != (ThingHeight == 0))
+			return (false, "Set both footprint values to 0 for one inferred thing, or set both to its cell dimensions.");
+
+		long textureColumns = (long)ThingLayers * patternX * ThingPatternZ;
+		long textureRows = (long)frames * ThingPatternY;
+		if (textureColumns <= 0 || textureRows <= 0 || textureColumns > int.MaxValue || textureRows > int.MaxValue)
+			return (false, "The frame-group dimensions are too large.");
+
+		if (ThingWidth == 0)
+		{
+			if (Columns % textureColumns != 0 || Rows % textureRows != 0)
+				return (false, $"This layout needs columns divisible by {textureColumns} and rows divisible by {textureRows}.");
+			return (true, $"One thing: {(Columns / textureColumns)}×{(Rows / textureRows)} cells, {textureColumns}×{textureRows} texture blocks.");
+		}
+
+		var sheetColumns = ThingWidth * textureColumns;
+		var sheetRows = ThingHeight * textureRows;
+		if (sheetColumns > int.MaxValue || sheetRows > int.MaxValue || Columns % sheetColumns != 0 || Rows % sheetRows != 0)
+			return (false, $"Each thing needs a {sheetColumns}×{sheetRows} cell sheet with this layout.");
+		return (true, $"{(Columns / sheetColumns) * (Rows / sheetRows)} thing(s), each {ThingWidth}×{ThingHeight} cells in a {sheetColumns}×{sheetRows} sheet.");
+	}
+
+	private bool TryGetCombinedLayoutDimensions(out int columns, out int rows)
+	{
+		columns = 0;
+		rows = 0;
+		var source = ReplaceExisting ? SelectedReplacement?.Thing : UseTemplate ? SelectedTemplate?.Thing : null;
+		if (source is not { FrameGroups.Count: > 1 }) return false;
+		try
+		{
+			var commonWidth = source.FrameGroups.Max(group => (long)group.Width);
+			var commonHeight = source.FrameGroups.Max(group => (long)group.Height);
+			var totalX = source.FrameGroups.Max(group => checked((long)group.PatternZ * group.PatternX * group.Layers));
+			var totalY = source.FrameGroups.Sum(group => checked((long)group.Frames * group.PatternY));
+			var calculatedColumns = checked(commonWidth * totalX);
+			var calculatedRows = checked(commonHeight * totalY);
+			if (calculatedColumns <= 0 || calculatedRows <= 0 || calculatedColumns > int.MaxValue || calculatedRows > int.MaxValue)
+				return false;
+			columns = (int)calculatedColumns;
+			rows = (int)calculatedRows;
+			return true;
+		}
+		catch (OverflowException)
+		{
+			return false;
+		}
 	}
 
 	private void ClampAndNotifyGrid(bool forceNotifications = false)
@@ -578,7 +732,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable, IT
 
 	private void NotifyValidation()
 	{
-		OnPropertyChanged(nameof(SplitHint)); NotifyCommands();
+		OnPropertyChanged(nameof(SplitHint));
+		OnPropertyChanged(nameof(ThingSheetColumns));
+		OnPropertyChanged(nameof(ThingSheetRows));
+		OnPropertyChanged(nameof(UsesCombinedLayout));
+		NotifyCommands();
 	}
 
 	private void NotifyCommands()

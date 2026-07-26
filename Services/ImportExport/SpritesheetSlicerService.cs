@@ -182,41 +182,23 @@ public static class SpritesheetSlicerService
 		if (supportedCellSizes.Count == 0)
 			return GridDetectionResult.Failed("No project sprite sizes are available.");
 
-		var normalized = (byte[])image.Rgba.Clone();
-		NormalizeMagentaInPlace(normalized);
-		if (IsEmpty(normalized))
-			return GridDetectionResult.Failed("The image contains no visible pixels.");
+		// Object Builder sheets reserve every fixed-size slot. Fully transparent cells,
+		// rows, and columns may carry frame-group structure and must never be trimmed.
+		// A real gutter would require a separate stride value, which SlicerGrid does not
+		// model, so transparency is intentionally not used as a grid signal here.
+		var candidates = supportedCellSizes
+			.Where(cell => cell > 0 && image.Width >= cell && image.Height >= cell)
+			.Distinct()
+			.Where(cell => image.Width % cell == 0 && image.Height % cell == 0)
+			.Select(cell => new SlicerGrid(0, 0, image.Width / cell, image.Height / cell, cell))
+			.ToList();
 
-		var candidates = new List<(double Score, SlicerGrid Grid)>();
-		foreach (var cell in supportedCellSizes.Where(c => c > 0 && c <= image.Width && c <= image.Height).Distinct())
-		{
-			var xScores = ScoreOffsets(normalized, image.Width, image.Height, cell, vertical: true);
-			var yScores = ScoreOffsets(normalized, image.Width, image.Height, cell, vertical: false);
-			foreach (var xs in xScores.Take(2))
-			foreach (var ys in yScores.Take(2))
-			{
-				var occupied = FindOccupiedCells(normalized, image.Width, image.Height, xs.Offset, ys.Offset, cell);
-				if (occupied == null) continue;
-				var value = occupied.Value;
-				var occupiedCount = (value.MaxColumn - value.MinColumn + 1) * (value.MaxRow - value.MinRow + 1);
-				var edgeFitBonus = ((image.Width - xs.Offset) % cell == 0 ? 0.2 : 0) + ((image.Height - ys.Offset) % cell == 0 ? 0.2 : 0);
-				var coverageBonus = Math.Min(0.4, occupiedCount * 0.02);
-				candidates.Add((xs.Score + ys.Score + edgeFitBonus + coverageBonus, new SlicerGrid(
-					xs.Offset + value.MinColumn * cell,
-					ys.Offset + value.MinRow * cell,
-					value.MaxColumn - value.MinColumn + 1,
-					value.MaxRow - value.MinRow + 1,
-					cell)));
-			}
-		}
+		if (candidates.Count == 0)
+			return GridDetectionResult.Failed("The image dimensions are not an exact multiple of the selected sprite size. Turn off automatic grid fitting and set the offsets manually.");
+		if (candidates.Count > 1)
+			return GridDetectionResult.Failed("More than one project sprite size fits this image. Select the intended sprite size before cropping.");
 
-		var ordered = candidates.OrderByDescending(c => c.Score).ToList();
-		if (ordered.Count == 0 || ordered[0].Score < 1.2)
-			return GridDetectionResult.Failed("No consistent empty row/column separators were found.");
-		if (ordered.Count > 1 && Math.Abs(ordered[0].Score - ordered[1].Score) < 0.05 && ordered[0].Grid != ordered[1].Grid)
-			return GridDetectionResult.Failed("Grid detection is ambiguous. Align the grid manually or remove extra transparent gutters.");
-
-		return new GridDetectionResult(true, ClampGrid(ordered[0].Grid, image.Width, image.Height), "Grid proposal detected. Review it before cropping.");
+		return new GridDetectionResult(true, candidates[0], "The full image fits the project sprite grid. Transparent cells were preserved.");
 	}
 
 	public static string ExportPng(byte[] rgba, int size, string directory, string baseName, int index)
@@ -256,56 +238,6 @@ public static class SpritesheetSlicerService
 		"bmp" => SKEncodedImageFormat.Bmp,
 		_ => SKEncodedImageFormat.Png,
 	};
-
-	private static IReadOnlyList<(int Offset, double Score)> ScoreOffsets(byte[] rgba, int width, int height, int cell, bool vertical)
-	{
-		var limit = vertical ? width : height;
-		var result = new List<(int, double)>();
-		for (var offset = 0; offset < Math.Min(cell, limit); offset++)
-		{
-			var matches = 0;
-			var total = 0;
-			for (var position = offset + cell; position < limit; position += cell)
-			{
-				total++;
-				if (IsAxisEmpty(rgba, width, height, position, vertical)) matches++;
-			}
-			if (total > 0) result.Add((offset, (double)matches / total));
-		}
-		return result.OrderByDescending(x => x.Item2).ThenBy(x => x.Item1).Select(x => (x.Item1, x.Item2)).ToList();
-	}
-
-	private static bool IsAxisEmpty(byte[] rgba, int width, int height, int position, bool vertical)
-	{
-		if (vertical)
-		{
-			for (var y = 0; y < height; y++) if (rgba[(y * width + position) * 4 + 3] != 0) return false;
-		}
-		else
-		{
-			for (var x = 0; x < width; x++) if (rgba[(position * width + x) * 4 + 3] != 0) return false;
-		}
-		return true;
-	}
-
-	private static (int MinColumn, int MinRow, int MaxColumn, int MaxRow)? FindOccupiedCells(byte[] rgba, int width, int height, int offsetX, int offsetY, int cell)
-	{
-		var columns = (width - offsetX) / cell;
-		var rows = (height - offsetY) / cell;
-		var minColumn = int.MaxValue; var minRow = int.MaxValue; var maxColumn = -1; var maxRow = -1;
-		for (var row = 0; row < rows; row++)
-		for (var column = 0; column < columns; column++)
-		{
-			var occupied = false;
-			for (var y = 0; y < cell && !occupied; y++)
-			for (var x = 0; x < cell; x++)
-				if (rgba[((offsetY + row * cell + y) * width + offsetX + column * cell + x) * 4 + 3] != 0) { occupied = true; break; }
-			if (!occupied) continue;
-			minColumn = Math.Min(minColumn, column); minRow = Math.Min(minRow, row);
-			maxColumn = Math.Max(maxColumn, column); maxRow = Math.Max(maxRow, row);
-		}
-		return maxColumn < 0 ? null : (minColumn, minRow, maxColumn, maxRow);
-	}
 
 	private static void CopyPixel(byte[] source, int sourceOffset, byte[] destination, int destinationOffset) =>
 		Buffer.BlockCopy(source, sourceOffset, destination, destinationOffset, 4);

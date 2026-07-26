@@ -97,13 +97,13 @@ public sealed class SpritesheetCanvasControl : Control
 		for (var column = 1; column < vm.Columns; column++)
 		{
 			var px = x + column * cell;
-			var pen = vm.UsesFootprint && vm.ThingWidth > 0 && column % vm.ThingWidth == 0 ? splitPen : gridPen;
+			var pen = vm.ThingWidth > 0 && column % vm.ThingSheetColumns == 0 ? splitPen : gridPen;
 			context.DrawLine(pen, new Point(px, y), new Point(px, y + height));
 		}
 		for (var row = 1; row < vm.Rows; row++)
 		{
 			var py = y + row * cell;
-			var pen = vm.UsesFootprint && vm.ThingHeight > 0 && row % vm.ThingHeight == 0 ? splitPen : gridPen;
+			var pen = vm.ThingHeight > 0 && row % vm.ThingSheetRows == 0 ? splitPen : gridPen;
 			context.DrawLine(pen, new Point(x, py), new Point(x + width, py));
 		}
 	}

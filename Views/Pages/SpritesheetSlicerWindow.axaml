@@ -54,7 +54,7 @@
 						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0" IsEnabled="{Binding !AutoDetectSpriteGrid}"/>
 					</Grid>
 					<CheckBox Content="Auto-detect sprite grid" IsChecked="{Binding AutoDetectSpriteGrid}"
-						ToolTip.Tip="Fits the grid to the project sprite size and uses transparent separators when detected. Turn off to edit the grid manually."/>
+						ToolTip.Tip="Selects the complete image when its dimensions exactly fit the project sprite size. Transparent cells are always preserved."/>
 					<Separator/>
 					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
 					<TextBlock Text="Build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
@@ -62,7 +62,7 @@
 					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
 					<CheckBox Content="Use an existing thing as template" IsChecked="{Binding UseTemplate}" IsVisible="{Binding IsCreateMode}"/>
 
-					<StackPanel IsVisible="{Binding UsesFootprint}" Spacing="6">
+					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
 						<TextBlock Text="Thing footprint (cells)" Foreground="#AAAAAA"/>
 						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7">
 							<TextBlock Grid.Row="0" Grid.Column="0" Text="Thing width:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
@@ -70,17 +70,32 @@
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Thing height:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0"/>
 						</Grid>
-						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
+						<TextBlock Text="Use 0 × 0 to derive one footprint from the complete frame-group sheet." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
 					</StackPanel>
 
-					<StackPanel IsVisible="{Binding IsOutfit}" Spacing="6">
-						<TextBlock Text="Outfit layout" Foreground="#AAAAAA"/>
-						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7">
-							<TextBlock Grid.Row="0" Grid.Column="0" Text="Directions:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0"/>
-							<TextBlock Grid.Row="1" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0"/>
+					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
+						<TextBlock Text="Frame-group layout" Foreground="#AAAAAA"/>
+						<TextBlock Text="Matches Object Builder's Layers, Pattern X/Y/Z, and Frames fields." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Layers:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingLayers}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Pattern X:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingPatternX}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Directions:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding IsOutfit}"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Pattern Y:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingPatternY}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="3" Grid.Column="0" Text="Pattern Z:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding ThingPatternZ}" Minimum="1" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding ThingFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding IsOutfit}"/>
 						</Grid>
+						<TextBlock Text="Missiles commonly use a 3 × 3 Pattern X/Y direction grid; use the values stored by the source thing." Foreground="#888888" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsMissile}"/>
+						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
+						<Border Background="#211E19" BorderBrush="#4B4437" BorderThickness="1" CornerRadius="4" Padding="7">
+							<TextBlock Text="Without a template or replacement this creates one frame group. Selecting a thing with Default and Walking groups enables its combined Object Builder sheet layout automatically." Foreground="#C8B98F" FontSize="10" TextWrapping="Wrap"/>
+						</Border>
 					</StackPanel>
 
 					<StackPanel IsVisible="{Binding ShowTemplatePicker}" Spacing="5">
@@ -136,7 +151,7 @@
 			<Grid Grid.Column="4" RowDefinitions="Auto,*,Auto" Margin="10">
 				<StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
 					<TextBlock Text="Cropped sprites" FontSize="15" FontWeight="SemiBold"/>
-					<TextBlock Text="Crop appends cells here. Thing import reads the live grid directly." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+					<TextBlock Text="Crop lists non-empty cells. Original slot numbers are retained for folder export; thing import reads every live-grid slot directly." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
 				</StackPanel>
 				<ListBox Grid.Row="1" ItemsSource="{Binding CroppedSprites}" Background="#181818" BorderBrush="#333333">
 					<ListBox.ItemTemplate>
