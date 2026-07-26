@@ -99,19 +99,13 @@ public sealed class SpritesheetCanvasControl : Control
 			var px = x + column * cell;
 			var pen = vm.UsesFootprint && vm.ThingWidth > 0 && column % vm.ThingWidth == 0 ? splitPen : gridPen;
 			context.DrawLine(pen, new Point(px, y), new Point(px, y + height));
-			if (vm.Subdivisions) context.DrawLine(new Pen(Brushes.Gray, 0.5), new Point(px - cell / 2, y), new Point(px - cell / 2, y + height));
 		}
-		if (vm.Subdivisions && vm.Columns > 0)
-			context.DrawLine(new Pen(Brushes.Gray, 0.5), new Point(x + cell / 2, y), new Point(x + cell / 2, y + height));
 		for (var row = 1; row < vm.Rows; row++)
 		{
 			var py = y + row * cell;
 			var pen = vm.UsesFootprint && vm.ThingHeight > 0 && row % vm.ThingHeight == 0 ? splitPen : gridPen;
 			context.DrawLine(pen, new Point(x, py), new Point(x + width, py));
-			if (vm.Subdivisions) context.DrawLine(new Pen(Brushes.Gray, 0.5), new Point(x, py - cell / 2), new Point(x + width, py - cell / 2));
 		}
-		if (vm.Subdivisions && vm.Rows > 0)
-			context.DrawLine(new Pen(Brushes.Gray, 0.5), new Point(x, y + cell / 2), new Point(x + width, y + cell / 2));
 	}
 
 	protected override void OnPointerPressed(PointerPressedEventArgs e)

@@ -86,19 +86,6 @@ public partial class SpritesheetSlicerWindow : Window
 		if (sender is Button { Tag: SlicerPreviewViewModel sprite }) ViewModel.RemoveCroppedCommand.Execute(sprite);
 	}
 
-	private void OnCoarseNudgeClick(object? sender, RoutedEventArgs e)
-	{
-		if (sender is not Button { Tag: string direction }) return;
-		var amount = ViewModel.CellSize;
-		switch (direction)
-		{
-			case "x-": ViewModel.NudgeGrid(-amount, 0); break;
-			case "x+": ViewModel.NudgeGrid(amount, 0); break;
-			case "y-": ViewModel.NudgeGrid(0, -amount); break;
-			case "y+": ViewModel.NudgeGrid(0, amount); break;
-		}
-	}
-
 	private void OnDragOver(object? sender, DragEventArgs e)
 	{
 		var files = e.DataTransfer.TryGetFiles()?.ToList();

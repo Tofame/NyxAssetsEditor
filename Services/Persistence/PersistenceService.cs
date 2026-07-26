@@ -67,8 +67,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool WasMaximized { get; set; }
 			public string LastOpenDirectory { get; set; } = "";
 			public string LastExportDirectory { get; set; } = "";
-			public bool Subdivisions { get; set; }
-			public bool IncludeEmptySprites { get; set; }
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
 			public uint TemplateItemId { get; set; }
@@ -233,8 +231,6 @@ namespace NyxAssetsEditor.Services.Persistence
 			WasMaximized = _slicerState.WasMaximized,
 			LastOpenDirectory = _slicerState.LastOpenDirectory,
 			LastExportDirectory = _slicerState.LastExportDirectory,
-			Subdivisions = _slicerState.Subdivisions,
-			IncludeEmptySprites = _slicerState.IncludeEmptySprites,
 			ThingWidth = _slicerState.ThingWidth,
 			ThingHeight = _slicerState.ThingHeight,
 			TemplateItemId = _slicerState.TemplateItemId,

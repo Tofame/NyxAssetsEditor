@@ -112,7 +112,7 @@ public class SpritesheetSlicerServiceTests
 			Slicer = new PersistenceService.SlicerStateModel
 			{
 				WasMaximized = true, LastOpenDirectory = "images", LastExportDirectory = "exports",
-				Subdivisions = true, IncludeEmptySprites = false, ThingWidth = 2, ThingHeight = 3,
+				ThingWidth = 2, ThingHeight = 3,
 				TemplateItemId = 77, OutfitDirections = 8, OutfitFrames = 4, ThingKind = "Missile", ReplaceExisting = true
 			}
 		};

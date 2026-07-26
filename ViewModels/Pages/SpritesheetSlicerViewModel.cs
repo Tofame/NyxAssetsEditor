@@ -53,7 +53,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private int _imageRevision;
 	private int _lastCropRevision = -1;
 	private SlicerGrid? _lastCropGrid;
-	private bool _lastCropIncludedEmpty;
 	private WriteableBitmap? _sheetBitmap;
 	private string _sourcePath = "";
 	private int _offsetX;
@@ -62,8 +61,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private int _rows = 1;
 	private int _cellSize = 32;
 	private double _zoom = 1;
-	private bool _subdivisions;
-	private bool _includeEmptySprites;
 	private int _thingWidth;
 	private int _thingHeight;
 	private int _outfitDirections = 4;
@@ -90,8 +87,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		_assets = assets;
 		_origin = origin ?? assets.LastActivePair?.SpritePanel;
 		_state = PersistenceService.GetSlicerState();
-		_subdivisions = _state.Subdivisions;
-		_includeEmptySprites = _state.IncludeEmptySprites;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_outfitDirections = Math.Max(1, _state.OutfitDirections);
@@ -125,8 +120,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public int Rows { get => _rows; set { if (SetProperty(ref _rows, value)) ClampAndNotifyGrid(); } }
 	public int CellSize { get => _cellSize; set { if (SetProperty(ref _cellSize, value)) ClampAndNotifyGrid(); } }
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, Math.Clamp(value, 0.1, 5)); }
-	public bool Subdivisions { get => _subdivisions; set => SetProperty(ref _subdivisions, value); }
-	public bool IncludeEmptySprites { get => _includeEmptySprites; set => SetProperty(ref _includeEmptySprites, value); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int OutfitDirections { get => _outfitDirections; set { if (SetProperty(ref _outfitDirections, Math.Max(1, value))) NotifyValidation(); } }
@@ -277,14 +270,14 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	{
 		if (_image == null) return;
 		var grid = CurrentGrid();
-		if (CroppedSprites.Count > 0 && _lastCropRevision == _imageRevision && _lastCropGrid == grid && _lastCropIncludedEmpty == IncludeEmptySprites)
+		if (CroppedSprites.Count > 0 && _lastCropRevision == _imageRevision && _lastCropGrid == grid)
 		{
 			Status(false, "This selection is already in the crop list. Move the grid or clear the list to crop it again.");
 			return;
 		}
 
 		var added = 0;
-		foreach (var cell in SpritesheetSlicerService.Slice(_image, grid, IncludeEmptySprites))
+		foreach (var cell in SpritesheetSlicerService.Slice(_image, grid, includeEmpty: false))
 		{
 			CroppedSprites.Add(new SlicerPreviewViewModel
 			{
@@ -298,7 +291,6 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		}
 		_lastCropRevision = _imageRevision;
 		_lastCropGrid = grid;
-		_lastCropIncludedEmpty = IncludeEmptySprites;
 		Status(false, $"Added {added} sprite{(added == 1 ? "" : "s")} ({CroppedSprites.Count} total).");
 		NotifyCommands();
 	}
@@ -421,7 +413,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 
 	public PersistenceService.SlicerStateModel CreatePersistentState(bool maximized)
 	{
-		_state.WasMaximized = maximized; _state.Subdivisions = Subdivisions; _state.IncludeEmptySprites = IncludeEmptySprites;
+		_state.WasMaximized = maximized;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.TemplateItemId = TemplateItemId;
 		_state.OutfitDirections = OutfitDirections; _state.OutfitFrames = OutfitFrames; _state.ThingKind = SelectedKind.ToString();
 		_state.ReplaceExisting = ReplaceExisting;
