@@ -68,7 +68,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string LastOpenDirectory { get; set; } = "";
 			public string LastExportDirectory { get; set; } = "";
 			public bool Subdivisions { get; set; }
-			public bool IncludeEmptySprites { get; set; } = true;
+			public bool IncludeEmptySprites { get; set; }
 			public int ThingWidth { get; set; }
 			public int ThingHeight { get; set; }
 			public uint TemplateItemId { get; set; }

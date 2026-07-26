@@ -127,9 +127,23 @@ public partial class SpritesheetSlicerWindow : Window
 
 	private void OnWindowKeyDown(object? sender, KeyEventArgs e)
 	{
+		if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.O)
+		{
+			OnOpenClick(this, new RoutedEventArgs()); e.Handled = true; return;
+		}
 		if (e.Key == Key.Enter && e.Source is not TextBox and not NumericUpDown && ViewModel.CropCommand.CanExecute(null))
 		{
 			ViewModel.CropCommand.Execute(null); e.Handled = true; return;
+		}
+		if (e.KeyModifiers == KeyModifiers.None && e.Source is not TextBox and not NumericUpDown and not Slider and not ComboBox)
+		{
+			switch (e.Key)
+			{
+				case Key.Left: ViewModel.NudgeGrid(-1, 0); e.Handled = true; return;
+				case Key.Right: ViewModel.NudgeGrid(1, 0); e.Handled = true; return;
+				case Key.Up: ViewModel.NudgeGrid(0, -1); e.Handled = true; return;
+				case Key.Down: ViewModel.NudgeGrid(0, 1); e.Handled = true; return;
+			}
 		}
 		if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
 		if (e.Key is Key.OemPlus or Key.Add) { ViewModel.Zoom += 0.1; e.Handled = true; }

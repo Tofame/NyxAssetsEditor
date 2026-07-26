@@ -123,7 +123,19 @@ public sealed class SpritesheetCanvasControl : Control
 		var point = e.GetPosition(this);
 		var sheetX = (point.X - RulerSize) / vm.Zoom;
 		var sheetY = (point.Y - RulerSize) / vm.Zoom;
-		if (sheetX < vm.OffsetX || sheetY < vm.OffsetY || sheetX > vm.OffsetX + vm.Columns * vm.CellSize || sheetY > vm.OffsetY + vm.Rows * vm.CellSize) return;
+		if (sheetX < 0 || sheetY < 0 || sheetX > vm.ImageWidth || sheetY > vm.ImageHeight) return;
+
+		var insideSelection = sheetX >= vm.OffsetX && sheetY >= vm.OffsetY &&
+			sheetX <= vm.OffsetX + vm.Columns * vm.CellSize &&
+			sheetY <= vm.OffsetY + vm.Rows * vm.CellSize;
+		if (!insideSelection)
+		{
+			// Clicking elsewhere on the sheet re-centres the selection, matching the
+			// quick positioning behavior artists expect from the classic slicer.
+			vm.MoveGridTo(
+				(int)Math.Round(sheetX - vm.Columns * vm.CellSize / 2d),
+				(int)Math.Round(sheetY - vm.Rows * vm.CellSize / 2d));
+		}
 		_dragging = true;
 		_dragOffset = new Point(sheetX - vm.OffsetX, sheetY - vm.OffsetY);
 		e.Pointer.Capture(this); e.Handled = true;

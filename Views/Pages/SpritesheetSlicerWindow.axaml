@@ -5,7 +5,7 @@
 		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerWindow"
 		x:DataType="vm:SpritesheetSlicerViewModel"
 		Title="Spritesheet Slicer"
-		Width="1380" Height="850" MinWidth="1050" MinHeight="650"
+		Width="1280" Height="800" MinWidth="1000" MinHeight="620"
 		WindowStartupLocation="CenterOwner" Background="#141414" RequestedThemeVariant="Dark"
 		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
 		PointerWheelChanged="OnPointerWheelChanged" KeyDown="OnWindowKeyDown">
@@ -33,7 +33,7 @@
 			</Grid>
 		</Border>
 
-		<Grid Grid.Row="1" ColumnDefinitions="300,6,*,6,330">
+		<Grid Grid.Row="1" ColumnDefinitions="280,6,*,6,310">
 			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
 				<StackPanel Margin="12" Spacing="10">
 					<TextBlock Text="Grid and selection" FontSize="15" FontWeight="SemiBold"/>
@@ -61,9 +61,11 @@
 					<CheckBox Content="Keep empty sprites in crop list" IsChecked="{Binding IncludeEmptySprites}"/>
 					<Button Content="Detect grid from separators" Command="{Binding DetectGridCommand}" HorizontalAlignment="Stretch"/>
 					<Separator/>
-					<TextBlock Text="Thing import" FontSize="15" FontWeight="SemiBold"/>
-					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
-					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
+					<Expander Header="Thing creation and replacement" IsExpanded="False">
+					<StackPanel Spacing="8" Margin="0,8,0,0">
+						<TextBlock Text="Advanced: build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+						<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
+						<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
 
 					<StackPanel IsVisible="{Binding UsesFootprint}" Spacing="6">
 						<TextBlock Text="Thing width / height (cells)" Foreground="#AAAAAA"/>
@@ -102,7 +104,9 @@
 						</ComboBox>
 						<Border Width="44" Height="44" HorizontalAlignment="Left" Background="#555555"><Image Source="{Binding ReplacementPreview}" Stretch="Uniform"/></Border>
 					</StackPanel>
-					<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
+						<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
+					</StackPanel>
+					</Expander>
 				</StackPanel>
 			</ScrollViewer>
 

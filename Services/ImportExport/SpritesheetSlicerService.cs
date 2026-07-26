@@ -60,9 +60,12 @@ public static class SpritesheetSlicerService
 		if (grid.Columns == 0 || grid.Rows == 0)
 			return result;
 
-		for (var row = 0; row < grid.Rows; row++)
+		// Open Tibia sprite IDs are assigned in the same order used by the classic
+		// Object Builder slicer: top-to-bottom within each column, then left-to-right.
+		// Thing packing is coordinate-based and separately uses GetSpriteIndex.
+		for (var column = 0; column < grid.Columns; column++)
 		{
-			for (var column = 0; column < grid.Columns; column++)
+			for (var row = 0; row < grid.Rows; row++)
 			{
 				var pixels = CopyCell(image, grid.X + column * grid.CellSize, grid.Y + row * grid.CellSize, grid.CellSize);
 				NormalizeMagentaInPlace(pixels);

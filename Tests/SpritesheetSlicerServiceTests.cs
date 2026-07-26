@@ -31,6 +31,22 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
+	public void Slice_UsesObjectBuilderColumnThenRowOrder()
+	{
+		var pixels = new byte[64 * 64 * 4];
+		Fill(pixels, 64, 0, 0, 32, 32, 1, 0, 0, 255);
+		Fill(pixels, 64, 32, 0, 32, 32, 2, 0, 0, 255);
+		Fill(pixels, 64, 0, 32, 32, 32, 3, 0, 0, 255);
+		Fill(pixels, 64, 32, 32, 32, 32, 4, 0, 0, 255);
+
+		var cells = SpritesheetSlicerService.Slice(
+			new SlicerImage(64, 64, pixels), new SlicerGrid(0, 0, 2, 2, 32), includeEmpty: true);
+
+		Assert.Equal(new[] { (0, 0), (0, 1), (1, 0), (1, 1) }, cells.Select(cell => (cell.Column, cell.Row)));
+		Assert.Equal(new byte[] { 1, 3, 2, 4 }, cells.Select(cell => cell.Rgba[0]));
+	}
+
+	[Fact]
 	public void ClampGrid_NeverAllowsSelectionOutsideImage()
 	{
 		var result = SpritesheetSlicerService.ClampGrid(new SlicerGrid(50, -5, 4, 9, 32), 96, 64);

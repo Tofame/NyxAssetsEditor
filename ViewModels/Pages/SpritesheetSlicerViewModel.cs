@@ -49,6 +49,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private readonly PersistenceService.SlicerStateModel _state;
 	private SlicerImage? _image;
 	private SlicerImage? _undoImage;
+	private SlicerGrid? _undoGrid;
+	private int _imageRevision;
+	private int _lastCropRevision = -1;
+	private SlicerGrid? _lastCropGrid;
+	private bool _lastCropIncludedEmpty;
 	private WriteableBitmap? _sheetBitmap;
 	private string _sourcePath = "";
 	private int _offsetX;
@@ -58,7 +63,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private int _cellSize = 32;
 	private double _zoom = 1;
 	private bool _subdivisions;
-	private bool _includeEmptySprites = true;
+	private bool _includeEmptySprites;
 	private int _thingWidth;
 	private int _thingHeight;
 	private int _outfitDirections = 4;
@@ -78,6 +83,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private WriteableBitmap? _replacementPreview;
 	private readonly List<SlicerThingChoiceViewModel> _allTemplates = new();
 	private readonly List<SlicerThingChoiceViewModel> _allReplacements = new();
+	private bool _targetsInitialized;
 
 	public SpritesheetSlicerViewModel(AssetsViewModel assets, FloatingSpriteLoaderViewModel? origin = null)
 	{
@@ -128,12 +134,22 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public uint TemplateItemId
 	{
 		get => _templateItemId;
-		set { if (SetProperty(ref _templateItemId, value) && SelectedTemplate?.Thing.Id != value) SelectedTemplate = _allTemplates.FirstOrDefault(c => c.Thing.Id == value); }
+		set
+		{
+			if (!SetProperty(ref _templateItemId, value)) return;
+			if (SelectedTemplate?.Thing.Id != value) SelectedTemplate = _allTemplates.FirstOrDefault(c => c.Thing.Id == value);
+			NotifyValidation();
+		}
 	}
 	public uint ReplacementThingId
 	{
 		get => _replacementThingId;
-		set { if (SetProperty(ref _replacementThingId, value) && SelectedReplacement?.Thing.Id != value) SelectedReplacement = _allReplacements.FirstOrDefault(c => c.Thing.Id == value); }
+		set
+		{
+			if (!SetProperty(ref _replacementThingId, value)) return;
+			if (SelectedReplacement?.Thing.Id != value) SelectedReplacement = _allReplacements.FirstOrDefault(c => c.Thing.Id == value);
+			NotifyValidation();
+		}
 	}
 	public bool ReplaceExisting { get => _replaceExisting; set { if (SetProperty(ref _replaceExisting, value)) { OnPropertyChanged(nameof(IsCreateMode)); NotifyValidation(); } } }
 	public bool IsCreateMode => !ReplaceExisting;
@@ -153,6 +169,11 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public bool IsOutfit => SelectedKind == ThingKind.Outfit;
 	public bool UsesFootprint => SelectedKind != ThingKind.Outfit;
 	public bool IsOutfitLayoutValid => HasImage && Columns % OutfitDirections == 0 && Rows % OutfitFrames == 0;
+	public bool IsFootprintLayoutValid => ThingWidth == 0 && ThingHeight == 0 ||
+		ThingWidth > 0 && ThingHeight > 0 && Columns % ThingWidth == 0 && Rows % ThingHeight == 0;
+	public bool ProducesSingleThing => IsOutfit || ThingWidth == 0 && ThingHeight == 0 ||
+		ThingWidth > 0 && ThingHeight > 0 && Columns == ThingWidth && Rows == ThingHeight;
+	public bool IsThingLayoutValid => IsOutfit ? IsOutfitLayoutValid : IsFootprintLayoutValid;
 	public string OutfitLayoutHint => IsOutfitLayoutValid
 		? $"Valid: {Columns / OutfitDirections}×{Rows / OutfitFrames} cells, {OutfitDirections} directions, {OutfitFrames} frames"
 		: $"Need columns % {OutfitDirections} = 0 and rows % {OutfitFrames} = 0";
@@ -167,7 +188,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	public bool CanUndoTransform => _undoImage != null;
 	public bool CanCrop => HasImage && Columns > 0 && Rows > 0;
 	public bool CanImportRaw => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
-	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true;
+	public bool CanImportThing => CanCrop && SelectedTarget?.HasThings == true && IsThingLayoutValid &&
+		(!ReplaceExisting || ProducesSingleThing && SelectedReplacement != null) &&
+		(ReplaceExisting || !IsItem || TemplateItemId == 0 || SelectedTemplate != null);
 	public bool CanExport => CroppedSprites.Count > 0;
 
 	public SlicerTargetViewModel? SelectedTarget
@@ -188,6 +211,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 			if (!SetProperty(ref _selectedTemplate, value)) return;
 			if (value != null) TemplateItemId = value.Thing.Id;
 			TemplatePreview?.Dispose(); TemplatePreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
+			NotifyValidation();
 		}
 	}
 	public SlicerThingChoiceViewModel? SelectedReplacement
@@ -198,12 +222,13 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 			if (!SetProperty(ref _selectedReplacement, value)) return;
 			if (value != null) ReplacementThingId = value.Thing.Id;
 			ReplacementPreview?.Dispose(); ReplacementPreview = value == null ? null : SelectedTarget?.ThingsPanel?.GetPreviewForThing(value.Thing);
+			NotifyValidation();
 		}
 	}
 
 	public void RefreshTargets()
 	{
-		var previous = SelectedTarget?.SpritePanel ?? _origin;
+		var previous = SelectedTarget?.SpritePanel;
 		Targets.Clear();
 		foreach (var sprite in _assets.ActivePanels.OfType<FloatingSpriteLoaderViewModel>().Where(p => p.IsArchiveLoaded))
 		{
@@ -211,14 +236,26 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 				.FirstOrDefault(t => t.IsArchiveLoaded && ReferenceEquals(t.LinkedSpritePanel, sprite));
 			Targets.Add(new SlicerTargetViewModel { SpritePanel = sprite, ThingsPanel = things });
 		}
-		SelectedTarget = Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, previous)) ?? Targets.FirstOrDefault();
+		if (!_targetsInitialized)
+		{
+			_targetsInitialized = true;
+			SelectedTarget = Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, _origin)) ?? Targets.FirstOrDefault();
+			return;
+		}
+
+		var restored = previous == null ? null : Targets.FirstOrDefault(t => ReferenceEquals(t.SpritePanel, previous));
+		SelectedTarget = restored;
+		if (previous != null && restored == null)
+			Status(true, "The selected import target was closed. Choose another target before importing.");
 	}
 
 	public void LoadImage(string path)
 	{
 		try
 		{
-			SetImage(SpritesheetSlicerService.Load(path), keepUndo: false);
+			_undoImage = null;
+			_undoGrid = null;
+			ApplyImage(SpritesheetSlicerService.Load(path), resetGrid: true, clearCropped: true);
 			_sourcePath = path;
 			_state.LastOpenDirectory = Path.GetDirectoryName(path) ?? "";
 			OnPropertyChanged(nameof(SourceFileName));
@@ -239,8 +276,16 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private void Crop()
 	{
 		if (_image == null) return;
-		ClearCropped();
-		foreach (var cell in SpritesheetSlicerService.Slice(_image, CurrentGrid(), IncludeEmptySprites))
+		var grid = CurrentGrid();
+		if (CroppedSprites.Count > 0 && _lastCropRevision == _imageRevision && _lastCropGrid == grid && _lastCropIncludedEmpty == IncludeEmptySprites)
+		{
+			Status(false, "This selection is already in the crop list. Move the grid or clear the list to crop it again.");
+			return;
+		}
+
+		var added = 0;
+		foreach (var cell in SpritesheetSlicerService.Slice(_image, grid, IncludeEmptySprites))
+		{
 			CroppedSprites.Add(new SlicerPreviewViewModel
 			{
 				SourceColumn = cell.Column,
@@ -249,7 +294,12 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 				IsEmpty = cell.IsEmpty,
 				Preview = _renderer.ConvertRgba(CellSize, CellSize, cell.Rgba)
 			});
-		Status(false, $"Cropped {CroppedSprites.Count} sprite{(CroppedSprites.Count == 1 ? "" : "s")}.");
+			added++;
+		}
+		_lastCropRevision = _imageRevision;
+		_lastCropGrid = grid;
+		_lastCropIncludedEmpty = IncludeEmptySprites;
+		Status(false, $"Added {added} sprite{(added == 1 ? "" : "s")} ({CroppedSprites.Count} total).");
 		NotifyCommands();
 	}
 
@@ -257,7 +307,10 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private void ClearCropped()
 	{
 		foreach (var sprite in CroppedSprites) sprite.Preview.Dispose();
-		CroppedSprites.Clear(); NotifyCommands();
+		CroppedSprites.Clear();
+		_lastCropRevision = -1;
+		_lastCropGrid = null;
+		NotifyCommands();
 	}
 
 	[RelayCommand]
@@ -334,7 +387,16 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private void UndoTransform()
 	{
 		if (_undoImage == null) return;
-		var restore = _undoImage; _undoImage = null; SetImage(restore, keepUndo: true);
+		var restore = _undoImage;
+		var restoreGrid = _undoGrid;
+		_undoImage = null;
+		_undoGrid = null;
+		ApplyImage(restore, resetGrid: false, clearCropped: false);
+		if (restoreGrid is { } grid)
+		{
+			_offsetX = grid.X; _offsetY = grid.Y; _columns = grid.Columns; _rows = grid.Rows; _cellSize = grid.CellSize;
+			ClampAndNotifyGrid(forceNotifications: true);
+		}
 		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
 		Status(false, "Undid the last sheet transform.");
 	}
@@ -369,18 +431,26 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 	private void Transform(Func<SlicerImage, SlicerImage> operation)
 	{
 		if (_image == null) return;
-		_undoImage = _image.Copy(); SetImage(operation(_image), keepUndo: true);
+		_undoImage = _image.Copy();
+		_undoGrid = CurrentGrid();
+		var transformed = operation(_image);
+		var dimensionsChanged = transformed.Width != _image.Width || transformed.Height != _image.Height;
+		ApplyImage(transformed, resetGrid: dimensionsChanged, clearCropped: false);
 		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
 		Status(false, "Sheet transform applied in memory.");
 	}
 
-	private void SetImage(SlicerImage image, bool keepUndo)
+	private void ApplyImage(SlicerImage image, bool resetGrid, bool clearCropped)
 	{
-		if (!keepUndo) _undoImage = null;
 		_image = image;
+		_imageRevision++;
 		SheetBitmap?.Dispose(); SheetBitmap = _renderer.ConvertRgba(image.Width, image.Height, image.Rgba);
-		_columns = Math.Max(1, image.Width / CellSize); _rows = Math.Max(1, image.Height / CellSize); _offsetX = 0; _offsetY = 0;
-		ClampAndNotifyGrid(forceNotifications: true); ClearCropped();
+		if (resetGrid)
+		{
+			_columns = 1; _rows = 1; _offsetX = 0; _offsetY = 0; Zoom = 1;
+		}
+		ClampAndNotifyGrid(forceNotifications: true);
+		if (clearCropped) ClearCropped();
 		OnPropertyChanged(nameof(Image)); OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(ImageWidth)); OnPropertyChanged(nameof(ImageHeight));
 		NotifyCommands();
 	}
@@ -404,7 +474,9 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 
 	private void NotifyValidation()
 	{
-		OnPropertyChanged(nameof(IsOutfitLayoutValid)); OnPropertyChanged(nameof(OutfitLayoutHint)); OnPropertyChanged(nameof(SplitHint)); NotifyCommands();
+		OnPropertyChanged(nameof(IsOutfitLayoutValid)); OnPropertyChanged(nameof(IsFootprintLayoutValid));
+		OnPropertyChanged(nameof(ProducesSingleThing)); OnPropertyChanged(nameof(IsThingLayoutValid));
+		OnPropertyChanged(nameof(OutfitLayoutHint)); OnPropertyChanged(nameof(SplitHint)); NotifyCommands();
 	}
 
 	private void NotifyCommands()
@@ -412,6 +484,7 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		OnPropertyChanged(nameof(CanCrop)); OnPropertyChanged(nameof(CanImportRaw)); OnPropertyChanged(nameof(CanImportThing)); OnPropertyChanged(nameof(CanExport));
 		CropCommand.NotifyCanExecuteChanged(); DetectGridCommand.NotifyCanExecuteChanged(); ImportRawSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
+		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
 	}
 
 	private void RefreshThingChoices()
