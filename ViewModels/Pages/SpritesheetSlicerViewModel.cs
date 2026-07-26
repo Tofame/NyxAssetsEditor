@@ -339,13 +339,19 @@ public partial class SpritesheetSlicerViewModel : ViewModelBase, IDisposable
 		Status(false, "Undid the last sheet transform.");
 	}
 
-	public IReadOnlyList<string> ExportCropped(string directory)
+	public IReadOnlyList<string> ExportCropped(string directory, string format = "png")
 	{
 		if (CroppedSprites.Count == 0) throw new InvalidOperationException("Crop sprites before exporting.");
 		var name = string.IsNullOrEmpty(_sourcePath) ? "sprite" : Path.GetFileNameWithoutExtension(_sourcePath);
-		var written = CroppedSprites.Select((sprite, i) => SpritesheetSlicerService.ExportPng(sprite.Pixels, CellSize, directory, name, i + 1)).ToList();
+		var written = CroppedSprites.Select((sprite, i) => SpritesheetSlicerService.ExportImage(sprite.Pixels, CellSize, directory, name, i + 1, format)).ToList();
 		_state.LastExportDirectory = directory;
-		Status(false, $"Exported {written.Count} PNG files to {directory}.");
+		var label = format.ToLowerInvariant() switch
+		{
+			"jpg" or "jpeg" => "JPG",
+			"bmp" => "BMP",
+			_ => "PNG",
+		};
+		Status(false, $"Exported {written.Count} {label} file{(written.Count == 1 ? "" : "s")} to {directory}.");
 		return written;
 	}
 

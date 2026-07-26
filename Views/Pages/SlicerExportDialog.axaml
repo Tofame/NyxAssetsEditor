@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		x:Class="NyxAssetsEditor.Views.Pages.SlicerExportDialog"
+		Title="Export cropped sprites"
+		Width="420"
+		SizeToContent="Height"
+		CanResize="False"
+		WindowStartupLocation="CenterOwner"
+		Background="#141414"
+		RequestedThemeVariant="Dark"
+		ShowInTaskbar="False">
+
+	<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1">
+		<StackPanel Spacing="0">
+			<Border Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="15,12">
+				<TextBlock Text="Export cropped sprites" FontSize="14" FontWeight="SemiBold" Foreground="#F0F0F0"/>
+			</Border>
+
+			<Border Padding="20,15">
+				<StackPanel Spacing="14">
+					<StackPanel Spacing="4">
+						<TextBlock Text="Folder" Foreground="#A0A0A0" FontSize="11"/>
+						<Grid ColumnDefinitions="*,Auto">
+							<TextBox Name="PathInput" Watermark="Select folder…" Height="28" VerticalContentAlignment="Center"/>
+							<Button Grid.Column="1" Content="Browse…" Margin="6,0,0,0" Padding="10,6" FontSize="11" Click="OnBrowseClick"/>
+						</Grid>
+					</StackPanel>
+
+					<StackPanel Spacing="6">
+						<TextBlock Text="Format" Foreground="#A0A0A0" FontSize="11"/>
+						<StackPanel Orientation="Horizontal" Spacing="16">
+							<RadioButton Name="FormatPng" Content="PNG" GroupName="ExportFormat" IsChecked="True"/>
+							<RadioButton Name="FormatJpg" Content="JPG" GroupName="ExportFormat"/>
+							<RadioButton Name="FormatBmp" Content="BMP" GroupName="ExportFormat"/>
+						</StackPanel>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<Border Padding="20,8,20,15">
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<Button Grid.Column="1" Name="ExportButton"
+							Content="Export"
+							Padding="14,6" Margin="0,0,6,0"
+							Background="#1A3A1A" BorderBrush="#3A6A3A" BorderThickness="1"
+							Foreground="#88CC88" FontSize="12" CornerRadius="4"
+							Click="OnExportClick"/>
+					<Button Grid.Column="2" Content="Cancel"
+							Padding="14,6"
+							Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1"
+							Foreground="#AAAAAA" FontSize="12" CornerRadius="4"
+							Click="OnCancelClick"/>
+				</Grid>
+			</Border>
+		</StackPanel>
+	</Border>
+</Window>

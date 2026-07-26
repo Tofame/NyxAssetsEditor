@@ -130,12 +130,17 @@
 					</ListBox.ItemTemplate>
 				</ListBox>
 				<StackPanel Grid.Row="2" Spacing="6" Margin="0,8,0,0">
-					<Button Content="Crop selection (Enter)" Command="{Binding CropCommand}" Background="#3A7BD5" Foreground="White"/>
 					<Grid ColumnDefinitions="*,*" ColumnSpacing="6">
-						<Button Content="Clear" Command="{Binding ClearCroppedCommand}"/>
-						<Button Grid.Column="1" Content="Export PNGs…" Click="OnExportClick" IsEnabled="{Binding CanExport}"/>
+						<Button Content="Crop" Command="{Binding CropCommand}" Background="#3A7BD5" Foreground="White"
+								HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+								ToolTip.Tip="Crop selection (Enter)"/>
+						<Button Grid.Column="1" Content="Clear" Command="{Binding ClearCroppedCommand}"
+								HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 					</Grid>
-					<Button Content="Import cropped sprites" Command="{Binding ImportRawSpritesCommand}" IsEnabled="{Binding CanImportRaw}"/>
+					<Button Content="Export" Click="OnExportClick" IsEnabled="{Binding CanExport}"
+							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<Button Content="Import cropped sprites" Command="{Binding ImportRawSpritesCommand}" IsEnabled="{Binding CanImportRaw}"
+							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 				</StackPanel>
 			</Grid>
 		</Grid>

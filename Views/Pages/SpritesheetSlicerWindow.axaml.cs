@@ -73,16 +73,10 @@ public partial class SpritesheetSlicerWindow : Window
 	{
 		try
 		{
-			IStorageFolder? start = null;
-			if (Directory.Exists(ViewModel.LastExportDirectory))
-				start = await StorageProvider.TryGetFolderFromPathAsync(ViewModel.LastExportDirectory);
-			var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-			{
-				Title = "Export cropped sprites as PNG",
-				AllowMultiple = false,
-				SuggestedStartLocation = start
-			});
-			if (folders.Count > 0) ViewModel.ExportCropped(folders[0].Path.LocalPath);
+			var dialog = new SlicerExportDialog(ViewModel.LastExportDirectory);
+			await dialog.ShowDialog(this);
+			if (!dialog.IsConfirmed) return;
+			ViewModel.ExportCropped(dialog.ExportPath, dialog.SelectedFormat);
 		}
 		catch (Exception ex) { ViewModel.ReportError(ex.Message); }
 	}

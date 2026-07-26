@@ -203,22 +203,42 @@ public static class SpritesheetSlicerService
 	}
 
 	public static string ExportPng(byte[] rgba, int size, string directory, string baseName, int index)
+		=> ExportImage(rgba, size, directory, baseName, index, "png");
+
+	public static string ExportImage(byte[] rgba, int size, string directory, string baseName, int index, string format)
 	{
 		Directory.CreateDirectory(directory);
+		var extension = ResolveExtension(format);
+		var encodedFormat = ResolveEncodedFormat(format);
 		var safeBase = string.IsNullOrWhiteSpace(baseName) ? "sprite" : string.Concat(baseName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-		var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}.png");
+		var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}{extension}");
 		for (var suffix = 2; File.Exists(candidate); suffix++)
-			candidate = Path.Combine(directory, $"{safeBase}_{index:0000}_{suffix}.png");
+			candidate = Path.Combine(directory, $"{safeBase}_{index:0000}_{suffix}{extension}");
 
 		var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul);
 		using var bitmap = new SKBitmap(info);
 		System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
 		using var image = SKImage.FromBitmap(bitmap);
-		using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+		using var encoded = image.Encode(encodedFormat, 100)
+			?? throw new InvalidOperationException($"Failed to encode cropped sprite as {extension.TrimStart('.')}.");
 		using var stream = File.Create(candidate);
 		encoded.SaveTo(stream);
 		return candidate;
 	}
+
+	private static string ResolveExtension(string format) => format.ToLowerInvariant() switch
+	{
+		"jpg" or "jpeg" => ".jpg",
+		"bmp" => ".bmp",
+		_ => ".png",
+	};
+
+	private static SKEncodedImageFormat ResolveEncodedFormat(string format) => format.ToLowerInvariant() switch
+	{
+		"jpg" or "jpeg" => SKEncodedImageFormat.Jpeg,
+		"bmp" => SKEncodedImageFormat.Bmp,
+		_ => SKEncodedImageFormat.Png,
+	};
 
 	private static IReadOnlyList<(int Offset, double Score)> ScoreOffsets(byte[] rgba, int width, int height, int cell, bool vertical)
 	{
