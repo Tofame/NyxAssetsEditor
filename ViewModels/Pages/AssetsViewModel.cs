@@ -589,6 +589,18 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			AddPanel(panel);
 		}
 
+		/// <summary>Moves the complete floating panel container above its siblings.</summary>
+		public void BringPanelToFront(PanelViewModelBase panel)
+		{
+			if (!panel.IsFloating)
+				return;
+
+			var currentIndex = FloatingPanels.IndexOf(panel);
+			var topIndex = FloatingPanels.Count - 1;
+			if (currentIndex >= 0 && currentIndex != topIndex)
+				FloatingPanels.Move(currentIndex, topIndex);
+		}
+
 		private void AddPanel(PanelViewModelBase panel)
 		{
 			panel.RequestClose += OnPanelRequestClose;
@@ -617,10 +629,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				if (existing.IsFloating)
-				{
-					FloatingPanels.Remove(existing);
-					FloatingPanels.Add(existing);
-				}
+					BringPanelToFront(existing);
 				return;
 			}
 
