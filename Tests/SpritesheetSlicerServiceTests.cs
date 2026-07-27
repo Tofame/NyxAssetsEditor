@@ -197,6 +197,64 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
+	public void SlicerHistory_UndoesAndRedoesMultipleImageAndGridStates()
+	{
+		var history = new SlicerHistory(3);
+		var image0 = HistoryImage(10);
+		var image1 = HistoryImage(20);
+		var image2 = HistoryImage(30);
+		var grid0 = new SlicerGrid(0, 0, 1, 1, 32);
+		var grid1 = new SlicerGrid(1, 2, 2, 3, 32);
+		var grid2 = new SlicerGrid(4, 5, 3, 2, 32);
+
+		history.Record(image0, grid0, "Rotate left");
+		history.Record(image1, grid1, "Flip horizontally");
+
+		var undoFlip = history.Undo(image2, grid2);
+		Assert.Same(image1, undoFlip.Image);
+		Assert.Equal(grid1, undoFlip.Grid);
+		Assert.Equal("Flip horizontally", undoFlip.Action);
+
+		var undoRotate = history.Undo(undoFlip.Image, undoFlip.Grid);
+		Assert.Same(image0, undoRotate.Image);
+		Assert.Equal(grid0, undoRotate.Grid);
+		Assert.False(history.CanUndo);
+
+		var redoRotate = history.Redo(undoRotate.Image, undoRotate.Grid);
+		Assert.Same(image1, redoRotate.Image);
+		Assert.Equal(grid1, redoRotate.Grid);
+		Assert.Equal("Rotate left", redoRotate.Action);
+		Assert.True(history.CanRedo);
+	}
+
+	[Fact]
+	public void SlicerHistory_NewActionClearsRedoAndCapacityDropsTheOldestAction()
+	{
+		var history = new SlicerHistory(2);
+		var grid = new SlicerGrid(0, 0, 1, 1, 32);
+		var image0 = HistoryImage(10);
+		var image1 = HistoryImage(20);
+		var image2 = HistoryImage(30);
+		var image3 = HistoryImage(40);
+
+		history.Record(image0, grid, "First");
+		history.Record(image1, grid, "Second");
+		history.Record(image2, grid, "Third");
+		Assert.Equal(2, history.UndoCount);
+
+		var undoThird = history.Undo(image3, grid);
+		Assert.Same(image2, undoThird.Image);
+		var undoSecond = history.Undo(undoThird.Image, grid);
+		Assert.Same(image1, undoSecond.Image);
+		Assert.False(history.CanUndo);
+
+		var redoSecond = history.Redo(undoSecond.Image, grid);
+		Assert.True(history.CanRedo);
+		history.Record(redoSecond.Image, grid, "Replacement branch");
+		Assert.False(history.CanRedo);
+	}
+
+	[Fact]
 	public void DetectGrid_UsesTheCompleteExactGridWithoutTrimmingTransparentCells()
 	{
 		var pixels = new byte[64 * 64 * 4];
@@ -346,6 +404,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	private static byte[] RedChannel(SlicerImage image) => image.Rgba.Where((_, index) => index % 4 == 0).ToArray();
+	private static SlicerImage HistoryImage(byte value) => new(1, 1, new byte[] { value, 0, 0, 255 });
 }
 
 public class SpritesheetThingBuilderTests

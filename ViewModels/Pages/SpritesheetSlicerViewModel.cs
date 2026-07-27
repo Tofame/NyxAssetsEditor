@@ -54,9 +54,8 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	private readonly SpriteRenderer _renderer = new();
 	private readonly FloatingSpriteLoaderViewModel? _origin;
 	private readonly PersistenceService.SlicerStateModel _state;
+	private readonly SlicerHistory _history = new(Math.Max(1, SettingsViewModel.UndoLimit));
 	private SlicerImage? _image;
-	private SlicerImage? _undoImage;
-	private SlicerGrid? _undoGrid;
 	private int _imageRevision;
 	private int _lastCropRevision = -1;
 	private SlicerGrid? _lastCropGrid;
@@ -376,7 +375,8 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 
 	public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
 	public bool StatusIsError { get => _statusIsError; private set => SetProperty(ref _statusIsError, value); }
-	public bool CanUndoTransform => _undoImage != null;
+	public bool CanUndo => _history.CanUndo;
+	public bool CanRedo => _history.CanRedo;
 	public bool CanCrop => HasImage && Columns > 0 && Rows > 0;
 	public bool CanImportSprites => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
 	public bool CanImportThing => CanCrop && GetLayoutStatus().Valid && SelectedTarget?.HasThings == true &&
@@ -497,9 +497,8 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	{
 		try
 		{
-			_undoImage = null;
-			_undoGrid = null;
 			var loaded = SpritesheetSlicerService.Load(path);
+			_history.Clear();
 			_sourcePath = path;
 			_state.LastOpenDirectory = Path.GetDirectoryName(path) ?? "";
 			ApplyImage(loaded, resetGrid: true, clearCropped: true);
@@ -659,32 +658,28 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	}
 
 	[RelayCommand(CanExecute = nameof(CanCrop))]
-	private void RotateLeft() => TransformSelection(SpritesheetSlicerService.RotateCounterClockwise, "Rotated left");
+	private void RotateLeft() => TransformSelection(SpritesheetSlicerService.RotateCounterClockwise, "Rotate left", "Rotated left");
 	[RelayCommand(CanExecute = nameof(CanCrop))]
-	private void RotateRight() => TransformSelection(SpritesheetSlicerService.RotateClockwise, "Rotated right");
+	private void RotateRight() => TransformSelection(SpritesheetSlicerService.RotateClockwise, "Rotate right", "Rotated right");
 	[RelayCommand(CanExecute = nameof(CanCrop))]
-	private void FlipHorizontal() => TransformSelection(SpritesheetSlicerService.FlipHorizontal, "Flipped horizontally");
+	private void FlipHorizontal() => TransformSelection(SpritesheetSlicerService.FlipHorizontal, "Flip horizontally", "Flipped horizontally");
 	[RelayCommand(CanExecute = nameof(CanCrop))]
-	private void FlipVertical() => TransformSelection(SpritesheetSlicerService.FlipVertical, "Flipped vertically");
+	private void FlipVertical() => TransformSelection(SpritesheetSlicerService.FlipVertical, "Flip vertically", "Flipped vertically");
 	[RelayCommand(CanExecute = nameof(HasImage))]
-	private void MagentaFill() => TransformImage(SpritesheetSlicerService.FillTransparentWithMagenta, "Filled transparent pixels with magenta.");
+	private void MagentaFill() => TransformImage(SpritesheetSlicerService.FillTransparentWithMagenta, "Magenta fill", "Filled transparent pixels with magenta.");
 
-	[RelayCommand(CanExecute = nameof(CanUndoTransform))]
-	private void UndoTransform()
+	[RelayCommand(CanExecute = nameof(CanUndo))]
+	private void Undo()
 	{
-		if (_undoImage == null) return;
-		var restore = _undoImage;
-		var restoreGrid = _undoGrid;
-		_undoImage = null;
-		_undoGrid = null;
-		ApplyImage(restore, resetGrid: false, clearCropped: false);
-		if (restoreGrid is { } grid)
-		{
-			_offsetX = grid.X; _offsetY = grid.Y; _columns = grid.Columns; _rows = grid.Rows; _cellSize = grid.CellSize;
-			ClampAndNotifyGrid(forceNotifications: true);
-		}
-		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
-		Status(false, "Undid the last sheet transform.");
+		if (_image == null || !_history.CanUndo) return;
+		RestoreHistoryState(_history.Undo(_image, CurrentGrid()), "Undid");
+	}
+
+	[RelayCommand(CanExecute = nameof(CanRedo))]
+	private void Redo()
+	{
+		if (_image == null || !_history.CanRedo) return;
+		RestoreHistoryState(_history.Redo(_image, CurrentGrid()), "Redid");
 	}
 
 	public IReadOnlyList<string> ExportCropped(
@@ -718,28 +713,41 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		return _state;
 	}
 
-	private void TransformSelection(Func<SlicerImage, SlicerImage> operation, string action)
+	private void TransformSelection(
+		Func<SlicerImage, SlicerImage> operation,
+		string historyAction,
+		string statusAction)
 	{
 		if (_image == null) return;
 		var grid = CurrentGrid();
-		_undoImage = _image.Copy();
-		_undoGrid = grid;
-		ApplyImage(SpritesheetSlicerService.TransformCells(_image, grid, operation), resetGrid: false, clearCropped: false);
-		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
+		var transformed = SpritesheetSlicerService.TransformCells(_image, grid, operation);
+		_history.Record(_image, grid, historyAction);
+		ApplyImage(transformed, resetGrid: false, clearCropped: false);
 		var count = grid.Columns * grid.Rows;
-		Status(false, $"{action} {count} selected sprite cell{(count == 1 ? "" : "s")}.");
+		Status(false, $"{statusAction} {count} selected sprite cell{(count == 1 ? "" : "s")}.");
 	}
 
-	private void TransformImage(Func<SlicerImage, SlicerImage> operation, string status)
+	private void TransformImage(Func<SlicerImage, SlicerImage> operation, string historyAction, string status)
 	{
 		if (_image == null) return;
-		_undoImage = _image.Copy();
-		_undoGrid = CurrentGrid();
+		var grid = CurrentGrid();
 		var transformed = operation(_image);
+		_history.Record(_image, grid, historyAction);
 		var dimensionsChanged = transformed.Width != _image.Width || transformed.Height != _image.Height;
 		ApplyImage(transformed, resetGrid: dimensionsChanged, clearCropped: false);
-		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
 		Status(false, status);
+	}
+
+	private void RestoreHistoryState(SlicerHistoryState state, string operation)
+	{
+		ApplyImage(state.Image, resetGrid: false, clearCropped: false);
+		_offsetX = state.Grid.X;
+		_offsetY = state.Grid.Y;
+		_columns = state.Grid.Columns;
+		_rows = state.Grid.Rows;
+		_cellSize = state.Grid.CellSize;
+		ClampAndNotifyGrid(forceNotifications: true);
+		Status(false, $"{operation}: {state.Action}.");
 	}
 
 	private void ApplyImage(SlicerImage image, bool resetGrid, bool clearCropped)
@@ -989,7 +997,8 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		CropCommand.NotifyCanExecuteChanged(); ImportSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
 		FindTemplateCommand.NotifyCanExecuteChanged(); FindReplacementCommand.NotifyCanExecuteChanged();
-		OnPropertyChanged(nameof(CanUndoTransform)); UndoTransformCommand.NotifyCanExecuteChanged();
+		OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanRedo));
+		UndoCommand.NotifyCanExecuteChanged(); RedoCommand.NotifyCanExecuteChanged();
 	}
 
 	private void RefreshThingChoices()

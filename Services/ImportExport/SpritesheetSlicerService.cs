@@ -6,10 +6,7 @@ using SkiaSharp;
 
 namespace NyxAssetsEditor.Services.ImportExport;
 
-public sealed record SlicerImage(int Width, int Height, byte[] Rgba)
-{
-	public SlicerImage Copy() => new(Width, Height, (byte[])Rgba.Clone());
-}
+public sealed record SlicerImage(int Width, int Height, byte[] Rgba);
 
 public readonly record struct SlicerGrid(int X, int Y, int Columns, int Rows, int CellSize)
 {
@@ -32,6 +29,76 @@ public sealed record SlicerCell(int Column, int Row, byte[] Rgba, bool IsEmpty);
 public sealed record GridDetectionResult(bool Success, SlicerGrid Grid, string Message)
 {
 	public static GridDetectionResult Failed(string message) => new(false, default, message);
+}
+
+public sealed record SlicerHistoryState(SlicerImage Image, SlicerGrid Grid, string Action);
+
+/// <summary>
+/// Bounded undo/redo history for immutable slicer image versions and their grid state.
+/// Recording a new action after undoing clears the redo branch.
+/// </summary>
+public sealed class SlicerHistory
+{
+	private readonly int _capacity;
+	private readonly List<SlicerHistoryState> _undo = new();
+	private readonly List<SlicerHistoryState> _redo = new();
+
+	public SlicerHistory(int capacity)
+	{
+		if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+		_capacity = capacity;
+	}
+
+	public bool CanUndo => _undo.Count > 0;
+	public bool CanRedo => _redo.Count > 0;
+	public int UndoCount => _undo.Count;
+	public int RedoCount => _redo.Count;
+
+	public void Record(SlicerImage image, SlicerGrid grid, string action)
+	{
+		ArgumentNullException.ThrowIfNull(image);
+		if (string.IsNullOrWhiteSpace(action)) throw new ArgumentException("Describe the history action.", nameof(action));
+		Push(_undo, new SlicerHistoryState(image, grid, action));
+		_redo.Clear();
+	}
+
+	public SlicerHistoryState Undo(SlicerImage currentImage, SlicerGrid currentGrid)
+	{
+		ArgumentNullException.ThrowIfNull(currentImage);
+		if (!CanUndo) throw new InvalidOperationException("There is no slicer action to undo.");
+		var previous = Pop(_undo);
+		Push(_redo, new SlicerHistoryState(currentImage, currentGrid, previous.Action));
+		return previous;
+	}
+
+	public SlicerHistoryState Redo(SlicerImage currentImage, SlicerGrid currentGrid)
+	{
+		ArgumentNullException.ThrowIfNull(currentImage);
+		if (!CanRedo) throw new InvalidOperationException("There is no slicer action to redo.");
+		var next = Pop(_redo);
+		Push(_undo, new SlicerHistoryState(currentImage, currentGrid, next.Action));
+		return next;
+	}
+
+	public void Clear()
+	{
+		_undo.Clear();
+		_redo.Clear();
+	}
+
+	private void Push(List<SlicerHistoryState> history, SlicerHistoryState state)
+	{
+		history.Add(state);
+		if (history.Count > _capacity) history.RemoveAt(0);
+	}
+
+	private static SlicerHistoryState Pop(List<SlicerHistoryState> history)
+	{
+		var index = history.Count - 1;
+		var state = history[index];
+		history.RemoveAt(index);
+		return state;
+	}
 }
 
 /// <summary>Pure pixel and grid operations used by the spritesheet slicer.</summary>
