@@ -4,7 +4,7 @@
 		xmlns:common="using:NyxAssetsEditor.Views.Common"
 		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerControl"
 		x:DataType="vm:SpritesheetSlicerViewModel"
-		Width="{Binding DisplayWidth}" Background="#141414" RequestedThemeVariant="Dark"
+		Width="{Binding DisplayWidth}" Background="#141414"
 		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
 		KeyDown="OnKeyDown">
 	<UserControl.KeyBindings>
