@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Linq;
 using Avalonia.Controls;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.ViewModels.Shell;
@@ -22,8 +21,7 @@ namespace NyxAssetsEditor.Views.Shell
 				return;
 
 			var assetsVm = GetAssetsViewModel();
-			assetsVm?.ActivePanels.OfType<SpritesheetSlicerViewModel>()
-				.FirstOrDefault()?.SavePersistentState();
+			assetsVm?.SaveSlicerPreferences();
 			if (assetsVm == null || !assetsVm.CanCompile)
 				return;
 

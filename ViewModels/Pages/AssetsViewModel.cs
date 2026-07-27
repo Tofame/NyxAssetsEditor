@@ -26,8 +26,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private FloatingSpriteLoaderViewModel? _lastLoadedSpritePanel;
 		private FloatingSpriteLoaderViewModel? _pendingSprForNextDat;
 		private FloatingSpriteLoaderViewModel? _pendingAssetsForNextThings;
-		private readonly List<IThingFinderContextActionProvider> _externalThingFinderContextProviders = new();
-
 		public ObservableCollection<PanelViewModelBase> ActivePanels { get; } = new ObservableCollection<PanelViewModelBase>();
 		public ObservableCollection<PanelViewModelBase> FloatingPanels { get; } = new ObservableCollection<PanelViewModelBase>();
 		public ObservableCollection<PanelViewModelBase> LeftDockedPanels { get; } = new ObservableCollection<PanelViewModelBase>();
@@ -670,18 +668,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			NyxAssets.Things.ThingType thing) => ActivePanels
 			.Where(panel => panel.IsVisible)
 			.OfType<IThingFinderContextActionProvider>()
-			.Concat(_externalThingFinderContextProviders)
 			.SelectMany(provider => provider.GetThingFinderContextActions(source, thing))
 			.ToList();
 
-		public void RegisterThingFinderContextActionProvider(IThingFinderContextActionProvider provider)
+		public void SaveSlicerPreferences()
 		{
-			if (!_externalThingFinderContextProviders.Contains(provider))
-				_externalThingFinderContextProviders.Add(provider);
+			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
+				slicer.SavePersistentState();
 		}
-
-		public void UnregisterThingFinderContextActionProvider(IThingFinderContextActionProvider provider) =>
-			_externalThingFinderContextProviders.Remove(provider);
 
 		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
 		{

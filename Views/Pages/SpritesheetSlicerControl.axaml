@@ -6,7 +6,15 @@
 		x:DataType="vm:SpritesheetSlicerViewModel"
 		Width="{Binding DisplayWidth}" Background="#141414" RequestedThemeVariant="Dark"
 		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
-		KeyDown="OnWindowKeyDown">
+		KeyDown="OnKeyDown">
+	<UserControl.Styles>
+		<Style Selector="TextBlock.slicer-status">
+			<Setter Property="Foreground" Value="#E0B84D"/>
+		</Style>
+		<Style Selector="TextBlock.slicer-status.error">
+			<Setter Property="Foreground" Value="#E57373"/>
+		</Style>
+	</UserControl.Styles>
 	<Border Background="#141414" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
 		<Grid RowDefinitions="Auto,*">
 			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
@@ -85,7 +93,7 @@
 					</Grid>
 					<Separator/>
 					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
-					<TextBlock Text="Build DAT things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+					<TextBlock Text="Build things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
 					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
 					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
 					<StackPanel IsVisible="{Binding ReplaceExisting}" Spacing="5">
@@ -127,7 +135,7 @@
 							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0"/>
 							<TextBlock Grid.Row="1" Grid.Column="0" Text="Thing height:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0"/>
-							<TextBlock Grid.Row="2" Grid.Column="0" Text="Crop size:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Exact size:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingExactSize}" Minimum="1" Maximum="255" FormatString="0"
 								IsEnabled="{Binding !AutomaticCropSize}"
 								ToolTip.Tip="DAT crop-size metadata; this does not change the 32-pixel sprite cell size."/>
@@ -167,7 +175,7 @@
 							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding ShowSingleOutfitFrames}"/>
 							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding ShowSingleOutfitFrames}"/>
 						</Grid>
-						<CheckBox Content="Separate idle and walking groups" IsChecked="{Binding OutfitSeparateFrameGroups}" IsVisible="{Binding IsOutfit}"/>
+						<CheckBox Content="Sheet has separate idle/walking groups" IsChecked="{Binding OutfitSeparateFrameGroups}" IsVisible="{Binding IsOutfit}"/>
 						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7" IsVisible="{Binding ShowSeparateOutfitFrames}">
 							<TextBlock Grid.Row="0" Grid.Column="0" Text="Idle frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
 							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding OutfitIdleFrames}" Minimum="1" Maximum="60" FormatString="0"/>
@@ -218,14 +226,14 @@
 					</Grid>
 					<Button Content="Export" Click="OnExportClick" IsEnabled="{Binding CanExport}"
 							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-					<Button Content="Import cropped sprites" Command="{Binding ImportRawSpritesCommand}" IsEnabled="{Binding CanImportRaw}"
+					<Button Content="Import cropped sprites" Command="{Binding ImportSpritesCommand}" IsEnabled="{Binding CanImportSprites}"
 							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 				</StackPanel>
 			</Grid>
 		</Grid>
 
 		<Border Grid.Row="2" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="10,7">
-			<TextBlock Text="{Binding StatusMessage}" Foreground="#E0B84D" TextWrapping="Wrap"/>
+			<TextBlock Classes="slicer-status" Classes.error="{Binding StatusIsError}" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
 		</Border>
 			</Grid>
 

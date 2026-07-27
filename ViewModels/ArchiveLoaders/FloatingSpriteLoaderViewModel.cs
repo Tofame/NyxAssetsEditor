@@ -718,16 +718,23 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			HashSet<uint> AddedBefore,
 			HashSet<uint> RemovedBefore,
 			HashSet<uint> ModifiedBefore,
-			IReadOnlyList<uint> AddedIds);
+			IReadOnlyList<uint> AddedIds)
+		{
+			public Services.Archive.SpriteUndoAction? UndoAction { get; set; }
+		}
 
 		internal SlicerAppendCheckpoint BeginSlicerAppend(IReadOnlyList<byte[]> pixelBuffers)
 		{
 			if (!IsArchiveLoaded)
 				throw new InvalidOperationException("A sprite archive must be loaded before importing.");
-			if (pixelBuffers.Any(p => p.Length != NyxAssets.Sprites.SpritePixelCodec.RgbaBufferLength))
+			if ((ulong)Loader.SpriteCount + (ulong)pixelBuffers.Count > uint.MaxValue)
+				throw new InvalidOperationException("The sprite archive does not have enough ID space for this import.");
+			if (pixelBuffers.Any(p => p == null || p.Length != NyxAssets.Sprites.SpritePixelCodec.RgbaBufferLength))
 				throw new InvalidOperationException("Every imported sprite must be an exact 32×32 RGBA buffer.");
 
-			var ids = Enumerable.Range(1, pixelBuffers.Count).Select(i => Loader.SpriteCount + (uint)i).ToList();
+			var ids = Enumerable.Range(1, pixelBuffers.Count)
+				.Select(i => checked((uint)((ulong)Loader.SpriteCount + (uint)i)))
+				.ToList();
 			var checkpoint = new SlicerAppendCheckpoint(
 				Loader.SpriteCount,
 				HasSavedChanges,
@@ -737,6 +744,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				ids);
 			if (pixelBuffers.Count == 0) return checkpoint;
 			StartSpriteTransaction(ids);
+			checkpoint.UndoAction = _currentAction;
 			try
 			{
 				for (var i = 0; i < pixelBuffers.Count; i++)
@@ -763,8 +771,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			var lastPage = TotalPages;
 			if (CurrentPage != lastPage) CurrentPage = lastPage;
 			else UpdatePage();
-			EndSpriteTransaction(checkpoint.AddedIds);
 			GetLinkedThingsPanel()?.RefreshPreviews();
+			EndSpriteTransaction(checkpoint.AddedIds);
 		}
 
 		internal void RollbackSlicerAppend(SlicerAppendCheckpoint checkpoint)
@@ -776,6 +784,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ModifiedSpriteIds.Clear(); foreach (var id in checkpoint.ModifiedBefore) ModifiedSpriteIds.Add(id);
 			HasSavedChanges = checkpoint.HasSavedChangesBefore;
 			_currentAction = null;
+			if (checkpoint.UndoAction != null)
+				_undoRedoStack?.DiscardLatestUndoIfMatches(checkpoint.UndoAction);
 			TotalSprites = Loader.SpriteCount;
 			UpdatePage();
 			RefreshUndoRedoCommands();
@@ -785,8 +795,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		{
 			if (pixelBuffers.Count == 0) return Array.Empty<uint>();
 			var checkpoint = BeginSlicerAppend(pixelBuffers);
-			CommitSlicerAppend(checkpoint);
-			return checkpoint.AddedIds;
+			try
+			{
+				CommitSlicerAppend(checkpoint);
+				return checkpoint.AddedIds;
+			}
+			catch
+			{
+				RollbackSlicerAppend(checkpoint);
+				throw;
+			}
 		}
 
 		public void RemoveSprite(SpriteViewModel sprite) => RemoveSprites(new[] { sprite });

@@ -143,8 +143,8 @@ public static class SpritesheetSlicerService
 		if (grid.Columns == 0 || grid.Rows == 0)
 			return result;
 
-		// Open Tibia sprite IDs are assigned in the same order used by the classic
-		// Object Builder slicer: top-to-bottom within each column, then left-to-right.
+		// Thing sheets use column-major slot order: top-to-bottom within each column,
+		// then left-to-right. Keep this independent from preview display order.
 		// Thing packing is coordinate-based and separately uses GetSpriteIndex.
 		for (var column = 0; column < grid.Columns; column++)
 		{
@@ -284,7 +284,7 @@ public static class SpritesheetSlicerService
 		if (supportedCellSizes.Count == 0)
 			return GridDetectionResult.Failed("No project sprite sizes are available.");
 
-		// Object Builder sheets reserve every fixed-size slot. Fully transparent cells,
+		// Exported thing sheets reserve every fixed-size slot. Fully transparent cells,
 		// rows, and columns may carry frame-group structure and must never be trimmed.
 		// A real gutter would require a separate stride value, which SlicerGrid does not
 		// model, so transparency is intentionally not used as a grid signal here.
@@ -304,42 +304,55 @@ public static class SpritesheetSlicerService
 	}
 
 	public static string ExportPng(byte[] rgba, int size, string directory, string baseName, int index)
-		=> ExportImage(rgba, size, directory, baseName, index, "png");
-
-	public static string ExportImage(byte[] rgba, int size, string directory, string baseName, int index, string format)
 	{
+		ArgumentNullException.ThrowIfNull(rgba);
+		if (size <= 0) throw new ArgumentOutOfRangeException(nameof(size));
+		if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("Choose an export folder.", nameof(directory));
+		if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+		var expectedLength = checked(size * size * 4);
+		if (rgba.Length != expectedLength)
+			throw new ArgumentException($"Expected {expectedLength} RGBA bytes for a {size}×{size} sprite, but received {rgba.Length}.", nameof(rgba));
+
 		Directory.CreateDirectory(directory);
-		var extension = ResolveExtension(format);
-		var encodedFormat = ResolveEncodedFormat(format);
-		var safeBase = string.IsNullOrWhiteSpace(baseName) ? "sprite" : string.Concat(baseName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-		var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}{extension}");
-		for (var suffix = 2; File.Exists(candidate); suffix++)
-			candidate = Path.Combine(directory, $"{safeBase}_{index:0000}_{suffix}{extension}");
+		var invalidCharacters = Path.GetInvalidFileNameChars();
+		var safeBase = string.IsNullOrWhiteSpace(baseName) ? "sprite" : string.Concat(baseName.Select(c => invalidCharacters.Contains(c) ? '_' : c));
 
 		var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul);
 		using var bitmap = new SKBitmap(info);
-		System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
+		System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), expectedLength);
 		using var image = SKImage.FromBitmap(bitmap);
-		using var encoded = image.Encode(encodedFormat, 100)
-			?? throw new InvalidOperationException($"Failed to encode cropped sprite as {extension.TrimStart('.')}.");
-		using var stream = File.Create(candidate);
-		encoded.SaveTo(stream);
-		return candidate;
+		using var encoded = image.Encode(SKEncodedImageFormat.Png, 100)
+			?? throw new InvalidOperationException("Failed to encode cropped sprite as PNG.");
+
+		for (var suffix = 1; ; suffix++)
+		{
+			var suffixText = suffix == 1 ? "" : $"_{suffix}";
+			var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}{suffixText}.png");
+			FileStream stream;
+			try
+			{
+				stream = new FileStream(candidate, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+			}
+			catch (IOException) when (File.Exists(candidate))
+			{
+				// Another export already owns this name; advance to the next suffix.
+				continue;
+			}
+
+			try
+			{
+				using (stream)
+					encoded.SaveTo(stream);
+				return candidate;
+			}
+			catch
+			{
+				try { File.Delete(candidate); }
+				catch { /* Preserve the original export error. */ }
+				throw;
+			}
+		}
 	}
-
-	private static string ResolveExtension(string format) => format.ToLowerInvariant() switch
-	{
-		"jpg" or "jpeg" => ".jpg",
-		"bmp" => ".bmp",
-		_ => ".png",
-	};
-
-	private static SKEncodedImageFormat ResolveEncodedFormat(string format) => format.ToLowerInvariant() switch
-	{
-		"jpg" or "jpeg" => SKEncodedImageFormat.Jpeg,
-		"bmp" => SKEncodedImageFormat.Bmp,
-		_ => SKEncodedImageFormat.Png,
-	};
 
 	private static void CopyPixel(byte[] source, int sourceOffset, byte[] destination, int destinationOffset) =>
 		Buffer.BlockCopy(source, sourceOffset, destination, destinationOffset, 4);

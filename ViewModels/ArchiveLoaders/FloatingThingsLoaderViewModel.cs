@@ -711,8 +711,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			else
 			{
 				var expected = GetNextThingId(kind);
+				if ((ulong)expected + (ulong)things.Count - 1 > uint.MaxValue)
+					throw new InvalidOperationException("The things archive does not have enough ID space for this import.");
 				for (var i = 0; i < things.Count; i++)
-					if (things[i].Id != expected + (uint)i)
+					if (things[i].Id != checked((uint)((ulong)expected + (uint)i)))
 						throw new InvalidOperationException("Thing storage changed during import. Review the target and try again.");
 			}
 
@@ -752,6 +754,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				ModifiedThingIds.Clear(); foreach (var id in thingCheckpoint.ModifiedBefore) ModifiedThingIds.Add(id);
 				HasSavedChanges = thingCheckpoint.HasSavedChangesBefore;
 				_currentAction = null;
+				_undoRedoStack?.DiscardLatestUndoIfMatches(thingCheckpoint);
 				ReloadThingsForSection();
 				RefreshUndoRedoCommands();
 				throw;

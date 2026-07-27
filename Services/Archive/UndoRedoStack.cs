@@ -107,6 +107,18 @@ namespace NyxAssetsEditor.Services.Archive
 			return action;
 		}
 
+		internal void DiscardLatestUndoIfMatches(T expected)
+		{
+			// Transaction rollback must never discard an unrelated user action.
+			if (_undoList.Count == 0 || !ReferenceEquals(_undoList[^1], expected))
+				return;
+
+			var index = _undoList.Count - 1;
+			var state = _undoList[index];
+			_undoList.RemoveAt(index);
+			DisposeState(state);
+		}
+
 		public void Clear()
 		{
 			foreach (var state in _undoList) DisposeState(state);

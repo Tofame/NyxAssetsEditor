@@ -23,13 +23,13 @@ public sealed record SlicerThingBuildRequest(
 	bool ImprovedAnimations,
 	ThingType? Template,
 	ThingType? Replacement,
-	bool OutfitFrameGroups = false,
+	bool TargetUsesFrameGroups = false,
 	int ExactSize = 32,
 	int OutfitIdleFrames = 0);
 
 public sealed record SlicerThingBuildResult(IReadOnlyList<byte[]> SpritePixels, IReadOnlyList<ThingType> Things, bool IsReplacement);
 
-/// <summary>Builds thing definitions while preserving Object Builder and NyxAssets frame-group order.</summary>
+/// <summary>Builds thing definitions from the project's exported thing-sheet layout.</summary>
 public static class SpritesheetThingBuilder
 {
 	public static SlicerThingBuildResult Build(SlicerThingBuildRequest request)
@@ -52,12 +52,13 @@ public static class SpritesheetThingBuilder
 		var byCoordinate = request.Cells.ToDictionary(c => (c.Column, c.Row));
 		if (byCoordinate.Count != request.Grid.Columns * request.Grid.Rows)
 			throw new InvalidOperationException("The complete grid selection is required for thing import.");
+		if (request.FirstSpriteId == 0 && request.Cells.Any(cell => !cell.IsEmpty))
+			throw new InvalidOperationException("Non-empty sprites require an available non-zero sprite ID.");
 
 		// Empty cells are structural frame-group slots. They reference sprite ID 0;
 		// only non-empty pixel buffers are appended to the SPR archive.
 		var pixels = new List<byte[]>();
 		var spriteIds = new Dictionary<(int Column, int Row), uint>();
-		var nextSpriteId = request.FirstSpriteId;
 		for (var row = 0; row < request.Grid.Rows; row++)
 		for (var column = 0; column < request.Grid.Columns; column++)
 		{
@@ -67,7 +68,7 @@ public static class SpritesheetThingBuilder
 				spriteIds[(column, row)] = 0;
 				continue;
 			}
-			spriteIds[(column, row)] = nextSpriteId++;
+			spriteIds[(column, row)] = checked((uint)((ulong)request.FirstSpriteId + (ulong)pixels.Count));
 			pixels.Add(cell.Rgba);
 		}
 
@@ -78,7 +79,7 @@ public static class SpritesheetThingBuilder
 		{
 			foreach (var thing in things)
 			{
-				if (request.OutfitFrameGroups) SplitOutfitFrames(thing, request);
+				if (request.TargetUsesFrameGroups) SplitOutfitFrames(thing, request);
 				else CollapseOutfitFrameGroups(thing, request);
 			}
 		}
@@ -159,7 +160,7 @@ public static class SpritesheetThingBuilder
 		for (var tileRow = 0; tileRow < down; tileRow++)
 		for (var tileColumn = 0; tileColumn < across; tileColumn++)
 		{
-			var id = request.Replacement?.Id ?? request.FirstThingId + (uint)result.Count;
+			var id = request.Replacement?.Id ?? checked((uint)((ulong)request.FirstThingId + (ulong)result.Count));
 			var thing = request.Replacement != null
 				? ThingCloner.Clone(request.Replacement, id)
 				: request.Template != null

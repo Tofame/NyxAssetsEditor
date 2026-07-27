@@ -81,7 +81,6 @@ public partial class SpritesheetSlicerControl : UserControl
 			if (!dialog.IsConfirmed) return;
 			ViewModel.ExportCropped(
 				dialog.ExportPath,
-				dialog.SelectedFormat,
 				dialog.ExportSelectedOnly ? selectedSprites : null);
 		}
 		catch (Exception ex) { ViewModel.ReportError(ex.Message); }
@@ -102,24 +101,26 @@ public partial class SpritesheetSlicerControl : UserControl
 
 	private void OnDrop(object? sender, DragEventArgs e)
 	{
+		e.Handled = true;
 		var files = e.DataTransfer.TryGetFiles()?.ToList();
 		if (files is not { Count: 1 } || files[0].TryGetLocalPath() is not { } path || !SpriteImageImporter.IsSupportedImage(path))
 		{
 			ViewModel.ReportError("Drop exactly one supported image file.");
 			return;
 		}
-		ViewModel.LoadImage(path); e.Handled = true;
+		ViewModel.LoadImage(path);
 	}
 
 	private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
 	{
 		if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
 		if (e.Delta.Y > 0) ViewModel.ZoomIn();
-		else ViewModel.ZoomOut();
+		else if (e.Delta.Y < 0) ViewModel.ZoomOut();
+		else return;
 		e.Handled = true;
 	}
 
-	private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+	private void OnKeyDown(object? sender, KeyEventArgs e)
 	{
 		if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.O)
 		{

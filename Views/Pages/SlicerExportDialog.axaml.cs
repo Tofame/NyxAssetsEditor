@@ -12,16 +12,6 @@ public partial class SlicerExportDialog : Window
 	public string ExportPath => PathInput?.Text?.Trim() ?? string.Empty;
 	public bool ExportSelectedOnly => ExportSelectedOnlyCheckBox?.IsVisible == true && ExportSelectedOnlyCheckBox.IsChecked == true;
 
-	public string SelectedFormat
-	{
-		get
-		{
-			if (FormatJpg?.IsChecked == true) return "jpg";
-			if (FormatBmp?.IsChecked == true) return "bmp";
-			return "png";
-		}
-	}
-
 	public SlicerExportDialog()
 	{
 		InitializeComponent();

@@ -16,6 +16,14 @@ public sealed class SpritesheetCanvasControl : Control
 	private const double RulerSize = 24;
 	private const double ResizeHandleSize = 9;
 	private const double ResizeHandleHitSize = 14;
+	private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#181818"));
+	private static readonly IBrush RulerBackground = new SolidColorBrush(Color.Parse("#252525"));
+	private static readonly IBrush SelectionFill = new SolidColorBrush(Color.Parse("#183A7BD5"));
+	private static readonly IBrush ResizeHandleFill = new SolidColorBrush(Color.Parse("#FFF2F2F2"));
+	private static readonly Pen RulerTickPen = new(new SolidColorBrush(Color.Parse("#888888")), 1);
+	private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E6FF4D7A")), 1.5);
+	private static readonly Pen ThingBoundaryPen = new(new SolidColorBrush(Color.Parse("#F2FFD54F")), 3);
+	private static readonly Pen ResizeHandleBorder = new(new SolidColorBrush(Color.Parse("#FFFF4D7A")), 1);
 	private SpritesheetSlicerViewModel? _viewModel;
 	private bool _dragging;
 	private Point _dragStartSheetPoint;
@@ -41,7 +49,7 @@ public sealed class SpritesheetCanvasControl : Control
 	public override void Render(DrawingContext context)
 	{
 		base.Render(context);
-		context.DrawRectangle(new SolidColorBrush(Color.Parse("#181818")), null, new Rect(Bounds.Size));
+		context.DrawRectangle(CanvasBackground, null, new Rect(Bounds.Size));
 		var vm = _viewModel;
 		if (vm?.SheetBitmap == null)
 		{
@@ -68,23 +76,21 @@ public sealed class SpritesheetCanvasControl : Control
 
 	private static void DrawRulers(DrawingContext context, SpritesheetSlicerViewModel vm, Rect imageRect)
 	{
-		var rulerBrush = new SolidColorBrush(Color.Parse("#252525"));
-		var tickPen = new Pen(new SolidColorBrush(Color.Parse("#888888")), 1);
-		context.DrawRectangle(rulerBrush, null, new Rect(0, 0, imageRect.Right, RulerSize));
-		context.DrawRectangle(rulerBrush, null, new Rect(0, 0, RulerSize, imageRect.Bottom));
+		context.DrawRectangle(RulerBackground, null, new Rect(0, 0, imageRect.Right, RulerSize));
+		context.DrawRectangle(RulerBackground, null, new Rect(0, 0, RulerSize, imageRect.Bottom));
 		var step = 8;
 		while (step * vm.Zoom < 48) step *= 2;
 		for (var pixel = 0; pixel <= vm.ImageWidth; pixel += step)
 		{
 			var x = RulerSize + pixel * vm.Zoom;
-			context.DrawLine(tickPen, new Point(x, RulerSize - 6), new Point(x, RulerSize));
+			context.DrawLine(RulerTickPen, new Point(x, RulerSize - 6), new Point(x, RulerSize));
 			var label = new FormattedText(pixel.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface.Default, 9, Brushes.LightGray);
 			context.DrawText(label, new Point(x + 2, 2));
 		}
 		for (var pixel = 0; pixel <= vm.ImageHeight; pixel += step)
 		{
 			var y = RulerSize + pixel * vm.Zoom;
-			context.DrawLine(tickPen, new Point(RulerSize - 6, y), new Point(RulerSize, y));
+			context.DrawLine(RulerTickPen, new Point(RulerSize - 6, y), new Point(RulerSize, y));
 			var label = new FormattedText(pixel.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface.Default, 9, Brushes.LightGray);
 			using (context.PushTransform(Matrix.CreateRotation(-Math.PI / 2) * Matrix.CreateTranslation(2, y - 2)))
 				context.DrawText(label, new Point());
@@ -99,19 +105,17 @@ public sealed class SpritesheetCanvasControl : Control
 		var cell = vm.CellSize * zoom;
 		var width = vm.Columns * cell;
 		var height = vm.Rows * cell;
-		var gridPen = new Pen(new SolidColorBrush(Color.Parse("#E6FF4D7A")), Math.Max(1, zoom < 1 ? 1 : 1.5));
-		var thingBoundaryPen = new Pen(new SolidColorBrush(Color.Parse("#F2FFD54F")), Math.Max(2, zoom < 1 ? 2 : 3));
-		context.DrawRectangle(new SolidColorBrush(Color.Parse("#183A7BD5")), gridPen, new Rect(x, y, width, height));
+		context.DrawRectangle(SelectionFill, GridPen, new Rect(x, y, width, height));
 		for (var column = 1; column < vm.Columns; column++)
 		{
 			var px = x + column * cell;
-			var pen = column % vm.ThingSheetColumns == 0 ? thingBoundaryPen : gridPen;
+			var pen = column % vm.ThingSheetColumns == 0 ? ThingBoundaryPen : GridPen;
 			context.DrawLine(pen, new Point(px, y), new Point(px, y + height));
 		}
 		for (var row = 1; row < vm.Rows; row++)
 		{
 			var py = y + row * cell;
-			var pen = row % vm.ThingSheetRows == 0 ? thingBoundaryPen : gridPen;
+			var pen = row % vm.ThingSheetRows == 0 ? ThingBoundaryPen : GridPen;
 			context.DrawLine(pen, new Point(x, py), new Point(x + width, py));
 		}
 
@@ -120,24 +124,22 @@ public sealed class SpritesheetCanvasControl : Control
 
 	private static void DrawResizeHandles(DrawingContext context, Rect selection)
 	{
-		var fill = new SolidColorBrush(Color.Parse("#FFF2F2F2"));
-		var border = new Pen(new SolidColorBrush(Color.Parse("#FFFF4D7A")), 1);
 		var middleX = selection.X + selection.Width / 2;
 		var middleY = selection.Y + selection.Height / 2;
-		DrawResizeHandle(context, fill, border, selection.Left, selection.Top);
-		DrawResizeHandle(context, fill, border, middleX, selection.Top);
-		DrawResizeHandle(context, fill, border, selection.Right, selection.Top);
-		DrawResizeHandle(context, fill, border, selection.Left, middleY);
-		DrawResizeHandle(context, fill, border, selection.Right, middleY);
-		DrawResizeHandle(context, fill, border, selection.Left, selection.Bottom);
-		DrawResizeHandle(context, fill, border, middleX, selection.Bottom);
-		DrawResizeHandle(context, fill, border, selection.Right, selection.Bottom);
+		DrawResizeHandle(context, selection.Left, selection.Top);
+		DrawResizeHandle(context, middleX, selection.Top);
+		DrawResizeHandle(context, selection.Right, selection.Top);
+		DrawResizeHandle(context, selection.Left, middleY);
+		DrawResizeHandle(context, selection.Right, middleY);
+		DrawResizeHandle(context, selection.Left, selection.Bottom);
+		DrawResizeHandle(context, middleX, selection.Bottom);
+		DrawResizeHandle(context, selection.Right, selection.Bottom);
 	}
 
-	private static void DrawResizeHandle(DrawingContext context, IBrush fill, Pen border, double x, double y)
+	private static void DrawResizeHandle(DrawingContext context, double x, double y)
 	{
 		var half = ResizeHandleSize / 2;
-		context.DrawRectangle(fill, border, new Rect(x - half, y - half, ResizeHandleSize, ResizeHandleSize));
+		context.DrawRectangle(ResizeHandleFill, ResizeHandleBorder, new Rect(x - half, y - half, ResizeHandleSize, ResizeHandleSize));
 	}
 
 	private static SlicerResizeEdges HitTestResizeHandle(Point point, SpritesheetSlicerViewModel vm)
@@ -190,8 +192,7 @@ public sealed class SpritesheetCanvasControl : Control
 			sheetY <= vm.OffsetY + vm.Rows * vm.CellSize;
 		if (!insideSelection)
 		{
-			// Clicking elsewhere on the sheet re-centres the selection, matching the
-			// quick positioning behavior artists expect from the classic slicer.
+			// Clicking elsewhere on the sheet re-centres the selection for quick positioning.
 			var desiredX = sheetX - vm.Columns * vm.CellSize / 2d;
 			var desiredY = sheetY - vm.Rows * vm.CellSize / 2d;
 			var x = vm.OffsetX + SpritesheetSlicerService.QuantizeDragDelta(
@@ -287,7 +288,23 @@ public sealed class SpritesheetCanvasControl : Control
 
 	private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName is nameof(SpritesheetSlicerViewModel.Zoom) or nameof(SpritesheetSlicerViewModel.ImageWidth) or nameof(SpritesheetSlicerViewModel.ImageHeight)) InvalidateMeasure();
-		InvalidateVisual();
+		if (e.PropertyName is nameof(SpritesheetSlicerViewModel.Zoom)
+			or nameof(SpritesheetSlicerViewModel.ImageWidth)
+			or nameof(SpritesheetSlicerViewModel.ImageHeight))
+		{
+			InvalidateMeasure();
+			InvalidateVisual();
+			return;
+		}
+
+		if (e.PropertyName is nameof(SpritesheetSlicerViewModel.SheetBitmap)
+			or nameof(SpritesheetSlicerViewModel.OffsetX)
+			or nameof(SpritesheetSlicerViewModel.OffsetY)
+			or nameof(SpritesheetSlicerViewModel.Columns)
+			or nameof(SpritesheetSlicerViewModel.Rows)
+			or nameof(SpritesheetSlicerViewModel.CellSize)
+			or nameof(SpritesheetSlicerViewModel.ThingSheetColumns)
+			or nameof(SpritesheetSlicerViewModel.ThingSheetRows))
+			InvalidateVisual();
 	}
 }
