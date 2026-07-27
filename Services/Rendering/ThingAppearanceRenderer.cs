@@ -49,7 +49,7 @@ public static class ThingAppearanceRenderer
 
 		ApplyGridAndHighlight(canvas, canvasW, canvasH, options, edge, (int)fg.Width, (int)fg.Height);
 
-		if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
+		if (options.ShowCropSize && fg.ExactSize > 0)
 			DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, canvasW, canvasH);
 
 		return canvas;
@@ -95,7 +95,7 @@ public static class ThingAppearanceRenderer
 				var offsetY = (int)(py * cellH);
 				DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, patternOptions, offsetX, offsetY);
 
-				if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
+				if (options.ShowCropSize && fg.ExactSize > 0)
 					DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
 			}
 		}
@@ -159,7 +159,7 @@ public static class ThingAppearanceRenderer
 			var offsetY = row * cellH;
 			DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, cellOptions, offsetX, offsetY);
 
-			if (options.ShowCropSize && fg.ExactSize > 0 && fg.ExactSize < edge)
+			if (options.ShowCropSize && fg.ExactSize > 0)
 				DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
 		}
 
@@ -182,6 +182,74 @@ public static class ThingAppearanceRenderer
 		}
 
 		DrawHighlight(canvas, canvasW, canvasH, options);
+
+		return canvas;
+	}
+
+	public static byte[]? RenderOutfitDirectionGrid(ThingType thing, SpriteLoader loader, ThingAppearanceOptions options)
+	{
+		if (thing.Kind != ThingKind.Outfit || thing.FrameGroups.Count == 0)
+			return null;
+
+		var groupIndex = Math.Clamp(options.FrameGroupIndex, 0, thing.FrameGroups.Count - 1);
+		var fg = thing.FrameGroups[groupIndex];
+		if (fg.Width == 0 || fg.Height == 0)
+			return null;
+
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+		var cellW = (int)(fg.Width * edge);
+		var cellH = (int)(fg.Height * edge);
+		var canvasW = cellW * 4;
+		var canvasH = cellH;
+		var canvas = new byte[canvasW * canvasH * 4];
+
+		ReadOnlySpan<(Direction4 Direction, int Column, int Row)> slots =
+		[
+			(Direction4.North, 0, 0),
+			(Direction4.East, 1, 0),
+			(Direction4.South, 2, 0),
+			(Direction4.West, 3, 0),
+		];
+
+		foreach (var (direction, column, row) in slots)
+		{
+			var cellOptions = new ThingAppearanceOptions
+			{
+				FrameGroupIndex = options.FrameGroupIndex,
+				Layer = options.Layer,
+				Frame = options.Frame,
+				PatternX = (uint)direction,
+				PatternY = options.PatternY,
+				PatternZ = options.PatternZ,
+				ShowGrid = false,
+				ShowCropSize = false,
+			};
+			var offsetX = column * cellW;
+			var offsetY = row * cellH;
+			DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, cellOptions, offsetX, offsetY);
+
+			if (options.ShowCropSize && fg.ExactSize > 0)
+				DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
+		}
+
+		var (borderColor, borderWidth) = UsesGrid(options)
+			? GetActiveGridStyle(options)
+			: (new SKColor(90, 90, 90, 220), 1);
+
+		DrawVerticalLine(canvas, canvasW, canvasH, cellW, 0, canvasH, borderColor, borderWidth);
+		DrawVerticalLine(canvas, canvasW, canvasH, cellW * 2, 0, canvasH, borderColor, borderWidth);
+		DrawVerticalLine(canvas, canvasW, canvasH, cellW * 3, 0, canvasH, borderColor, borderWidth);
+
+		if (UsesGrid(options))
+		{
+			var (gridColor, gridLineWidth) = GetActiveGridStyle(options);
+			foreach (var (_, column, row) in slots)
+			{
+				var offsetX = column * cellW;
+				var offsetY = row * cellH;
+				DrawGrid(canvas, canvasW, canvasH, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH, gridColor, gridLineWidth);
+			}
+		}
 
 		return canvas;
 	}
@@ -475,40 +543,29 @@ public static class ThingAppearanceRenderer
 
 	private static void DrawCropRect(byte[] canvas, int canvasW, int canvasH, int exactSize, int clipW, int clipH, int offsetX = 0, int offsetY = 0)
 	{
-		var cropColor = new SKColor(80, 220, 80, 220);
-		var left = offsetX + (clipW - exactSize) / 2;
-		var top = offsetY + (clipH - exactSize) / 2;
-		var right = left + exactSize - 1;
-		var bottom = top + exactSize - 1;
+		var cropColor = new SKColor(80, 220, 80, 80);
+		var left = offsetX + clipW - exactSize;
+		var top = offsetY + clipH - exactSize;
+		var right = offsetX + clipW;
+		var bottom = offsetY + clipH;
 
-		for (var x = left; x <= right && x < canvasW; x++)
+		for (var y = Math.Max(0, top); y < Math.Min(bottom, canvasH); y++)
 		{
-			var topOffset = (Math.Clamp(top, 0, canvasH - 1) * canvasW + x) * 4;
-			canvas[topOffset] = cropColor.Red;
-			canvas[topOffset + 1] = cropColor.Green;
-			canvas[topOffset + 2] = cropColor.Blue;
-			canvas[topOffset + 3] = cropColor.Alpha;
+			for (var x = Math.Max(0, left); x < Math.Min(right, canvasW); x++)
+			{
+				var offset = (y * canvasW + x) * 4;
+				var srcA = cropColor.Alpha / 255f;
+				var destA = canvas[offset + 3] / 255f;
+				var outA = srcA + destA * (1 - srcA);
 
-			var bottomOffset = (Math.Clamp(bottom, 0, canvasH - 1) * canvasW + x) * 4;
-			canvas[bottomOffset] = cropColor.Red;
-			canvas[bottomOffset + 1] = cropColor.Green;
-			canvas[bottomOffset + 2] = cropColor.Blue;
-			canvas[bottomOffset + 3] = cropColor.Alpha;
-		}
-
-		for (var y = top; y <= bottom && y < canvasH; y++)
-		{
-			var leftOffset = (y * canvasW + Math.Clamp(left, 0, canvasW - 1)) * 4;
-			canvas[leftOffset] = cropColor.Red;
-			canvas[leftOffset + 1] = cropColor.Green;
-			canvas[leftOffset + 2] = cropColor.Blue;
-			canvas[leftOffset + 3] = cropColor.Alpha;
-
-			var rightOffset = (y * canvasW + Math.Clamp(right, 0, canvasW - 1)) * 4;
-			canvas[rightOffset] = cropColor.Red;
-			canvas[rightOffset + 1] = cropColor.Green;
-			canvas[rightOffset + 2] = cropColor.Blue;
-			canvas[rightOffset + 3] = cropColor.Alpha;
+				if (outA > 0)
+				{
+					canvas[offset] = (byte)Math.Clamp((cropColor.Red * srcA + canvas[offset] * destA * (1 - srcA)) / outA, 0, 255);
+					canvas[offset + 1] = (byte)Math.Clamp((cropColor.Green * srcA + canvas[offset + 1] * destA * (1 - srcA)) / outA, 0, 255);
+					canvas[offset + 2] = (byte)Math.Clamp((cropColor.Blue * srcA + canvas[offset + 2] * destA * (1 - srcA)) / outA, 0, 255);
+					canvas[offset + 3] = (byte)(outA * 255);
+				}
+			}
 		}
 	}
 
