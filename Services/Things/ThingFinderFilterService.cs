@@ -72,7 +72,7 @@ public static class ThingFinderFilterService
 	{
 		(nameof(ThingFrameGroup.Width), "Width"),
 		(nameof(ThingFrameGroup.Height), "Height"),
-		(nameof(ThingFrameGroup.ExactSize), "Crop Size"),
+		(nameof(ThingFrameGroup.ExactSize), "Exact Size"),
 		(nameof(ThingFrameGroup.Layers), "Layers"),
 		(nameof(ThingFrameGroup.PatternX), "Pattern X"),
 		(nameof(ThingFrameGroup.PatternY), "Pattern Y"),

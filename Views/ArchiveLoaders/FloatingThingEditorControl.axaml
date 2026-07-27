@@ -235,7 +235,7 @@
 										</Grid>
 
 										<StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right" Margin="0,2,0,0">
-											<ToggleSwitch Content="Show crop size" IsChecked="{Binding ShowCropSize}" OnContent="" OffContent="" FontSize="11"/>
+											<ToggleSwitch Content="Show exact size" ToolTip.Tip="Show exact size (Crop Size)" IsChecked="{Binding ShowCropSize}" OnContent="" OffContent="" FontSize="11"/>
 											<ToggleSwitch Content="Show grid" IsChecked="{Binding ShowGrid}" OnContent="" OffContent="" FontSize="11"/>
 										</StackPanel>
 
@@ -268,8 +268,8 @@
 										<TextBlock Grid.Row="1" Grid.Column="0" Text="Height:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
 										<NumericUpDown x:Name="PatternTileHeightNud" Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
 										<StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,4" Spacing="4">
-											<Button Command="{Binding InferCropSizeCommand}" Content="Auto" ToolTip.Tip="Infer crop size from empty pixels" Padding="4,2" FontSize="9" Height="20" VerticalContentAlignment="Center"/>
-											<TextBlock Text="Crop Size:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+											<Button Command="{Binding InferCropSizeCommand}" Content="Auto" ToolTip.Tip="Infer exact size from empty pixels (Crop Size)" Padding="4,2" FontSize="9" Height="20" VerticalContentAlignment="Center"/>
+											<TextBlock Text="Exact Size:" ToolTip.Tip="Exact Size (Crop Size)" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										</StackPanel>
 										<NumericUpDown x:Name="PatternCropSizeNud" Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="64" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
 										<TextBlock Grid.Row="3" Grid.Column="0" Text="Layers:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
