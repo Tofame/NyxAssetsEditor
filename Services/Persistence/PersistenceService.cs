@@ -16,6 +16,7 @@ namespace NyxAssetsEditor.Services.Persistence
 		private static readonly string AppStatePath = Path.Combine(AppContext.BaseDirectory, "app_state.toml");
 
 		private static bool _isRestoring;
+		private static SlicerStateModel _slicerState = new();
 
 		static PersistenceService()
 		{
@@ -58,6 +59,30 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int UndoLimit { get; set; } = 10;
 			public bool AllowUnknownSignatures { get; set; } = true;
 			public bool CompileLinkedPairTogether { get; set; } = true;
+			public SlicerStateModel Slicer { get; set; } = new();
+		}
+
+		public class SlicerStateModel
+		{
+			public bool SnapSelectionToGrid { get; set; } = true;
+			public string LastOpenDirectory { get; set; } = "";
+			public string LastExportDirectory { get; set; } = "";
+			public int ThingWidth { get; set; }
+			public int ThingHeight { get; set; }
+			public int ThingExactSize { get; set; } = 32;
+			public bool AutomaticCropSize { get; set; } = true;
+			public int ThingLayers { get; set; } = 1;
+			public int ThingPatternX { get; set; } = 1;
+			public int ThingPatternY { get; set; } = 1;
+			public int ThingPatternZ { get; set; } = 1;
+			public int ThingFrames { get; set; } = 1;
+			public int OutfitDirections { get; set; } = 4;
+			public int OutfitFrames { get; set; } = 3;
+			public bool OutfitSeparateFrameGroups { get; set; }
+			public int OutfitIdleFrames { get; set; } = 1;
+			public int OutfitWalkingFrames { get; set; } = 2;
+			public string ThingKind { get; set; } = "Item";
+			public bool ReplaceExisting { get; set; }
 		}
 
 		public class AppStateTomlModel
@@ -135,6 +160,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					var model = TomlSerializer.Deserialize<SettingsTomlModel>(toml);
 					if (model != null)
 					{
+						_slicerState = model.Slicer ?? new SlicerStateModel();
 						SettingsViewModel.SetSettings(
 							model.DefaultPageSize,
 							model.UseTransparentPixels,
@@ -197,7 +223,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					MaxRecentCombinations = SettingsViewModel.MaxRecentCombinations,
 					UndoLimit = SettingsViewModel.UndoLimit,
 					AllowUnknownSignatures = SettingsViewModel.AllowUnknownSignatures,
-					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether
+					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether,
+					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);
@@ -206,6 +233,35 @@ namespace NyxAssetsEditor.Services.Persistence
 			{
 				Debug.WriteLine($"Failed to save settings.toml: {ex.Message}");
 			}
+		}
+
+		public static SlicerStateModel GetSlicerState() => new()
+		{
+			SnapSelectionToGrid = _slicerState.SnapSelectionToGrid,
+			LastOpenDirectory = _slicerState.LastOpenDirectory,
+			LastExportDirectory = _slicerState.LastExportDirectory,
+			ThingWidth = _slicerState.ThingWidth,
+			ThingHeight = _slicerState.ThingHeight,
+			ThingExactSize = _slicerState.ThingExactSize,
+			AutomaticCropSize = _slicerState.AutomaticCropSize,
+			ThingLayers = _slicerState.ThingLayers,
+			ThingPatternX = _slicerState.ThingPatternX,
+			ThingPatternY = _slicerState.ThingPatternY,
+			ThingPatternZ = _slicerState.ThingPatternZ,
+			ThingFrames = _slicerState.ThingFrames,
+			OutfitDirections = _slicerState.OutfitDirections,
+			OutfitFrames = _slicerState.OutfitFrames,
+			OutfitSeparateFrameGroups = _slicerState.OutfitSeparateFrameGroups,
+			OutfitIdleFrames = _slicerState.OutfitIdleFrames,
+			OutfitWalkingFrames = _slicerState.OutfitWalkingFrames,
+			ThingKind = _slicerState.ThingKind,
+			ReplaceExisting = _slicerState.ReplaceExisting
+		};
+
+		public static void SaveSlicerState(SlicerStateModel state)
+		{
+			_slicerState = state;
+			SaveSettings();
 		}
 
 		public static void SaveAppState(AssetsViewModel assetsVm)
@@ -235,7 +291,7 @@ namespace NyxAssetsEditor.Services.Persistence
 				foreach (var panel in assetsVm.ActivePanels)
 				{
 					if (panel is FloatingThingFinderViewModel) continue;
-					// Existing archive panels restore only when docked; the generator is safe to restore floating.
+					// Archive and slicer panels restore only when docked; the generator is safe to restore floating.
 					if (panel.DockState == "Floating" && panel is not FloatingLooktypeGeneratorViewModel) continue;
 
 					var state = new PanelStateModel
@@ -280,6 +336,10 @@ namespace NyxAssetsEditor.Services.Persistence
 						state.SelectedLooktypeSpritePath = looktypePanel.SelectedSpritePath;
 						state.SelectedLooktypeThingsPath = looktypePanel.SelectedThingsPath;
 					}
+					else if (panel is SpritesheetSlicerViewModel)
+					{
+						state.Type = "Slicer";
+					}
 
 					model.Assets.Panels.Add(state);
 				}
@@ -312,7 +372,7 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panelState in model.Assets.Panels)
 				{
-					// Existing archive panels restore only when docked; the generator may also restore floating.
+					// Archive and slicer panels restore only when docked; the generator may also restore floating.
 					if ((panelState.DockState == "Floating" && panelState.Type != "Looktype") || string.IsNullOrEmpty(panelState.DockState)) continue;
 
 					if (panelState.Type == "Sprite")
@@ -363,6 +423,23 @@ namespace NyxAssetsEditor.Services.Persistence
 					else if (panelState.Type == "Looktype")
 					{
 						looktypeStates.Add(panelState);
+					}
+					else if (panelState.Type == "Slicer")
+					{
+						assetsVm.RestorePanel(new SpritesheetSlicerViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? SpritesheetSlicerViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? SpritesheetSlicerViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						});
 					}
 				}
 

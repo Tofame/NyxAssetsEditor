@@ -3,6 +3,7 @@
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
 			 xmlns:panels="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
 			 xmlns:loaders="using:NyxAssetsEditor.Views.ArchiveLoaders"
+			 xmlns:local="using:NyxAssetsEditor.Views.Pages"
 			 xmlns:core="using:NyxAssetsEditor.ViewModels.Core"
 			 x:Class="NyxAssetsEditor.Views.Pages.AssetsView"
 			 x:DataType="vm:AssetsViewModel"
@@ -34,6 +35,9 @@
 		<DataTemplate DataType="{x:Type panels:FloatingThingFinderViewModel}">
 			<loaders:FloatingThingFinderControl />
 		</DataTemplate>
+		<DataTemplate DataType="{x:Type vm:SpritesheetSlicerViewModel}">
+			<local:SpritesheetSlicerControl />
+		</DataTemplate>
 	</UserControl.DataTemplates>
 
 	<UserControl.Styles>
@@ -54,6 +58,7 @@
 				<Button Content="Load Things" Command="{Binding LoadThingsCommand}" IsEnabled="{Binding IsSpriteArchiveLoaded}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
 				<Button Content="Looktype Generator" Command="{Binding OpenLooktypeGeneratorCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
 				<Button Content="Web Export" Command="{Binding OpenWebExportCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
+				<Button Content="Slicer" Command="{Binding OpenSlicerCommand}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
 				<Border Width="1" Height="24" Background="#3A3A3A" Margin="4,0"/>
 				<Button Content="Compile" Command="{Binding CompileCommand}" IsEnabled="{Binding CanCompile}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>
 				<Button Content="Compile As" Command="{Binding CompileAsCommand}" IsEnabled="{Binding CanCompile}" Background="#2D2D2D" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6" CornerRadius="4" FontSize="12"/>

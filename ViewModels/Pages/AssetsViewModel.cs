@@ -26,7 +26,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private FloatingSpriteLoaderViewModel? _lastLoadedSpritePanel;
 		private FloatingSpriteLoaderViewModel? _pendingSprForNextDat;
 		private FloatingSpriteLoaderViewModel? _pendingAssetsForNextThings;
-
 		public ObservableCollection<PanelViewModelBase> ActivePanels { get; } = new ObservableCollection<PanelViewModelBase>();
 		public ObservableCollection<PanelViewModelBase> FloatingPanels { get; } = new ObservableCollection<PanelViewModelBase>();
 		public ObservableCollection<PanelViewModelBase> LeftDockedPanels { get; } = new ObservableCollection<PanelViewModelBase>();
@@ -179,6 +178,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				generator.RefreshArchivePairs();
 			foreach (var export in ActivePanels.OfType<FloatingWebExportViewModel>())
 				export.RefreshArchivePairs();
+			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
+				slicer.RefreshTargets();
 		}
 
 		public void RestoreThingsLink(FloatingThingsLoaderViewModel thingsPanel, string? linkedSpritePath)
@@ -584,6 +585,36 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			});
 		}
 
+		[RelayCommand]
+		private void OpenSlicer() => OpenSlicerPanel(null);
+
+		public void OpenSlicer(FloatingSpriteLoaderViewModel origin) => OpenSlicerPanel(origin);
+
+		private void OpenSlicerPanel(FloatingSpriteLoaderViewModel? origin)
+		{
+			var existing = ActivePanels.OfType<SpritesheetSlicerViewModel>().FirstOrDefault();
+			if (existing != null)
+			{
+				existing.SelectTarget(origin);
+				existing.IsVisible = true;
+				existing.IsMinimized = false;
+				if (existing.IsFloating)
+				{
+					FloatingPanels.Remove(existing);
+					FloatingPanels.Add(existing);
+				}
+				return;
+			}
+
+			AddPanel(new SpritesheetSlicerViewModel(this, origin)
+			{
+				DockState = "Floating",
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			});
+		}
+
 		public void AddPanelFromView(PanelViewModelBase panel)
 		{
 			AddPanel(panel);
@@ -648,6 +679,12 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			.OfType<IThingFinderContextActionProvider>()
 			.SelectMany(provider => provider.GetThingFinderContextActions(source, thing))
 			.ToList();
+
+		public void SaveSlicerPreferences()
+		{
+			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
+				slicer.SavePersistentState();
+		}
 
 		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
 		{

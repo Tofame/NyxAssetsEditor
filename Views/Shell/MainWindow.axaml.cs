@@ -21,6 +21,7 @@ namespace NyxAssetsEditor.Views.Shell
 				return;
 
 			var assetsVm = GetAssetsViewModel();
+			assetsVm?.SaveSlicerPreferences();
 			if (assetsVm == null || !assetsVm.CanCompile)
 				return;
 

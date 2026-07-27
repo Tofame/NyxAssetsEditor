@@ -1,0 +1,724 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NyxAssets.Things;
+using NyxAssetsEditor.Services.ImportExport;
+using NyxAssetsEditor.Services.Persistence;
+using Tomlyn;
+using Xunit;
+
+namespace NyxAssetsEditor.Tests;
+
+public class SpritesheetSlicerServiceTests
+{
+	[Fact]
+	public void RemoveOpaqueMagenta_PreservesNonKeyPixels()
+	{
+		var image = new SlicerImage(3, 1, new byte[]
+		{
+			255, 0, 255, 255,
+			254, 0, 255, 255,
+			255, 0, 255, 128
+		});
+
+		var normalized = SpritesheetSlicerService.RemoveOpaqueMagenta(image);
+
+		Assert.Equal(new byte[] { 0, 0, 0, 0 }, normalized.Rgba[..4]);
+		Assert.Equal(new byte[] { 254, 0, 255, 255 }, normalized.Rgba[4..8]);
+		Assert.Equal(new byte[] { 255, 0, 255, 128 }, normalized.Rgba[8..12]);
+		Assert.Equal(new byte[] { 255, 0, 255, 255 }, image.Rgba[..4]);
+	}
+
+	[Fact]
+	public void Slice_PreservesOutfitMaskChannelValues()
+	{
+		var mask = new byte[]
+		{
+			255, 255, 0, 255, 128, 0, 0, 255,
+			0, 96, 0, 255, 0, 0, 64, 255
+		};
+		var cells = SpritesheetSlicerService.Slice(
+			new SlicerImage(2, 2, mask), new SlicerGrid(0, 0, 1, 1, 2), includeEmpty: true);
+
+		Assert.Equal(mask, cells.Single().Rgba);
+	}
+
+	[Theory]
+	[InlineData(32, 32, 4)]
+	[InlineData(127, 127, 4)]
+	[InlineData(128, 96, 4)]
+	[InlineData(96, 128, 4)]
+	[InlineData(128, 128, 4)]
+	[InlineData(129, 128, 2)]
+	[InlineData(255, 255, 2)]
+	[InlineData(256, 256, 1)]
+	[InlineData(64, 256, 1)]
+	public void RecommendZoom_UsesPixelSafeLevelsForSmallSheets(int width, int height, double expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.RecommendZoom(width, height));
+	}
+
+	[Theory]
+	[InlineData(1, 1, 32)]
+	[InlineData(2, 1, 64)]
+	[InlineData(2, 2, 64)]
+	[InlineData(8, 8, 255)]
+	public void RecommendExactSize_UsesTheSafeFullFootprint(int width, int height, int expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.RecommendExactSize(width, height, 32));
+	}
+
+	[Fact]
+	public void Slice_NormalizesMagentaAndHonorsEmptyOption()
+	{
+		var pixels = new byte[64 * 32 * 4];
+		Fill(pixels, 64, 0, 0, 32, 32, 255, 0, 255, 255);
+		Fill(pixels, 64, 32, 0, 32, 32, 10, 20, 30, 255);
+		var image = new SlicerImage(64, 32, pixels);
+
+		var withoutEmpty = SpritesheetSlicerService.Slice(image, new SlicerGrid(0, 0, 2, 1, 32), false);
+		var withEmpty = SpritesheetSlicerService.Slice(image, new SlicerGrid(0, 0, 2, 1, 32), true);
+
+		Assert.Single(withoutEmpty);
+		Assert.Equal(1, withoutEmpty[0].Column);
+		Assert.Equal(2, withEmpty.Count);
+		Assert.True(withEmpty[0].IsEmpty);
+		Assert.All(withEmpty[0].Rgba.Where((_, index) => index % 4 == 3), alpha => Assert.Equal(0, alpha));
+	}
+
+	[Fact]
+	public void Slice_UsesColumnThenRowSlotOrder()
+	{
+		var pixels = new byte[64 * 64 * 4];
+		Fill(pixels, 64, 0, 0, 32, 32, 1, 0, 0, 255);
+		Fill(pixels, 64, 32, 0, 32, 32, 2, 0, 0, 255);
+		Fill(pixels, 64, 0, 32, 32, 32, 3, 0, 0, 255);
+		Fill(pixels, 64, 32, 32, 32, 32, 4, 0, 0, 255);
+
+		var cells = SpritesheetSlicerService.Slice(
+			new SlicerImage(64, 64, pixels), new SlicerGrid(0, 0, 2, 2, 32), includeEmpty: true);
+
+		Assert.Equal(new[] { (0, 0), (0, 1), (1, 0), (1, 1) }, cells.Select(cell => (cell.Column, cell.Row)));
+		Assert.Equal(new byte[] { 1, 3, 2, 4 }, cells.Select(cell => cell.Rgba[0]));
+	}
+
+	[Fact]
+	public void ClampGrid_NeverAllowsSelectionOutsideImage()
+	{
+		var result = SpritesheetSlicerService.ClampGrid(new SlicerGrid(50, -5, 4, 9, 32), 96, 64);
+		Assert.Equal(new SlicerGrid(0, 0, 3, 2, 32), result);
+	}
+
+	[Theory]
+	[InlineData(15.9, true, 0)]
+	[InlineData(16, true, 32)]
+	[InlineData(-16, true, -32)]
+	[InlineData(17.4, false, 17)]
+	public void QuantizeDragDelta_SnapsOnlyWhenRequested(double delta, bool snap, int expected)
+	{
+		Assert.Equal(expected, SpritesheetSlicerService.QuantizeDragDelta(delta, 32, snap));
+	}
+
+	[Fact]
+	public void ResizeGridFromDrag_ResizesWholeCellsAndPreservesOppositeEdges()
+	{
+		var start = new SlicerGrid(32, 32, 3, 3, 32);
+
+		var left = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Left, 32, 0, 192, 192);
+		var bottomRight = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Right | SlicerResizeEdges.Bottom, 32, 32, 192, 192);
+
+		Assert.Equal(new SlicerGrid(64, 32, 2, 3, 32), left);
+		Assert.Equal(new SlicerGrid(32, 32, 4, 4, 32), bottomRight);
+		Assert.Equal(start.X + start.PixelWidth, left.X + left.PixelWidth);
+	}
+
+	[Fact]
+	public void ResizeGridFromDrag_ClampsAtOneCellAndImageBounds()
+	{
+		var start = new SlicerGrid(5, 5, 2, 2, 32);
+
+		var result = SpritesheetSlicerService.ResizeGridFromDrag(
+			start, SlicerResizeEdges.Left | SlicerResizeEdges.Top, -500, 500, 96, 96);
+
+		Assert.Equal(new SlicerGrid(5, 37, 2, 1, 32), result);
+	}
+
+	[Fact]
+	public void RotateAndFlip_PreserveExactPixels()
+	{
+		var pixels = new byte[]
+		{
+			1,0,0,255, 2,0,0,255,
+			3,0,0,255, 4,0,0,255,
+			5,0,0,255, 6,0,0,255
+		};
+		var image = new SlicerImage(2, 3, pixels);
+		var rotated = SpritesheetSlicerService.RotateClockwise(image);
+		Assert.Equal((3, 2), (rotated.Width, rotated.Height));
+		Assert.Equal(new byte[] { 5, 3, 1, 6, 4, 2 }, RedChannel(rotated));
+		Assert.Equal(new byte[] { 2, 1, 4, 3, 6, 5 }, RedChannel(SpritesheetSlicerService.FlipHorizontal(image)));
+	}
+
+	[Fact]
+	public void TransformCells_TransformsEachSelectedCellWithoutReorderingTheSheet()
+	{
+		var pixels = new byte[]
+		{
+			1,0,0,255, 2,0,0,255, 5,0,0,255, 6,0,0,255,
+			3,0,0,255, 4,0,0,255, 7,0,0,255, 8,0,0,255
+		};
+		var image = new SlicerImage(4, 2, pixels);
+
+		var transformed = SpritesheetSlicerService.TransformCells(
+			image, new SlicerGrid(0, 0, 2, 1, 2), SpritesheetSlicerService.RotateClockwise);
+
+		Assert.Equal((4, 2), (transformed.Width, transformed.Height));
+		Assert.Equal(new byte[] { 3, 1, 7, 5, 4, 2, 8, 6 }, RedChannel(transformed));
+		Assert.Equal(new byte[] { 1, 2, 5, 6, 3, 4, 7, 8 }, RedChannel(image));
+	}
+
+	[Fact]
+	public void TransformCells_DoesNotTouchCellsOutsideTheSelection()
+	{
+		var pixels = new byte[]
+		{
+			1,0,0,255, 2,0,0,255, 5,0,0,255, 6,0,0,255,
+			3,0,0,255, 4,0,0,255, 7,0,0,255, 8,0,0,255
+		};
+		var image = new SlicerImage(4, 2, pixels);
+
+		var transformed = SpritesheetSlicerService.TransformCells(
+			image, new SlicerGrid(2, 0, 1, 1, 2), SpritesheetSlicerService.FlipHorizontal);
+
+		Assert.Equal(new byte[] { 1, 2, 6, 5, 3, 4, 8, 7 }, RedChannel(transformed));
+	}
+
+	[Fact]
+	public void SlicerHistory_UndoesAndRedoesMultipleImageAndGridStates()
+	{
+		var history = new SlicerHistory(3);
+		var image0 = HistoryImage(10);
+		var image1 = HistoryImage(20);
+		var image2 = HistoryImage(30);
+		var grid0 = new SlicerGrid(0, 0, 1, 1, 32);
+		var grid1 = new SlicerGrid(1, 2, 2, 3, 32);
+		var grid2 = new SlicerGrid(4, 5, 3, 2, 32);
+
+		history.Record(image0, grid0, "Rotate left");
+		history.Record(image1, grid1, "Flip horizontally");
+
+		var undoFlip = history.Undo(image2, grid2);
+		Assert.Same(image1, undoFlip.Image);
+		Assert.Equal(grid1, undoFlip.Grid);
+		Assert.Equal("Flip horizontally", undoFlip.Action);
+
+		var undoRotate = history.Undo(undoFlip.Image, undoFlip.Grid);
+		Assert.Same(image0, undoRotate.Image);
+		Assert.Equal(grid0, undoRotate.Grid);
+		Assert.False(history.CanUndo);
+
+		var redoRotate = history.Redo(undoRotate.Image, undoRotate.Grid);
+		Assert.Same(image1, redoRotate.Image);
+		Assert.Equal(grid1, redoRotate.Grid);
+		Assert.Equal("Rotate left", redoRotate.Action);
+		Assert.True(history.CanRedo);
+	}
+
+	[Fact]
+	public void SlicerHistory_NewActionClearsRedoAndCapacityDropsTheOldestAction()
+	{
+		var history = new SlicerHistory(2);
+		var grid = new SlicerGrid(0, 0, 1, 1, 32);
+		var image0 = HistoryImage(10);
+		var image1 = HistoryImage(20);
+		var image2 = HistoryImage(30);
+		var image3 = HistoryImage(40);
+
+		history.Record(image0, grid, "First");
+		history.Record(image1, grid, "Second");
+		history.Record(image2, grid, "Third");
+		Assert.Equal(2, history.UndoCount);
+
+		var undoThird = history.Undo(image3, grid);
+		Assert.Same(image2, undoThird.Image);
+		var undoSecond = history.Undo(undoThird.Image, grid);
+		Assert.Same(image1, undoSecond.Image);
+		Assert.False(history.CanUndo);
+
+		var redoSecond = history.Redo(undoSecond.Image, grid);
+		Assert.True(history.CanRedo);
+		history.Record(redoSecond.Image, grid, "Replacement branch");
+		Assert.False(history.CanRedo);
+	}
+
+	[Fact]
+	public void DetectGrid_UsesTheCompleteExactGridWithoutTrimmingTransparentCells()
+	{
+		var pixels = new byte[64 * 64 * 4];
+		// Only one interior cell is occupied. The other rows/columns remain structural.
+		Fill(pixels, 64, 34, 34, 28, 28, 255, 255, 255, 255);
+
+		var detected = SpritesheetSlicerService.DetectGrid(new SlicerImage(64, 64, pixels), new[] { 32 });
+		Assert.True(detected.Success, detected.Message);
+		Assert.Equal(32, detected.Grid.CellSize);
+		Assert.Equal(2, detected.Grid.Columns);
+		Assert.Equal(2, detected.Grid.Rows);
+		Assert.Equal(0, detected.Grid.X);
+		Assert.Equal(0, detected.Grid.Y);
+	}
+
+	[Fact]
+	public void DetectGrid_AcceptsAnEntirelyTransparentFixedSlotSheet()
+	{
+		var detected = SpritesheetSlicerService.DetectGrid(
+			new SlicerImage(128, 96, new byte[128 * 96 * 4]), new[] { 32 });
+
+		Assert.True(detected.Success, detected.Message);
+		Assert.Equal(new SlicerGrid(0, 0, 4, 3, 32), detected.Grid);
+	}
+
+	[Fact]
+	public void DetectGrid_RejectsNonDivisibleImagesInsteadOfGuessingFromTransparency()
+	{
+		var detected = SpritesheetSlicerService.DetectGrid(
+			new SlicerImage(65, 64, new byte[65 * 64 * 4]), new[] { 32 });
+
+		Assert.False(detected.Success);
+	}
+
+	[Fact]
+	public void ExportPng_DoesNotOverwriteExistingName()
+	{
+		var directory = Path.Combine(Path.GetTempPath(), $"nyx-slicer-{Guid.NewGuid():N}");
+		try
+		{
+			var rgba = Enumerable.Repeat((byte)255, 32 * 32 * 4).ToArray();
+			var first = SpritesheetSlicerService.ExportPng(rgba, 32, directory, "sheet", 1);
+			var second = SpritesheetSlicerService.ExportPng(rgba, 32, directory, "sheet", 1);
+			Assert.NotEqual(first, second);
+			Assert.True(File.Exists(first));
+			Assert.True(File.Exists(second));
+		}
+		finally
+		{
+			if (Directory.Exists(directory)) Directory.Delete(directory, true);
+		}
+	}
+
+	[Fact]
+	public void ExportPng_RejectsAnInvalidRgbaBufferLength()
+	{
+		var directory = Path.Combine(Path.GetTempPath(), $"nyx-slicer-{Guid.NewGuid():N}");
+		try
+		{
+			var exception = Assert.Throws<ArgumentException>(() =>
+				SpritesheetSlicerService.ExportPng(new byte[16], 32, directory, "sheet", 1));
+			Assert.Equal("rgba", exception.ParamName);
+			Assert.False(Directory.Exists(directory));
+		}
+		finally
+		{
+			if (Directory.Exists(directory)) Directory.Delete(directory, true);
+		}
+	}
+
+	[Fact]
+	public void SlicerSettings_RoundTripThroughToml()
+	{
+		var model = new PersistenceService.SettingsTomlModel
+		{
+			Slicer = new PersistenceService.SlicerStateModel
+			{
+				LastOpenDirectory = "images", LastExportDirectory = "exports",
+				ThingWidth = 2, ThingHeight = 3, ThingExactSize = 48, AutomaticCropSize = false, ThingLayers = 2,
+				ThingPatternX = 4, ThingPatternY = 3, ThingPatternZ = 2, ThingFrames = 6,
+				OutfitDirections = 8, OutfitFrames = 4, OutfitSeparateFrameGroups = true,
+				OutfitIdleFrames = 8, OutfitWalkingFrames = 8, ThingKind = "Missile", ReplaceExisting = true
+			}
+		};
+		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>(TomlSerializer.Serialize(model));
+		Assert.NotNull(restored);
+		Assert.Equal("images", restored!.Slicer.LastOpenDirectory);
+		Assert.Equal("exports", restored.Slicer.LastExportDirectory);
+		Assert.Equal(2, restored.Slicer.ThingWidth);
+		Assert.Equal(3, restored.Slicer.ThingHeight);
+		Assert.Equal(48, restored.Slicer.ThingExactSize);
+		Assert.False(restored.Slicer.AutomaticCropSize);
+		Assert.Equal(2, restored.Slicer.ThingLayers);
+		Assert.Equal(4, restored.Slicer.ThingPatternX);
+		Assert.Equal(3, restored.Slicer.ThingPatternY);
+		Assert.Equal(2, restored.Slicer.ThingPatternZ);
+		Assert.Equal(6, restored.Slicer.ThingFrames);
+		Assert.Equal(8, restored.Slicer.OutfitDirections);
+		Assert.Equal(4, restored.Slicer.OutfitFrames);
+		Assert.Equal("Missile", restored.Slicer.ThingKind);
+		Assert.True(restored.Slicer.ReplaceExisting);
+		Assert.True(restored.Slicer.OutfitSeparateFrameGroups);
+		Assert.Equal(8, restored.Slicer.OutfitIdleFrames);
+		Assert.Equal(8, restored.Slicer.OutfitWalkingFrames);
+	}
+
+	[Fact]
+	public void SlicerSettings_HaveLayoutDefaults()
+	{
+		var defaults = new PersistenceService.SlicerStateModel();
+		Assert.Equal(4, defaults.OutfitDirections);
+		Assert.Equal(3, defaults.OutfitFrames);
+		Assert.Equal(32, defaults.ThingExactSize);
+		Assert.True(defaults.AutomaticCropSize);
+		Assert.Equal(1, defaults.OutfitIdleFrames);
+		Assert.Equal(2, defaults.OutfitWalkingFrames);
+		Assert.Equal(1, defaults.ThingLayers);
+		Assert.Equal(1, defaults.ThingPatternX);
+		Assert.Equal(1, defaults.ThingPatternY);
+		Assert.Equal(1, defaults.ThingPatternZ);
+		Assert.Equal(1, defaults.ThingFrames);
+		Assert.True(defaults.SnapSelectionToGrid);
+		Assert.Equal("Item", defaults.ThingKind);
+		Assert.False(defaults.ReplaceExisting);
+	}
+
+	[Fact]
+	public void SlicerSettings_OlderTomlWithoutSlicerSectionUsesDefaults()
+	{
+		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>("DefaultPageSize = 50");
+
+		Assert.NotNull(restored);
+		Assert.NotNull(restored!.Slicer);
+		Assert.Equal(32, restored.Slicer.ThingExactSize);
+		Assert.Equal(4, restored.Slicer.OutfitDirections);
+		Assert.True(restored.Slicer.SnapSelectionToGrid);
+	}
+
+	private static void Fill(byte[] pixels, int strideWidth, int x, int y, int width, int height, byte r, byte g, byte b, byte a)
+	{
+		for (var py = y; py < y + height; py++)
+		for (var px = x; px < x + width; px++)
+		{
+			var index = (py * strideWidth + px) * 4;
+			pixels[index] = r; pixels[index + 1] = g; pixels[index + 2] = b; pixels[index + 3] = a;
+		}
+	}
+
+	private static byte[] RedChannel(SlicerImage image) => image.Rgba.Where((_, index) => index % 4 == 0).ToArray();
+	private static SlicerImage HistoryImage(byte value) => new(1, 1, new byte[] { value, 0, 0, 255 });
+}
+
+public class SpritesheetThingBuilderTests
+{
+	[Fact]
+	public void SplitItems_AreLeftToRightTopToBottomAndUseEngineSlotOrder()
+	{
+		var cells = Cells(4, 2);
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Item, new SlicerGrid(0, 0, 4, 2, 32), cells, 100, 200,
+			2, 1, 1, 1, 1, 1, 1, 300, true, null, null));
+
+		Assert.Equal(4, result.Things.Count);
+		Assert.Equal(new uint[] { 200, 201, 202, 203 }, result.Things.Select(t => t.Id));
+		var first = result.Things[0].FrameGroups[0];
+		Assert.True(first.TryGetSpriteId(1, 0, 0, 0, 0, 0, 0, out var left));
+		Assert.True(first.TryGetSpriteId(0, 0, 0, 0, 0, 0, 0, out var right));
+		Assert.Equal((uint)100, left);
+		Assert.Equal((uint)101, right);
+	}
+
+	[Fact]
+	public void Outfit_MapsDirectionsAndFramesThroughFrameGroupIndexing()
+	{
+		var cells = Cells(8, 6);
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 8, 6, 32), cells, 500, 50,
+			0, 0, 1, 4, 1, 1, 3, 275, true, null, null));
+		var group = result.Things.Single().FrameGroups.Single();
+
+		Assert.Equal((uint)2, group.Width);
+		Assert.Equal((uint)2, group.Height);
+		Assert.Equal((uint)4, group.PatternX);
+		Assert.Equal((uint)3, group.Frames);
+		Assert.Equal(3, group.FrameTimings!.Length);
+		Assert.True(group.TryGetSpriteId(1, 1, 0, 2, 0, 0, 1, out var topLeft));
+		Assert.Equal((uint)(500 + 1 * 2 * 8 + 2 * 2), topLeft);
+	}
+
+	[Fact]
+	public void ClassicThreeFrameOutfit_SplitsIdleAndWalkingForFrameGroupTargets()
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
+			0, 0, 1, 4, 1, 1, 3, 275, true, null, null, TargetUsesFrameGroups: true));
+		var thing = result.Things.Single();
+
+		Assert.Equal(2, thing.FrameGroups.Count);
+		Assert.Equal(0, (int)thing.FrameGroups[0].GroupTypeId);
+		Assert.Equal((uint)1, thing.FrameGroups[0].Frames);
+		Assert.False(thing.FrameGroups[0].IsAnimation);
+		Assert.Equal(new uint[] { 100, 101, 102, 103 }, thing.FrameGroups[0].SpriteIds);
+		Assert.Equal(1, (int)thing.FrameGroups[1].GroupTypeId);
+		Assert.Equal((uint)2, thing.FrameGroups[1].Frames);
+		Assert.True(thing.FrameGroups[1].IsAnimation);
+		Assert.Equal(new uint[] { 104, 105, 106, 107, 108, 109, 110, 111 }, thing.FrameGroups[1].SpriteIds);
+	}
+
+	[Fact]
+	public void ClassicThreeFrameOutfit_RemainsOneGroupForLegacyTargets()
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
+			0, 0, 1, 4, 1, 1, 3, 275, true, null, null, TargetUsesFrameGroups: false));
+
+		Assert.Single(result.Things.Single().FrameGroups);
+		Assert.Equal((uint)3, result.Things.Single().FrameGroups[0].Frames);
+	}
+
+	[Fact]
+	public void Replacement_PreservesFlagsAndIdButReplacesFrameGroups()
+	{
+		var replacement = new ThingType { Id = 77, Kind = ThingKind.Item, IsGround = true, GroundSpeed = 180 };
+		replacement.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 9 } });
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Item, new SlicerGrid(0, 0, 1, 1, 32), Cells(1, 1), 900, 77,
+			0, 0, 1, 1, 1, 1, 1, 300, true, null, replacement));
+		var thing = result.Things.Single();
+
+		Assert.Equal((uint)77, thing.Id);
+		Assert.True(thing.IsGround);
+		Assert.Equal((uint)180, thing.GroundSpeed);
+		Assert.Equal((uint)900, thing.FrameGroups.Single().SpriteIds.Single());
+	}
+
+	[Fact]
+	public void Replacement_RejectsSplitSelections()
+	{
+		var replacement = new ThingType { Id = 7, Kind = ThingKind.Effect };
+		Assert.Throws<InvalidOperationException>(() => SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Effect, new SlicerGrid(0, 0, 2, 1, 32), Cells(2, 1), 1, 7,
+			1, 1, 1, 1, 1, 1, 1, 100, true, null, replacement)));
+	}
+
+	[Fact]
+	public void EffectTemplate_PreservesDefinitionAndReplacesFrameGroups()
+	{
+		var template = new ThingType { Id = 12, Kind = ThingKind.Effect, HasLight = true, LightLevel = 7 };
+		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 44 } });
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Effect, new SlicerGrid(0, 0, 1, 1, 32), Cells(1, 1), 800, 20,
+			0, 0, 1, 1, 1, 1, 1, 100, true, template, null));
+		var thing = result.Things.Single();
+
+		Assert.Equal((uint)20, thing.Id);
+		Assert.True(thing.HasLight);
+		Assert.Equal((uint)7, thing.LightLevel);
+		Assert.Equal((uint)800, thing.FrameGroups.Single().SpriteIds.Single());
+	}
+
+	[Fact]
+	public void OutfitTemplate_PreservesDefinitionAndUsesConfiguredLayout()
+	{
+		var template = new ThingType { Id = 30, Kind = ThingKind.Outfit, HasLight = true, LightLevel = 9 };
+		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 55 } });
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 900, 40,
+			0, 0, 1, 4, 1, 1, 3, 250, true, template, null));
+		var thing = result.Things.Single();
+		var group = thing.FrameGroups.Single();
+
+		Assert.Equal((uint)40, thing.Id);
+		Assert.True(thing.HasLight);
+		Assert.Equal((uint)9, thing.LightLevel);
+		Assert.Equal((uint)4, group.PatternX);
+		Assert.Equal((uint)3, group.Frames);
+		Assert.DoesNotContain((uint)55, group.SpriteIds);
+	}
+
+	[Fact]
+	public void Outfit_PreservesRecolourAddonAndMountedPoseAxes()
+	{
+		// 4 directions, 2 sprite layers, 3 PatternY entries (body + two addons),
+		// and 2 PatternZ entries (normal + mounted rider) occupy 16 x 3 cells.
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 16, 3, 32), Cells(16, 3), 1000, 60,
+			0, 0, 2, 4, 3, 2, 1, 250, true, null, null));
+		var group = result.Things.Single().FrameGroups.Single();
+
+		Assert.Equal((uint)2, group.Layers);
+		Assert.Equal((uint)4, group.PatternX);
+		Assert.Equal((uint)3, group.PatternY);
+		Assert.Equal((uint)2, group.PatternZ);
+		Assert.True(group.TryGetSpriteId(0, 0, 1, 3, 2, 1, 0, out var lastMaskSlot));
+		Assert.Equal((uint)1047, lastMaskSlot);
+	}
+
+	[Theory]
+	[InlineData(ThingKind.Effect)]
+	[InlineData(ThingKind.Missile)]
+	public void EffectAndMissile_UseTheSharedSplitPipeline(ThingKind kind)
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			kind, new SlicerGrid(0, 0, 2, 2, 32), Cells(2, 2), 30, 10,
+			1, 1, 1, 1, 1, 1, 1, 100, true, null, null));
+		Assert.Equal(4, result.Things.Count);
+		Assert.All(result.Things, thing =>
+		{
+			Assert.Equal(kind, thing.Kind);
+			Assert.Equal((uint)1, thing.FrameGroups.Single().Width);
+			Assert.Equal((uint)1, thing.FrameGroups.Single().Height);
+		});
+	}
+
+	[Fact]
+	public void Missile_MapsPatternGridAndPreservesEmptyCenterSlot()
+	{
+		var cells = Cells(3, 3).ToList();
+		var emptyPixels = new byte[32 * 32 * 4];
+		cells[cells.FindIndex(cell => cell.Column == 1 && cell.Row == 1)] = new SlicerCell(1, 1, emptyPixels, true);
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Missile, new SlicerGrid(0, 0, 3, 3, 32), cells, 100, 25,
+			0, 0, 1, 3, 3, 1, 1, 500, true, null, null));
+		var group = result.Things.Single().FrameGroups.Single();
+
+		Assert.Equal((uint)3, group.PatternX);
+		Assert.Equal((uint)3, group.PatternY);
+		Assert.True(group.TryGetSpriteId(0, 0, 0, 1, 1, 0, 0, out var center));
+		Assert.Equal((uint)0, center);
+		Assert.Equal(8, result.SpritePixels.Count);
+	}
+
+	[Fact]
+	public void GenericFrameGroup_UsesExporterTextureAndInnerCoordinateOrder()
+	{
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Item, new SlicerGrid(0, 0, 8, 8, 32), Cells(8, 8), 1000, 70,
+			2, 2, 2, 2, 2, 1, 2, 400, true, null, null));
+		var group = result.Things.Single().FrameGroups.Single();
+
+		Assert.Equal((uint)2, group.Width);
+		Assert.Equal((uint)2, group.Height);
+		Assert.Equal((uint)2, group.Layers);
+		Assert.Equal((uint)2, group.PatternX);
+		Assert.Equal((uint)2, group.PatternY);
+		Assert.Equal((uint)1, group.PatternZ);
+		Assert.Equal((uint)2, group.Frames);
+		Assert.Equal(2, group.FrameTimings!.Length);
+		Assert.All(group.FrameTimings, timing => Assert.Equal((uint)400, timing.MinimumMilliseconds));
+		Assert.True(group.TryGetSpriteId(1, 1, 1, 1, 0, 0, 0, out var firstTextureTopLeft));
+		Assert.Equal((uint)1006, firstTextureTopLeft);
+	}
+
+	[Fact]
+	public void Outfit_ManualIdleAndWalkingGroupsPreserveExactSize()
+	{
+		var empty = new byte[32 * 32 * 4];
+		var filled = new byte[32 * 32 * 4];
+		filled[3] = 255;
+		var cells = Enumerable.Range(0, 96)
+			.SelectMany(row => Enumerable.Range(0, 32)
+				.Select(column => (row is 0 or 48) && column == 0
+					? new SlicerCell(column, row, filled, false)
+					: new SlicerCell(column, row, empty, true)))
+			.ToArray();
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 32, 96, 32), cells, 100, 200,
+			2, 2, 2, 4, 3, 2, 16, 800, true, null, null,
+			TargetUsesFrameGroups: true, ExactSize: 48, OutfitIdleFrames: 8));
+
+		Assert.Equal(2, result.SpritePixels.Count);
+		Assert.Equal(2, result.Things.Single().FrameGroups.Count);
+		var idle = result.Things.Single().FrameGroups[0];
+		var walking = result.Things.Single().FrameGroups[1];
+		Assert.Equal((uint)8, idle.Frames);
+		Assert.Equal((uint)8, walking.Frames);
+		Assert.Equal((uint)48, idle.ExactSize);
+		Assert.Equal((uint)48, walking.ExactSize);
+		Assert.Equal((uint)2, idle.Layers);
+		Assert.Equal((uint)3, idle.PatternY);
+		Assert.Equal((uint)2, idle.PatternZ);
+		Assert.True(idle.TryGetSpriteId(1, 1, 0, 0, 0, 0, 0, out var firstIdle));
+		Assert.True(walking.TryGetSpriteId(1, 1, 0, 0, 0, 0, 0, out var firstWalking));
+		Assert.Equal((uint)100, firstIdle);
+		Assert.Equal((uint)101, firstWalking);
+	}
+
+	[Fact]
+	public void CombinedThingSheet_PreservesDefaultAndWalkingGroupsFromTemplate()
+	{
+		var template = new ThingType { Id = 90, Kind = ThingKind.Outfit };
+		template.FrameGroups.Add(new ThingFrameGroup
+		{
+			GroupTypeId = 0, Width = 1, Height = 1, Layers = 1,
+			PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[1]
+		});
+		template.FrameGroups.Add(new ThingFrameGroup
+		{
+			GroupTypeId = 1, Width = 1, Height = 1, Layers = 1,
+			PatternX = 4, PatternY = 1, PatternZ = 1, Frames = 2, SpriteIds = new uint[8]
+		});
+		var cells = Cells(4, 3).ToList();
+		for (var column = 1; column < 4; column++)
+			cells[cells.FindIndex(cell => cell.Column == column && cell.Row == 0)] =
+				new SlicerCell(column, 0, new byte[32 * 32 * 4], true);
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), cells, 100, 200,
+			0, 0, 1, 4, 1, 1, 1, 300, true, template, null, TargetUsesFrameGroups: true));
+		var thing = result.Things.Single();
+
+		Assert.Equal(2, thing.FrameGroups.Count);
+		Assert.Equal(0, (int)thing.FrameGroups[0].GroupTypeId);
+		Assert.Equal(1, (int)thing.FrameGroups[1].GroupTypeId);
+		Assert.Equal(9, result.SpritePixels.Count);
+		Assert.True(thing.FrameGroups[0].TryGetSpriteId(0, 0, 0, 0, 0, 0, 0, out var idle));
+		Assert.Equal((uint)100, idle);
+		Assert.True(thing.FrameGroups[1].TryGetSpriteId(0, 0, 0, 3, 0, 0, 1, out var lastWalking));
+		Assert.Equal((uint)108, lastWalking);
+
+		var legacyResult = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), cells, 200, 201,
+			0, 0, 1, 4, 1, 1, 1, 300, false, template, null, TargetUsesFrameGroups: false));
+		var legacyGroup = legacyResult.Things.Single().FrameGroups.Single();
+		Assert.Equal((uint)3, legacyGroup.Frames);
+		Assert.Equal(9, legacyGroup.SpriteIds.Length);
+	}
+
+	[Fact]
+	public void CombinedThingSheet_CreatesMultipleThingsFromAnExactTiledSelection()
+	{
+		var template = new ThingType { Id = 90, Kind = ThingKind.Outfit };
+		template.FrameGroups.Add(new ThingFrameGroup
+		{
+			GroupTypeId = 0, Width = 1, Height = 1, Layers = 1,
+			PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[1]
+		});
+		template.FrameGroups.Add(new ThingFrameGroup
+		{
+			GroupTypeId = 1, Width = 1, Height = 1, Layers = 1,
+			PatternX = 4, PatternY = 1, PatternZ = 1, Frames = 2, SpriteIds = new uint[8]
+		});
+
+		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Outfit, new SlicerGrid(0, 0, 8, 3, 32), Cells(8, 3), 100, 200,
+			0, 0, 1, 4, 1, 1, 1, 300, true, template, null, TargetUsesFrameGroups: true));
+
+		Assert.Equal(new uint[] { 200, 201 }, result.Things.Select(thing => thing.Id));
+		Assert.All(result.Things, thing => Assert.Equal(2, thing.FrameGroups.Count));
+		Assert.Equal(24, result.SpritePixels.Count);
+	}
+
+	private static IReadOnlyList<SlicerCell> Cells(int columns, int rows)
+	{
+		var result = new System.Collections.Generic.List<SlicerCell>();
+		for (var row = 0; row < rows; row++)
+		for (var column = 0; column < columns; column++)
+		{
+			var pixels = new byte[32 * 32 * 4]; pixels[3] = 255;
+			result.Add(new SlicerCell(column, row, pixels, false));
+		}
+		return result;
+	}
+}

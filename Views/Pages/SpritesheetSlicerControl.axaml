@@ -1,0 +1,261 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NyxAssetsEditor.ViewModels.Pages"
+		xmlns:common="using:NyxAssetsEditor.Views.Common"
+		x:Class="NyxAssetsEditor.Views.Pages.SpritesheetSlicerControl"
+		x:DataType="vm:SpritesheetSlicerViewModel"
+		Width="{Binding DisplayWidth}" Background="#141414"
+		DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop"
+		KeyDown="OnKeyDown">
+	<UserControl.KeyBindings>
+		<KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}"/>
+		<KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}"/>
+	</UserControl.KeyBindings>
+	<UserControl.Styles>
+		<Style Selector="TextBlock.slicer-status">
+			<Setter Property="Foreground" Value="#E0B84D"/>
+		</Style>
+		<Style Selector="TextBlock.slicer-status.error">
+			<Setter Property="Foreground" Value="#E57373"/>
+		</Style>
+	</UserControl.Styles>
+	<Border Background="#141414" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/>
+						<MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEEEEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Content="&#x2014;" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCCCCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+					<Button Grid.Column="2" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0"
+						Background="Transparent" Foreground="#CCCCCC" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				</Grid>
+			</Border>
+
+			<Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Height="{Binding DisplayHeight}" IsVisible="{Binding !IsMinimized}">
+		<Border Grid.Row="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="10,7">
+			<Grid ColumnDefinitions="Auto,*,Auto,Auto">
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+					<TextBlock Text="Import target" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+					<ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberBinding="{Binding DisplayName}" Width="210"/>
+				</StackPanel>
+				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+					<Button Content="Open…" Click="OnOpenClick" Margin="0,0,2,0"/>
+					<Button Content="Transform selection ▾" IsEnabled="{Binding CanCrop}"
+						ToolTip.Tip="Apply a transform to each selected sprite cell without changing cell order.">
+						<Button.Flyout>
+							<MenuFlyout Placement="BottomEdgeAlignedLeft">
+								<MenuItem Header="Rotate left 90°" Command="{Binding RotateLeftCommand}"/>
+								<MenuItem Header="Rotate right 90°" Command="{Binding RotateRightCommand}"/>
+								<Separator/>
+								<MenuItem Header="Flip horizontally" Command="{Binding FlipHorizontalCommand}"/>
+								<MenuItem Header="Flip vertically" Command="{Binding FlipVerticalCommand}"/>
+							</MenuFlyout>
+						</Button.Flyout>
+					</Button>
+					<Button Content="Magenta fill" Command="{Binding MagentaFillCommand}"/>
+					<Button Command="{Binding UndoCommand}" Width="28" Height="28" Padding="0"
+						Background="Transparent" BorderThickness="0" ToolTip.Tip="Undo (Ctrl+Z)">
+						<Image Source="/Assets/Icons/action_undo.png" Width="14" Height="14"/>
+					</Button>
+					<Button Command="{Binding RedoCommand}" Width="28" Height="28" Padding="0"
+						Background="Transparent" BorderThickness="0" ToolTip.Tip="Redo (Ctrl+Y)">
+						<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
+					</Button>
+					<CheckBox Content="Snap to grid" IsChecked="{Binding SnapSelectionToGrid}" Margin="8,0,0,0"
+						ToolTip.Tip="Move the crop selection in complete sprite-cell steps while preserving its current offset."/>
+				</StackPanel>
+				<TextBlock Grid.Column="2" Text="Zoom" Foreground="#AAAAAA" VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" MinWidth="220">
+					<Slider Width="170" Minimum="1" Maximum="16" Value="{Binding Zoom}" SmallChange="0.1" LargeChange="1"
+						IsSnapToTickEnabled="False" TickFrequency="1" VerticalAlignment="Center"
+						ToolTip.Tip="Soft-snaps to 1×, 2×, 4×, 8×, and 16×; intermediate 0.1× values remain available."/>
+					<TextBlock Text="{Binding Zoom, StringFormat={}{0:0.0}×}" VerticalAlignment="Center" MinWidth="36"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<Grid Grid.Row="1" ColumnDefinitions="280,6,*,6,310">
+			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+				<StackPanel Margin="12" Spacing="10">
+					<TextBlock Text="Grid and selection" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding SourceFileName}" Foreground="#AAAAAA" TextTrimming="CharacterEllipsis"/>
+					<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+						<TextBlock Grid.Row="0" Grid.Column="0" Text="Crop size" Foreground="#AAAAAA"/>
+						<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableCellSizes}" SelectedItem="{Binding CellSize}"
+							ToolTip.Tip="Uses the project sprite size. Display-size settings do not change SPR pixel dimensions."/>
+						<TextBlock Grid.Row="1" Grid.Column="0" Text="X offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OffsetX}" Minimum="0" Increment="1" FormatString="0"/>
+						<TextBlock Grid.Row="2" Grid.Column="0" Text="Y offset" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OffsetY}" Minimum="0" Increment="1" FormatString="0"/>
+						<TextBlock Grid.Row="3" Grid.Column="0" Text="Columns:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Columns}" Minimum="1" Increment="1" FormatString="0"/>
+						<TextBlock Grid.Row="4" Grid.Column="0" Text="Rows:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+						<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding Rows}" Minimum="1" Increment="1" FormatString="0"/>
+					</Grid>
+					<Separator/>
+					<TextBlock Text="Thing creation and replacement" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="Build things from the live grid selection." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+					<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedKind}"/>
+					<CheckBox Content="Replace an existing thing" IsChecked="{Binding ReplaceExisting}"/>
+					<StackPanel IsVisible="{Binding ReplaceExisting}" Spacing="5">
+						<Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
+							<NumericUpDown Value="{Binding ReplacementThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
+							<Button Grid.Column="1" Width="30" Height="28" Padding="7" Command="{Binding FindReplacementCommand}" ToolTip.Tip="Find a thing to replace">
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
+							</Button>
+						</Grid>
+						<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6">
+							<Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+								<Border Width="44" Height="44" Background="#555555"><Image Source="{Binding ReplacementPreview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding ReplacementSelectionLabel}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+							</Grid>
+						</Border>
+						<TextBlock Text="Imports new sprites; old sprite IDs are retained in storage." Foreground="#E3BE75" FontSize="10" TextWrapping="Wrap"/>
+					</StackPanel>
+					<CheckBox Content="Use an existing thing as template" IsChecked="{Binding UseTemplate}" IsVisible="{Binding IsCreateMode}"/>
+					<StackPanel IsVisible="{Binding ShowTemplatePicker}" Spacing="5">
+						<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="5">
+							<NumericUpDown Value="{Binding TemplateThingId}" Minimum="0" Maximum="4294967295" FormatString="0"/>
+							<Button Grid.Column="1" Width="30" Height="28" Padding="7" Command="{Binding FindTemplateCommand}" ToolTip.Tip="Find a template thing">
+								<Image Source="/Assets/Icons/action_search.png" Width="12" Height="12"/>
+							</Button>
+							<Button Grid.Column="2" Content="Clear" Command="{Binding ClearTemplateCommand}"/>
+						</Grid>
+						<Border Background="#1E1E1E" BorderBrush="#353535" BorderThickness="1" CornerRadius="4" Padding="6">
+							<Grid ColumnDefinitions="48,*" ColumnSpacing="8">
+								<Border Width="44" Height="44" Background="#555555"><Image Source="{Binding TemplatePreview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding TemplateSelectionLabel}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+
+					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
+						<TextBlock Text="Thing footprint (cells)" Foreground="#AAAAAA"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Thing width:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingWidth}" Minimum="0" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Thing height:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingHeight}" Minimum="0" Maximum="32" FormatString="0"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Exact size:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingExactSize}" Minimum="1" Maximum="255" FormatString="0"
+								IsEnabled="{Binding !AutomaticCropSize}"
+								ToolTip.Tip="DAT crop-size metadata; this does not change the 32-pixel sprite cell size."/>
+							<CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="Use full footprint automatically"
+								IsChecked="{Binding AutomaticCropSize}"
+								ToolTip.Tip="Uses the largest footprint dimension as a safe crop size. Disable only when you know a smaller source DAT value."/>
+						</Grid>
+						<TextBlock Text="Use 0 × 0 to derive one footprint from the complete frame-group sheet." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
+					</StackPanel>
+
+					<StackPanel Spacing="6" IsEnabled="{Binding !UsesCombinedLayout}">
+						<TextBlock Text="Frame-group layout" Foreground="#AAAAAA"/>
+						<TextBlock Text="Describes how the selected cells map into the DAT frame group." Foreground="#888888" TextWrapping="Wrap" FontSize="10"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="7">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Layers:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ThingLayers}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Content="Mask layer" IsChecked="{Binding OutfitHasRecolourMask}"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Each base sprite is followed by its visible head/body/legs/feet mask sprite."/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Pattern X:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ThingPatternX}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Directions:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitDirections}" Minimum="1" Maximum="32" FormatString="0" IsVisible="{Binding IsOutfit}"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Pattern Y:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<TextBlock Grid.Row="2" Grid.Column="0" Text="Addons:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding ThingPatternY}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding OutfitAddonCount}" Minimum="0" Maximum="31" FormatString="0"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Number of addon patterns after the base body. Two addons are stored internally as Pattern Y = 3."/>
+							<TextBlock Grid.Row="3" Grid.Column="0" Text="Pattern Z:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding ThingPatternZ}" Minimum="1" Maximum="32" FormatString="0"
+								IsVisible="{Binding !IsOutfit}"/>
+							<CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="Mounted rider pose" IsChecked="{Binding OutfitHasMountedPose}"
+								IsVisible="{Binding IsOutfit}" ToolTip.Tip="Adds the mounted rider pose as Pattern Z = 2. The mount itself remains a separate outfit ID."/>
+							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding !IsOutfit}"/>
+							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding ThingFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding !IsOutfit}"/>
+							<TextBlock Grid.Row="4" Grid.Column="0" Text="Frames:" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding ShowSingleOutfitFrames}"/>
+							<NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding OutfitFrames}" Minimum="1" Maximum="60" FormatString="0" IsVisible="{Binding ShowSingleOutfitFrames}"/>
+						</Grid>
+						<CheckBox Content="Sheet has separate idle/walking groups" IsChecked="{Binding OutfitSeparateFrameGroups}" IsVisible="{Binding IsOutfit}"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="7" IsVisible="{Binding ShowSeparateOutfitFrames}">
+							<TextBlock Grid.Row="0" Grid.Column="0" Text="Idle frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding OutfitIdleFrames}" Minimum="1" Maximum="60" FormatString="0"/>
+							<TextBlock Grid.Row="1" Grid.Column="0" Text="Walking frames:" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+							<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding OutfitWalkingFrames}" Minimum="1" Maximum="60" FormatString="0"/>
+						</Grid>
+						<TextBlock Text="Missiles commonly use a 3 × 3 Pattern X/Y direction grid; use the values stored by the source thing." Foreground="#888888" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsMissile}"/>
+						<TextBlock Text="{Binding OutfitFrameGroupHint}" Foreground="#C8B98F" TextWrapping="Wrap" FontSize="10" IsVisible="{Binding IsOutfit}"/>
+						<TextBlock Text="{Binding SplitHint}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="11"/>
+					</StackPanel>
+
+					<Button Content="Import current selection as thing" Command="{Binding ImportThingCommand}" Background="#3A7BD5" Foreground="White"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<GridSplitter Grid.Column="1" Background="#292929" ResizeBehavior="PreviousAndNext"/>
+			<Border Grid.Column="2" Background="#111111" DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop">
+				<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+					<common:SpritesheetCanvasControl DataContext="{Binding}"/>
+				</ScrollViewer>
+			</Border>
+			<GridSplitter Grid.Column="3" Background="#292929" ResizeBehavior="PreviousAndNext"/>
+
+			<Grid Grid.Column="4" RowDefinitions="Auto,*,Auto" Margin="10">
+				<StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
+					<TextBlock Text="Cropped sprites" FontSize="15" FontWeight="SemiBold"/>
+					<TextBlock Text="Crop lists non-empty cells. Original slot numbers are retained for folder export; thing import reads every live-grid slot directly." Foreground="#888888" TextWrapping="Wrap" FontSize="11"/>
+				</StackPanel>
+				<ListBox Name="CroppedSpritesListBox" Grid.Row="1" ItemsSource="{Binding CroppedSprites}"
+					Background="#181818" BorderBrush="#333333" SelectionMode="Multiple,Toggle">
+					<ListBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:SlicerPreviewViewModel">
+							<Grid ColumnDefinitions="42,*,Auto" Margin="4">
+								<Border Width="36" Height="36" Background="#555555"><Image Source="{Binding Preview}" Stretch="Uniform"/></Border>
+								<TextBlock Grid.Column="1" Text="{Binding Label}" Margin="8,0" VerticalAlignment="Center"/>
+								<Button Grid.Column="2" Content="×" Tag="{Binding}" Click="OnRemoveCroppedClick" ToolTip.Tip="Remove"/>
+							</Grid>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+				<StackPanel Grid.Row="2" Spacing="6" Margin="0,8,0,0">
+					<Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+						<Button Content="Crop" Command="{Binding CropCommand}" Background="#3A7BD5" Foreground="White"
+								HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+								ToolTip.Tip="Crop selection (Enter)"/>
+						<Button Grid.Column="1" Content="Clear" Command="{Binding ClearCroppedCommand}"
+								HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					</Grid>
+					<Button Content="Export" Click="OnExportClick" IsEnabled="{Binding CanExport}"
+							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+					<Button Content="Import cropped sprites" Command="{Binding ImportSpritesCommand}" IsEnabled="{Binding CanImportSprites}"
+							HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+				</StackPanel>
+			</Grid>
+		</Grid>
+
+		<Border Grid.Row="2" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="10,7">
+			<TextBlock Classes="slicer-status" Classes.error="{Binding StatusIsError}" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+		</Border>
+			</Grid>
+
+			<Border Name="ResizeLeft" Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeRight" Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeBottom" Grid.RowSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeCorner" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
+			<Border Name="ResizeBottomLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomLeftCorner"/>
+			<Border Name="ResizeTop" Grid.RowSpan="2" Height="5" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeTopRight" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopRightCorner"/>
+			<Border Name="ResizeTopLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopLeftCorner"/>
+		</Grid>
+	</Border>
+</UserControl>

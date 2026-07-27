@@ -70,6 +70,7 @@
 								<MenuItem Header="Compile Archive" Command="{Binding CompileCommand}" IsEnabled="{Binding CanCompile}"/>
 								<Separator/>
 								<MenuItem Header="Sprites Optimizer..." Command="{Binding OpenSpritesOptimizerCommand}"/>
+								<MenuItem Header="Spritesheet Slicer..." Command="{Binding OpenSpritesheetSlicerCommand}"/>
 							</MenuFlyout>
 						</Button.Flyout>
 					</Button>
