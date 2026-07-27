@@ -3,6 +3,7 @@ using NyxAssets.Things;
 using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
+using Avalonia.Media;
 
 namespace NyxAssetsEditor.ViewModels.Pages
 {
@@ -69,6 +70,97 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
 				}
 			}
+		}
+
+		private static string _customAccentColor = "";
+		public static string CustomAccentColor
+		{
+			get => _customAccentColor;
+			set
+			{
+				if (_customAccentColor != value)
+				{
+					_customAccentColor = value ?? "";
+					ApplyAccentColor(_customAccentColor);
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		public Avalonia.Media.Color ThemeColor
+		{
+			get
+			{
+				if (Avalonia.Application.Current?.Resources.TryGetValue("SystemAccentColor", out var res) == true)
+				{
+					if (res is Avalonia.Media.Color color)
+						return color;
+					if (res is Avalonia.Media.ISolidColorBrush brush)
+						return brush.Color;
+				}
+				if (Avalonia.Application.Current?.PlatformSettings is { } settings)
+				{
+					try
+					{
+						return settings.GetColorValues().AccentColor1;
+					}
+					catch { }
+				}
+				return Avalonia.Media.Colors.DeepSkyBlue;
+			}
+			set
+			{
+				CustomAccentColor = value.ToString();
+				OnPropertyChanged();
+			}
+		}
+
+		public void ResetThemeColor()
+		{
+			CustomAccentColor = "";
+			OnPropertyChanged(nameof(ThemeColor));
+		}
+
+		public static void ApplyAccentColor(string hexColor)
+		{
+			var resources = Avalonia.Application.Current?.Resources;
+			if (resources == null) return;
+
+			if (string.IsNullOrWhiteSpace(hexColor) || !Avalonia.Media.Color.TryParse(hexColor, out var color))
+			{
+				resources.Remove("SystemAccentColor");
+				resources.Remove("SystemAccentColorLight1");
+				resources.Remove("SystemAccentColorLight2");
+				resources.Remove("SystemAccentColorLight3");
+				resources.Remove("SystemAccentColorDark1");
+				resources.Remove("SystemAccentColorDark2");
+				resources.Remove("SystemAccentColorDark3");
+				return;
+			}
+
+			resources["SystemAccentColor"] = color;
+			resources["SystemAccentColorLight1"] = Lighten(color, 0.15f);
+			resources["SystemAccentColorLight2"] = Lighten(color, 0.30f);
+			resources["SystemAccentColorLight3"] = Lighten(color, 0.45f);
+			resources["SystemAccentColorDark1"] = Darken(color, 0.15f);
+			resources["SystemAccentColorDark2"] = Darken(color, 0.30f);
+			resources["SystemAccentColorDark3"] = Darken(color, 0.45f);
+		}
+
+		private static Avalonia.Media.Color Lighten(Avalonia.Media.Color color, float amount)
+		{
+			return Avalonia.Media.Color.FromRgb(
+				(byte)Math.Clamp(color.R + (255 - color.R) * amount, 0, 255),
+				(byte)Math.Clamp(color.G + (255 - color.G) * amount, 0, 255),
+				(byte)Math.Clamp(color.B + (255 - color.B) * amount, 0, 255));
+		}
+
+		private static Avalonia.Media.Color Darken(Avalonia.Media.Color color, float amount)
+		{
+			return Avalonia.Media.Color.FromRgb(
+				(byte)Math.Clamp(color.R * (1 - amount), 0, 255),
+				(byte)Math.Clamp(color.G * (1 - amount), 0, 255),
+				(byte)Math.Clamp(color.B * (1 - amount), 0, 255));
 		}
 
 		private static bool _allowUnknownSignatures = true;
@@ -350,7 +442,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			string? looktypeMountAlignment = null,
 			int looktypeMountedRiderOffsetX = 0,
 			int looktypeMountedRiderOffsetY = 0,
-			bool compileLinkedPairTogether = true)
+			bool compileLinkedPairTogether = true,
+			string? customAccentColor = null)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -360,6 +453,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_preloadGraphicalAssets = preloadGraphicalAssets;
 			_allowUnknownSignatures = allowUnknownSignatures;
 			_compileLinkedPairTogether = compileLinkedPairTogether;
+			_customAccentColor = customAccentColor ?? "";
+			ApplyAccentColor(_customAccentColor);
 			_assetDisplaySize = assetDisplaySize;
 			ThingIdOffset = thingIdOffset;
 			_clientVersion = clientVersion;
