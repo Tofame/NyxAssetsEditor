@@ -573,80 +573,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		if (loader == null) return;
 
 		var fg = CurrentFrameGroup;
-		if (fg.Width == 0 || fg.Height == 0) return;
-
-		var edge = (int)SpritePixelCodec.SpriteEdgeLength;
-		var cellW = (int)(fg.Width * edge);
-		var cellH = (int)(fg.Height * edge);
-		int maxS = 0;
-
-		var spriteCache = new Dictionary<uint, byte[]>();
-
-		for (uint wIndex = 0; wIndex < fg.Width; wIndex++)
+		var inferredSize = ThingFrameGroupEditor.InferCropSize(fg, id =>
 		{
-			for (uint hIndex = 0; hIndex < fg.Height; hIndex++)
-			{
-				for (uint lIndex = 0; lIndex < fg.Layers; lIndex++)
-				{
-					for (uint xIndex = 0; xIndex < fg.PatternX; xIndex++)
-					{
-						for (uint yIndex = 0; yIndex < fg.PatternY; yIndex++)
-						{
-							for (uint zIndex = 0; zIndex < fg.PatternZ; zIndex++)
-							{
-								for (uint fIndex = 0; fIndex < fg.Frames; fIndex++)
-								{
-									if (fg.TryGetSpriteId(wIndex, hIndex, lIndex, xIndex, yIndex, zIndex, fIndex, out var spriteId) && spriteId != 0)
-									{
-										if (!spriteCache.TryGetValue(spriteId, out var pixels))
-										{
-											try
-											{
-												pixels = loader.LoadSpritePixels(spriteId);
-												spriteCache[spriteId] = pixels;
-											}
-											catch
-											{
-												continue;
-											}
-										}
+			try { return loader.LoadSpritePixels(id); }
+			catch { return null; }
+		});
 
-										if (pixels == null) continue;
-
-										var spriteLeft = (int)((fg.Width - wIndex - 1) * edge);
-										var spriteTop = (int)((fg.Height - hIndex - 1) * edge);
-
-										for (int sy = 0; sy < edge; sy++)
-										{
-											for (int sx = 0; sx < edge; sx++)
-											{
-												var alpha = pixels[(sy * edge + sx) * 4 + 3];
-												if (alpha > 0)
-												{
-													var x = spriteLeft + sx;
-													var y = spriteTop + sy;
-													var reqS = Math.Max(cellW - x, cellH - y);
-													if (reqS > maxS)
-													{
-														maxS = reqS;
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (maxS > 0)
-		{
-			var inferredSize = Math.Clamp(maxS, 1, 64);
-			CropSize = inferredSize;
-		}
+		CropSize = inferredSize;
 	}
 
 	private void ClearPendingSpriteDrop()

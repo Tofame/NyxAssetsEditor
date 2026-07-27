@@ -81,11 +81,28 @@ public static class SpritesheetThingBuilder
 			{
 				if (request.TargetUsesFrameGroups) SplitOutfitFrames(thing, request);
 				else CollapseOutfitFrameGroups(thing, request);
+
+				foreach (var fg in thing.FrameGroups)
+				{
+					fg.ExactSize = InferOutfitCropSize(fg, spriteIds, pixels, request.FirstSpriteId);
+				}
 			}
 		}
 		if (request.Replacement != null && things.Count != 1)
 			throw new InvalidOperationException("Replacement requires a selection that produces exactly one thing.");
 		return new SlicerThingBuildResult(pixels, things, request.Replacement != null);
+	}
+
+	private static uint InferOutfitCropSize(ThingFrameGroup fg, IReadOnlyDictionary<(int Column, int Row), uint> spriteIds, IReadOnlyList<byte[]> spritePixels, uint firstSpriteId)
+	{
+		return (uint)ThingFrameGroupEditor.InferCropSize(fg, spriteId =>
+		{
+			if (spriteId >= firstSpriteId && (spriteId - firstSpriteId) < spritePixels.Count)
+			{
+				return spritePixels[(int)(spriteId - firstSpriteId)];
+			}
+			return null;
+		});
 	}
 
 	private static IReadOnlyList<ThingFrameGroup> ResolveLayoutGroups(
