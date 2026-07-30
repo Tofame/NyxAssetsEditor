@@ -33,7 +33,12 @@
 					<Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 					<Button Content="Assets" Command="{Binding NavigateToAssetsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
 					<Button Content="Paint" Command="{Binding NavigateToPaintCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Content="Converter" Command="{Binding NavigateToConverterCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
+					<Button Command="{Binding NavigateToConverterCommand}" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="#FF4C4C" Foreground="#E0E0E0" Padding="12,6">
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<TextBlock Text="Converter" VerticalAlignment="Center"/>
+							<TextBlock Text="!" Foreground="#FF4C4C" FontWeight="Bold" VerticalAlignment="Center" ToolTip.Tip="Experimental feature"/>
+						</StackPanel>
+					</Button>
 				</StackPanel>
 			</Grid>
 		</Border>
