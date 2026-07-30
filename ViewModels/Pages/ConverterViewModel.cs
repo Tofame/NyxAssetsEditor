@@ -134,6 +134,9 @@ public partial class ConverterViewModel : ViewModelBase
 
 	[ObservableProperty]
 	private bool _compIncludeMp4 = true;
+
+	[ObservableProperty]
+	private int _compCompressionLevel = 2; // 0 = None, 1 = Fastest, 2 = Optimal, 3 = SmallestSize
 	#endregion
 
 	public ConverterViewModel()
@@ -469,6 +472,15 @@ public partial class ConverterViewModel : ViewModelBase
 				if (searchPatterns.Count == 0)
 					throw new InvalidOperationException("No file formats selected to compress.");
 
+				var level = CompCompressionLevel switch
+				{
+					0 => CompressionLevel.NoCompression,
+					1 => CompressionLevel.Fastest,
+					2 => CompressionLevel.Optimal,
+					3 => CompressionLevel.SmallestSize,
+					_ => CompressionLevel.Optimal
+				};
+
 				var files = Directory.EnumerateFiles(CompSourceFolderPath, "*.*", SearchOption.AllDirectories);
 				foreach (var file in files)
 				{
@@ -476,7 +488,7 @@ public partial class ConverterViewModel : ViewModelBase
 					if (searchPatterns.Contains(ext))
 					{
 						var relativePath = Path.GetRelativePath(CompSourceFolderPath, file);
-						zip.CreateEntryFromFile(file, relativePath);
+						zip.CreateEntryFromFile(file, relativePath, level);
 					}
 				}
 			});

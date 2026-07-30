@@ -189,7 +189,7 @@
 								<TextBlock Text="Folder Compressor" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
 								<TextBlock Text="QoL Mass Compressor: recursively packages PNGs, GIFs, MP3s, and MP4s inside a chosen folder into a standard compressed ZIP archive." FontSize="12" Foreground="#888888" TextWrapping="Wrap"/>
 
-								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="12">
+								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto" RowSpacing="12">
 									<!-- Source Directory -->
 									<TextBlock Grid.Row="0" Grid.Column="0" Text="Source Folder:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CompSourceFolderPath}" Margin="0,0,8,0" Height="28" VerticalContentAlignment="Center"/>
@@ -208,6 +208,15 @@
 										<CheckBox Content="MP3 (.mp3)" IsChecked="{Binding CompIncludeMp3}"/>
 										<CheckBox Content="MP4 (.mp4)" IsChecked="{Binding CompIncludeMp4}"/>
 									</StackPanel>
+
+									<!-- Compression Level -->
+									<TextBlock Grid.Row="3" Grid.Column="0" Text="Compression Level:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding CompCompressionLevel}" Width="180" Height="28">
+										<ComboBoxItem Content="No Compression"/>
+										<ComboBoxItem Content="Fastest"/>
+										<ComboBoxItem Content="Optimal (Default)"/>
+										<ComboBoxItem Content="Smallest Size"/>
+									</ComboBox>
 								</Grid>
 
 								<Button Content="Compress Files" Command="{Binding ExecuteCompressionCommand}" IsEnabled="{Binding !IsBusy}" Background="#5E94FF" Foreground="#FFFFFF" Padding="20,10" HorizontalAlignment="Left" Margin="0,10,0,0"/>
