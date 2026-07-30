@@ -286,7 +286,12 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				}
 				else
 				{
-					foreach (var file in files)
+					// Sort files alphanumerically (natural sort) by filename so that order is respected
+					var sortedFiles = files.OrderBy(f => 
+						System.Text.RegularExpressions.Regex.Replace(f.Name ?? "", @"\d+", m => m.Value.PadLeft(10, '0'))
+					).ToList();
+
+					foreach (var file in sortedFiles)
 					{
 						var path = file.Path.LocalPath;
 						var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
