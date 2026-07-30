@@ -35,6 +35,12 @@ public partial class MainWindowViewModel : ViewModelBase
 	}
 
 	[RelayCommand]
+	private void NavigateToConverter()
+	{
+		CurrentPage = new ConverterViewModel();
+	}
+
+	[RelayCommand]
 	private void NavigateToAssets()
 	{
 		CurrentPage = _assetsViewModel ??= new AssetsViewModel();

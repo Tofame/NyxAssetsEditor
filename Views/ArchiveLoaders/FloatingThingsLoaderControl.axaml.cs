@@ -8,6 +8,7 @@ using Avalonia.Platform.Storage;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Exchange;
