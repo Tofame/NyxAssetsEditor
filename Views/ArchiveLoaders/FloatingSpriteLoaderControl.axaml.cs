@@ -412,8 +412,6 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				try
 				{
 					bitmap.InstallPixels(info, pin.AddrOfPinnedObject(), info.RowBytes);
-					using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
-					if (image == null) return;
 
 					SkiaSharp.SKEncodedImageFormat encodedFormat = format.ToLowerInvariant() switch
 					{
@@ -422,11 +420,20 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						_ => SkiaSharp.SKEncodedImageFormat.Png,
 					};
 
-					using var data = image.Encode(encodedFormat, 100);
-					if (data == null) return;
-
-					using var stream = File.OpenWrite(outputPath);
-					data.SaveTo(stream);
+					if (encodedFormat == SkiaSharp.SKEncodedImageFormat.Bmp)
+					{
+						using var stream = File.Create(outputPath);
+						NyxAssets.Utils.SpriteImageExporter.WriteOpaque24BitBmp(pixels, (int)edge, (int)edge, stream);
+					}
+					else
+					{
+						using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+						if (image == null) return;
+						using var data = image.Encode(encodedFormat, 100);
+						if (data == null) return;
+						using var stream = File.Create(outputPath);
+						data.SaveTo(stream);
+					}
 				}
 				finally
 				{

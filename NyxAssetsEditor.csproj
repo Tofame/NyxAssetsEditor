@@ -24,18 +24,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.0" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
-        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.0" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+        <PackageReference Include="Avalonia" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="HotAvalonia" Version="3.1.4" />
-        <PackageReference Include="NyxAssets" Version="0.2.6" />
+        <PackageReference Include="NyxAssets" Version="0.2.7" />
         <PackageReference Include="SkiaSharp" Version="4.150.1" />
         <PackageReference Include="Tomlyn" Version="2.10.1" />
     </ItemGroup>
