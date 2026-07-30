@@ -135,11 +135,7 @@
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>
 										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
-										<MenuItem Header="Export">
-											<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
-											<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
-											<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
-										</MenuItem>
+										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
 									</ContextMenu>
@@ -179,11 +175,7 @@
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>
 										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
-										<MenuItem Header="Export">
-											<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
-											<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
-											<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
-										</MenuItem>
+										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
 									</ContextMenu>
@@ -288,15 +280,8 @@
 									<Image Source="/Assets/Icons/action_import.png" Width="14" Height="14"/>
 								</Button>
 							</Border>
-							<Button ToolTip.Tip="Export" Padding="8,4">
+							<Button Command="{Binding ExportSelectedCommand}" ToolTip.Tip="Export" Padding="8,4">
 								<Image Source="/Assets/Icons/action_export.png" Width="14" Height="14"/>
-								<Button.Flyout>
-									<MenuFlyout Placement="Top">
-										<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
-										<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
-										<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
-									</MenuFlyout>
-								</Button.Flyout>
 							</Button>
 						</StackPanel>
 

@@ -567,6 +567,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ExportSelectedPngCommand.NotifyCanExecuteChanged();
 			ExportSelectedJpegCommand.NotifyCanExecuteChanged();
 			ExportSelectedBmpCommand.NotifyCanExecuteChanged();
+			ExportSelectedCommand.NotifyCanExecuteChanged();
 			PasteSelectedSpriteCommand.NotifyCanExecuteChanged();
 		}
 
@@ -899,6 +900,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
 		private void ExportSelectedBmp() => RequestExportSprites(GetSelectedSprites(), "bmp");
+
+		[RelayCommand(CanExecute = nameof(HasSpriteSelection))]
+		private void ExportSelected() => RequestExportSprites(GetSelectedSprites(), "export_popup");
 
 		public async void HandleCopyShortcut()
 		{

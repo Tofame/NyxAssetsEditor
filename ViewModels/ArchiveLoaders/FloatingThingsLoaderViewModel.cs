@@ -112,6 +112,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private void ExportObd() => ExportWithSelection("obd");
 
 		[RelayCommand]
+		private void Export()
+		{
+			var selected = _panel.GetSelectedThings();
+			if (selected.Count > 1 && selected.Any(t => t.Id == Id))
+				_panel.RequestExportThings(selected);
+			else
+				_panel.RequestExportThing(this);
+		}
+
+		[RelayCommand]
 		private void Duplicate() => WithSelection(_panel.DuplicateThings, _panel.DuplicateThing);
 
 		[RelayCommand]
@@ -1204,6 +1214,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ExportSelectedBmpCommand.NotifyCanExecuteChanged();
 			ExportSelectedNyxThingCommand.NotifyCanExecuteChanged();
 			ExportSelectedObdCommand.NotifyCanExecuteChanged();
+			ExportSelectedThingsCommand.NotifyCanExecuteChanged();
 			DuplicateSelectedThingsCommand.NotifyCanExecuteChanged();
 			RemoveSelectedThingsCommand.NotifyCanExecuteChanged();
 			EditSelectedThingsCommand.NotifyCanExecuteChanged();
@@ -1232,6 +1243,18 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				return;
 
 			RequestThingFileDialog?.Invoke(this, new ThingFileRequestEventArgs(list, format));
+		}
+
+		public void RequestExportThing(ThingItemViewModel thing) =>
+			RequestExportThings(new[] { thing });
+
+		public void RequestExportThings(IEnumerable<ThingItemViewModel> things)
+		{
+			var list = things.ToList();
+			if (list.Count == 0)
+				return;
+
+			RequestThingFileDialog?.Invoke(this, new ThingFileRequestEventArgs(list, "export_popup"));
 		}
 
 		public void RequestImportNewThing()
@@ -1491,6 +1514,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		[RelayCommand(CanExecute = nameof(HasThingSelection))]
 		private void ExportSelectedObd() => RequestExportThings(GetSelectedThings(), "obd");
+
+		[RelayCommand(CanExecute = nameof(HasThingSelection))]
+		private void ExportSelectedThings() => RequestExportThings(GetSelectedThings());
 
 		[RelayCommand(CanExecute = nameof(HasThingSelection))]
 		private void DuplicateSelectedThings() => DuplicateThings(GetSelectedThings());

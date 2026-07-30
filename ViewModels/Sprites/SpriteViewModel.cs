@@ -90,6 +90,16 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 		[RelayCommand]
 		private void ExportBmp() => ExportWithSelection("bmp");
 
+		[RelayCommand]
+		private void Export()
+		{
+			var selected = _panel.GetSelectedSprites();
+			if (selected.Count > 1 && selected.Any(s => s.Id == Id))
+				_panel.RequestExportSprites(selected, "export_popup");
+			else
+				_panel.RequestExportSprite(this, "export_popup");
+		}
+
 		[RelayCommand(CanExecute = nameof(CanModify))]
 		private void Remove()
 		{

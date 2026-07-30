@@ -149,15 +149,7 @@
 										<MenuItem Header="Copy ID" Click="CopyThingId"/>
 										<Separator/>
 										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
-										<MenuItem Header="Export">
-											<MenuItem Header="Spritesheet">
-												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
-												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
-												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
-											</MenuItem>
-											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
-											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
-										</MenuItem>
+										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
 										<MenuItem Header="Edit" Command="{Binding EditCommand}" IsVisible="{Binding !CanBatchEdit}"/>
@@ -201,15 +193,7 @@
 										<MenuItem Header="Copy ID" Click="CopyThingId"/>
 										<Separator/>
 										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
-										<MenuItem Header="Export">
-											<MenuItem Header="Spritesheet">
-												<MenuItem Header="PNG" Command="{Binding ExportPngCommand}"/>
-												<MenuItem Header="JPEG" Command="{Binding ExportJpegCommand}"/>
-												<MenuItem Header="BMP" Command="{Binding ExportBmpCommand}"/>
-											</MenuItem>
-											<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportNyxThingCommand}"/>
-											<MenuItem Header="Object Builder OBD" Command="{Binding ExportObdCommand}"/>
-										</MenuItem>
+										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Open in new window" Command="{Binding OpenInNewWindowCommand}"/>
 										<MenuItem Header="Edit" Command="{Binding EditCommand}" IsVisible="{Binding !CanBatchEdit}"/>
@@ -324,19 +308,8 @@
 							<Button Command="{Binding ImportThingCommand}" ToolTip.Tip="Import" Padding="8,4">
 								<Image Source="/Assets/Icons/action_import.png" Width="14" Height="14"/>
 							</Button>
-							<Button ToolTip.Tip="Export" Padding="8,4">
+							<Button Command="{Binding ExportSelectedThingsCommand}" ToolTip.Tip="Export" Padding="8,4">
 								<Image Source="/Assets/Icons/action_export.png" Width="14" Height="14"/>
-								<Button.Flyout>
-									<MenuFlyout Placement="Top">
-										<MenuItem Header="Spritesheet">
-											<MenuItem Header="PNG" Command="{Binding ExportSelectedPngCommand}"/>
-											<MenuItem Header="JPEG" Command="{Binding ExportSelectedJpegCommand}"/>
-											<MenuItem Header="BMP" Command="{Binding ExportSelectedBmpCommand}"/>
-										</MenuItem>
-										<MenuItem Header="Thing JSON (nyx-thing)" Command="{Binding ExportSelectedNyxThingCommand}"/>
-										<MenuItem Header="Object Builder OBD" Command="{Binding ExportSelectedObdCommand}"/>
-									</MenuFlyout>
-								</Button.Flyout>
 							</Button>
 							<Border Background="Transparent" ToolTip.Tip="Duplicate">
 								<Button Command="{Binding DuplicateSelectedThingsCommand}" Padding="8,4">
