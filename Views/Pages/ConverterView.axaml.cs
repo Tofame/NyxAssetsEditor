@@ -228,48 +228,4 @@ public partial class ConverterView : UserControl
 			vm.MigTargetDatPath = file.Path.LocalPath;
 		}
 	}
-
-	private async void OnBrowseCompFolder(object? sender, RoutedEventArgs e)
-	{
-		var vm = ViewModel;
-		if (vm == null) return;
-
-		var topLevel = TopLevel.GetTopLevel(this);
-		if (topLevel == null) return;
-
-		var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-		{
-			Title = "Select Source Folder to Compress",
-			AllowMultiple = false
-		});
-
-		if (folders != null && folders.Count > 0)
-		{
-			vm.CompSourceFolderPath = folders[0].Path.LocalPath;
-		}
-	}
-
-	private async void OnBrowseCompZip(object? sender, RoutedEventArgs e)
-	{
-		var vm = ViewModel;
-		if (vm == null) return;
-
-		var topLevel = TopLevel.GetTopLevel(this);
-		if (topLevel == null) return;
-
-		var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-		{
-			Title = "Save Compressed ZIP Archive",
-			DefaultExtension = ".zip",
-			FileTypeChoices = new[]
-			{
-				new FilePickerFileType("ZIP Archive") { Patterns = new[] { "*.zip" } }
-			}
-		});
-
-		if (file != null)
-		{
-			vm.CompTargetZipPath = file.Path.LocalPath;
-		}
-	}
 }

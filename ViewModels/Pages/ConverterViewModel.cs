@@ -116,28 +116,7 @@ public partial class ConverterViewModel : ViewModelBase
 	private string _migTargetSignatureText = "0";
 	#endregion
 
-	#region TAB 4: Folder Compressor
-	[ObservableProperty]
-	private string _compSourceFolderPath = string.Empty;
 
-	[ObservableProperty]
-	private string _compTargetZipPath = string.Empty;
-
-	[ObservableProperty]
-	private bool _compIncludePng = true;
-
-	[ObservableProperty]
-	private bool _compIncludeGif = true;
-
-	[ObservableProperty]
-	private bool _compIncludeMp3 = true;
-
-	[ObservableProperty]
-	private bool _compIncludeMp4 = true;
-
-	[ObservableProperty]
-	private int _compCompressionLevel = 2; // 0 = None, 1 = Fastest, 2 = Optimal, 3 = SmallestSize
-	#endregion
 
 	public ConverterViewModel()
 	{
@@ -437,71 +416,5 @@ public partial class ConverterViewModel : ViewModelBase
 		}
 	}
 
-	[RelayCommand]
-	private async Task ExecuteCompression()
-	{
-		if (string.IsNullOrWhiteSpace(CompSourceFolderPath) || string.IsNullOrWhiteSpace(CompTargetZipPath))
-		{
-			StatusText = "Error: Please specify source folder and target ZIP paths.";
-			return;
-		}
 
-		if (!Directory.Exists(CompSourceFolderPath))
-		{
-			StatusText = "Error: Source folder does not exist.";
-			return;
-		}
-
-		IsBusy = true;
-		StatusText = "Compressing files...";
-
-		try
-		{
-			await Task.Run(() =>
-			{
-				if (File.Exists(CompTargetZipPath))
-					File.Delete(CompTargetZipPath);
-
-				using var zip = ZipFile.Open(CompTargetZipPath, ZipArchiveMode.Create);
-				var searchPatterns = new List<string>();
-				if (CompIncludePng) searchPatterns.Add(".png");
-				if (CompIncludeGif) searchPatterns.Add(".gif");
-				if (CompIncludeMp3) searchPatterns.Add(".mp3");
-				if (CompIncludeMp4) searchPatterns.Add(".mp4");
-
-				if (searchPatterns.Count == 0)
-					throw new InvalidOperationException("No file formats selected to compress.");
-
-				var level = CompCompressionLevel switch
-				{
-					0 => CompressionLevel.NoCompression,
-					1 => CompressionLevel.Fastest,
-					2 => CompressionLevel.Optimal,
-					3 => CompressionLevel.SmallestSize,
-					_ => CompressionLevel.Optimal
-				};
-
-				var files = Directory.EnumerateFiles(CompSourceFolderPath, "*.*", SearchOption.AllDirectories);
-				foreach (var file in files)
-				{
-					var ext = Path.GetExtension(file).ToLower();
-					if (searchPatterns.Contains(ext))
-					{
-						var relativePath = Path.GetRelativePath(CompSourceFolderPath, file);
-						zip.CreateEntryFromFile(file, relativePath, level);
-					}
-				}
-			});
-
-			StatusText = "Folder compression completed successfully!";
-		}
-		catch (Exception ex)
-		{
-			StatusText = $"Compression Error: {ex.Message}";
-		}
-		finally
-		{
-			IsBusy = false;
-		}
-	}
 }
