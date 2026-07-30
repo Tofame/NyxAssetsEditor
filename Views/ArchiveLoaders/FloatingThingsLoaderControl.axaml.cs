@@ -267,8 +267,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
 			{
-				Title = replace ? "Replace Thing from File" : "Import Thing from File",
-				AllowMultiple = false,
+				Title = replace ? "Replace Thing from File" : "Import Things from Files",
+				AllowMultiple = !replace,
 				FileTypeFilter = ThingExchangeFileTypes,
 			});
 
@@ -277,18 +277,22 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			try
 			{
-				var path = files[0].Path.LocalPath;
-				var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
-
 				if (replace)
 				{
+					var path = files[0].Path.LocalPath;
+					var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
 					foreach (var target in targets)
 						vm.ApplyImportedDocument(document, target.Id, replaceExisting: true);
 				}
 				else
 				{
-					var assignId = ThingExchangeHelper.GetNextAppendId(vm.Catalog, document.Thing.Kind);
-					vm.ApplyImportedDocument(document, assignId, replaceExisting: false);
+					foreach (var file in files)
+					{
+						var path = file.Path.LocalPath;
+						var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
+						var assignId = ThingExchangeHelper.GetNextAppendId(vm.Catalog, document.Thing.Kind);
+						vm.ApplyImportedDocument(document, assignId, replaceExisting: false);
+					}
 				}
 			}
 			catch (Exception ex)
