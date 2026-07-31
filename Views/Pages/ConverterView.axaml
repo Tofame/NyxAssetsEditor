@@ -20,7 +20,7 @@
 							<StackPanel Spacing="15">
 								<TextBlock Text="SPR ↔ Assets Converter" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
 								
-								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
+								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
 									<!-- Conversion Direction -->
 									<TextBlock Grid.Row="0" Grid.Column="0" Text="Mode:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="20">
@@ -45,9 +45,13 @@
 									<TextBlock Grid.Row="4" Grid.Column="0" Text="Transparent Pixels:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding SprTransparentPixels}"/>
 
+									<!-- Client Version -->
+									<TextBlock Grid.Row="5" Grid.Column="0" Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding !SprToAssetsMode}"/>
+									<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SprClientVersionText}" IsVisible="{Binding !SprToAssetsMode}" Width="120" Height="28" VerticalContentAlignment="Center"/>
+
 									<!-- Format specific settings -->
-									<TextBlock Grid.Row="5" Grid.Column="0" Text="Compression (Assets):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding SprToAssetsMode}"/>
-									<ComboBox Grid.Row="5" Grid.Column="1" SelectedIndex="{Binding SprCompressionLevel}" IsVisible="{Binding SprToAssetsMode}" Width="120" Height="28">
+									<TextBlock Grid.Row="6" Grid.Column="0" Text="Compression (Assets):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding SprToAssetsMode}"/>
+									<ComboBox Grid.Row="6" Grid.Column="1" SelectedIndex="{Binding SprCompressionLevel}" IsVisible="{Binding SprToAssetsMode}" Width="120" Height="28">
 										<ComboBoxItem Content="Level 0"/>
 										<ComboBoxItem Content="Level 1"/>
 										<ComboBoxItem Content="Level 2"/>
@@ -56,8 +60,8 @@
 										<ComboBoxItem Content="Level 5"/>
 									</ComboBox>
 
-									<TextBlock Grid.Row="5" Grid.Column="0" Text="Signature (SPR):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding !SprToAssetsMode}"/>
-									<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SprSignatureText}" IsVisible="{Binding !SprToAssetsMode}" Width="120" Height="28" VerticalContentAlignment="Center"/>
+									<TextBlock Grid.Row="6" Grid.Column="0" Text="Signature (SPR):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding !SprToAssetsMode}"/>
+									<TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SprSignatureText}" IsVisible="{Binding !SprToAssetsMode}" Width="120" Height="28" VerticalContentAlignment="Center"/>
 								</Grid>
 
 								<Button Content="Convert Sprites" Command="{Binding ExecuteSprConversionCommand}" IsEnabled="{Binding !IsBusy}" Background="#5E94FF" Foreground="#FFFFFF" Padding="20,10" HorizontalAlignment="Left" Margin="0,10,0,0"/>
@@ -130,7 +134,7 @@
 								<TextBlock Text="Target Client Version Migrator" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
 								<TextBlock Text="Migrate SPR/DAT assets from an older Tibia client version to a newer version (e.g. 8.60 to 10.98) or vice versa. Handles required formatting adaptations like animations timing layout." FontSize="12" Foreground="#888888" TextWrapping="Wrap"/>
 
-								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
+								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
 									<!-- Source Assets -->
 									<TextBlock Grid.Row="0" Grid.Column="0" Text="Source .spr File:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MigSourceSprPath}" Margin="0,0,8,0" Height="28" VerticalContentAlignment="Center"/>
@@ -160,17 +164,32 @@
 									<TextBlock Grid.Row="6" Grid.Column="0" Text="Source Extended IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<CheckBox Grid.Row="6" Grid.Column="1" IsChecked="{Binding MigSourceExtendedIds}"/>
 
-									<TextBlock Grid.Row="7" Grid.Column="0" Text="Target Extended IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding MigTargetExtendedIds}"/>
+									<TextBlock Grid.Row="7" Grid.Column="0" Text="Source Transparent:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding MigSourceTransparent}"/>
 
-									<TextBlock Grid.Row="8" Grid.Column="0" Text="Target Improved Anim:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding MigTargetImprovedAnimations}"/>
+									<TextBlock Grid.Row="8" Grid.Column="0" Text="Source Improved Anim:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding MigSourceImprovedAnimations}"/>
 
-									<TextBlock Grid.Row="9" Grid.Column="0" Text="Target Outfit Groups:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding MigTargetOutfitGroups}"/>
+									<TextBlock Grid.Row="9" Grid.Column="0" Text="Source Outfit Groups:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding MigSourceOutfitGroups}"/>
 
-									<TextBlock Grid.Row="10" Grid.Column="0" Text="Target SPR Signature:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<TextBox Grid.Row="10" Grid.Column="1" Text="{Binding MigTargetSignatureText}" Width="120" Height="28" VerticalContentAlignment="Center" HorizontalAlignment="Left"/>
+									<TextBlock Grid.Row="10" Grid.Column="0" Text="Target Extended IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="10" Grid.Column="1" IsChecked="{Binding MigTargetExtendedIds}"/>
+
+									<TextBlock Grid.Row="11" Grid.Column="0" Text="Target Transparent:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="11" Grid.Column="1" IsChecked="{Binding MigTargetTransparent}"/>
+
+									<TextBlock Grid.Row="12" Grid.Column="0" Text="Target Improved Anim:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="12" Grid.Column="1" IsChecked="{Binding MigTargetImprovedAnimations}"/>
+
+									<TextBlock Grid.Row="13" Grid.Column="0" Text="Target Outfit Groups:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="13" Grid.Column="1" IsChecked="{Binding MigTargetOutfitGroups}"/>
+
+									<TextBlock Grid.Row="14" Grid.Column="0" Text="Target SPR Signature:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<TextBox Grid.Row="14" Grid.Column="1" Text="{Binding MigTargetSprSignatureText}" Width="120" Height="28" VerticalContentAlignment="Center" HorizontalAlignment="Left"/>
+
+									<TextBlock Grid.Row="15" Grid.Column="0" Text="Target DAT Signature:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<TextBox Grid.Row="15" Grid.Column="1" Text="{Binding MigTargetDatSignatureText}" Width="120" Height="28" VerticalContentAlignment="Center" HorizontalAlignment="Left"/>
 								</Grid>
 
 								<Button Content="Migrate Target Version" Command="{Binding ExecuteMigrationCommand}" IsEnabled="{Binding !IsBusy}" Background="#5E94FF" Foreground="#FFFFFF" Padding="20,10" HorizontalAlignment="Left" Margin="0,10,0,0"/>

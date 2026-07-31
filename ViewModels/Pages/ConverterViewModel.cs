@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Sprites;
 using NyxAssets.Things;
 using NyxAssetsEditor.ViewModels.Core;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.ViewModels.Pages;
 
@@ -44,6 +45,9 @@ public partial class ConverterViewModel : ViewModelBase
 
 	[ObservableProperty]
 	private int _sprCompressionLevel = 3;
+
+	[ObservableProperty]
+	private string _sprClientVersionText = "1098";
 
 	[ObservableProperty]
 	private string _sprSignatureText = "0";
@@ -101,6 +105,12 @@ public partial class ConverterViewModel : ViewModelBase
 	private bool _migSourceTransparent = true;
 
 	[ObservableProperty]
+	private bool _migSourceImprovedAnimations = false;
+
+	[ObservableProperty]
+	private bool _migSourceOutfitGroups = false;
+
+	[ObservableProperty]
 	private bool _migTargetExtendedIds = true;
 
 	[ObservableProperty]
@@ -113,44 +123,143 @@ public partial class ConverterViewModel : ViewModelBase
 	private bool _migTargetOutfitGroups = true;
 
 	[ObservableProperty]
-	private string _migTargetSignatureText = "0";
+	private string _migTargetSprSignatureText = "0";
+
+	[ObservableProperty]
+	private string _migTargetDatSignatureText = "0";
 	#endregion
 
 
 
 	public ConverterViewModel()
 	{
+		OnSprClientVersionTextChanged(SprClientVersionText);
+		OnDatClientVersionTextChanged(DatClientVersionText);
+		OnMigTargetVersionTextChanged(MigTargetVersionText);
+		OnMigSourceVersionTextChanged(MigSourceVersionText);
 	}
 
 	partial void OnDatClientVersionTextChanged(string value)
 	{
-		if (uint.TryParse(value, out var verVal))
+		uint verVal = 0;
+		var match = ClientVersion.AvailableVersions.Find(v =>
+			string.Equals(v.DisplayName, value.Trim(), StringComparison.OrdinalIgnoreCase));
+		if (match != null)
+			verVal = match.Version;
+		else
+			uint.TryParse(value, out verVal);
+
+		if (verVal != 0)
 		{
 			var ver = new ClientDataVersion(verVal);
 			DatExtendedIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(ver);
 			DatImprovedAnimations = DatThingFormatRules.UsesImprovedAnimationsByDefault(ver);
 			DatOutfitFrameGroups = DatThingFormatRules.UsesOutfitFrameGroupsByDefault(ver);
+			DatTransparentSprites = verVal >= 960;
+		}
+	}
+
+	partial void OnSprClientVersionTextChanged(string value)
+	{
+		var sigs = GetDefaultSignatures(value);
+		SprSignatureText = sigs.sprSig != 0 ? sigs.sprSig.ToString("X8") : "0";
+
+		uint verVal = 0;
+		var match = ClientVersion.AvailableVersions.Find(v =>
+			string.Equals(v.DisplayName, value.Trim(), StringComparison.OrdinalIgnoreCase));
+		if (match != null)
+			verVal = match.Version;
+		else
+			uint.TryParse(value, out verVal);
+
+		if (verVal != 0)
+		{
+			var ver = new ClientDataVersion(verVal);
+			SprExtendedIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(ver);
+			SprTransparentPixels = verVal >= 960;
 		}
 	}
 
 	partial void OnMigTargetVersionTextChanged(string value)
 	{
-		if (uint.TryParse(value, out var verVal))
+		var sigs = GetDefaultSignatures(value);
+		MigTargetSprSignatureText = sigs.sprSig != 0 ? sigs.sprSig.ToString("X8") : "0";
+		MigTargetDatSignatureText = sigs.datSig != 0 ? sigs.datSig.ToString("X8") : "0";
+
+		uint verVal = 0;
+		var match = ClientVersion.AvailableVersions.Find(v =>
+			string.Equals(v.DisplayName, value.Trim(), StringComparison.OrdinalIgnoreCase));
+		if (match != null)
+			verVal = match.Version;
+		else
+			uint.TryParse(value, out verVal);
+
+		if (verVal != 0)
 		{
 			var ver = new ClientDataVersion(verVal);
 			MigTargetExtendedIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(ver);
 			MigTargetImprovedAnimations = DatThingFormatRules.UsesImprovedAnimationsByDefault(ver);
 			MigTargetOutfitGroups = DatThingFormatRules.UsesOutfitFrameGroupsByDefault(ver);
+			MigTargetTransparent = verVal >= 960;
 		}
 	}
 
 	partial void OnMigSourceVersionTextChanged(string value)
 	{
-		if (uint.TryParse(value, out var verVal))
+		uint verVal = 0;
+		var match = ClientVersion.AvailableVersions.Find(v =>
+			string.Equals(v.DisplayName, value.Trim(), StringComparison.OrdinalIgnoreCase));
+		if (match != null)
+			verVal = match.Version;
+		else
+			uint.TryParse(value, out verVal);
+
+		if (verVal != 0)
 		{
 			var ver = new ClientDataVersion(verVal);
 			MigSourceExtendedIds = DatThingFormatRules.UsesExtendedSpriteIdsByDefault(ver);
+			MigSourceTransparent = verVal >= 960;
+			MigSourceImprovedAnimations = DatThingFormatRules.UsesImprovedAnimationsByDefault(ver);
+			MigSourceOutfitGroups = DatThingFormatRules.UsesOutfitFrameGroupsByDefault(ver);
 		}
+	}
+
+	private (uint datSig, uint sprSig) GetDefaultSignatures(string versionText)
+	{
+		if (string.IsNullOrWhiteSpace(versionText))
+			return (0, 0);
+
+		var cleanText = versionText.Trim();
+
+		var match = ClientVersion.AvailableVersions.Find(v =>
+			string.Equals(v.DisplayName, cleanText, StringComparison.OrdinalIgnoreCase));
+		if (match != null)
+			return (match.DatSignature, match.SprSignature);
+
+		if (uint.TryParse(cleanText, out var verVal))
+		{
+			match = ClientVersion.AvailableVersions.Find(v => v.Version == verVal);
+			if (match != null)
+				return (match.DatSignature, match.SprSignature);
+		}
+
+		return (0, 0);
+	}
+
+	private uint ParseSignature(string text)
+	{
+		if (string.IsNullOrWhiteSpace(text)) return 0;
+		var clean = text.Trim();
+		if (clean.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+			clean = clean.Substring(2);
+
+		if (uint.TryParse(clean, System.Globalization.NumberStyles.HexNumber, null, out var hexVal))
+			return hexVal;
+
+		if (uint.TryParse(clean, out var decVal))
+			return decVal;
+
+		return 0;
 	}
 
 	[RelayCommand]
@@ -185,23 +294,21 @@ public partial class ConverterViewModel : ViewModelBase
 					var count = assets.SpriteCount;
 					byte[]?[] list = new byte[count + 1][];
 					
-					Parallel.For(1, (int)count + 1, id =>
+					for (uint id = 1; id <= count; id++)
 					{
-						if (assets.IsEmptySprite((uint)id))
+						if (assets.IsEmptySprite(id))
 						{
 							list[id] = null;
 						}
 						else
 						{
 							var rgba = new byte[SpritePixelCodec.RgbaBufferLength];
-							if (assets.TryDecodeSpriteById((uint)id, rgba))
+							if (assets.TryDecodeSpriteById(id, rgba))
 								list[id] = rgba;
 						}
-					});
+					}
 
-					uint sig = 0;
-					if (uint.TryParse(SprSignatureText, out var parsedSig))
-						sig = parsedSig;
+					uint sig = ParseSignature(SprSignatureText);
 
 					using var output = File.Create(SprTargetPath);
 					SpriteSheetCompiler.WriteToStream(
@@ -313,7 +420,9 @@ public partial class ConverterViewModel : ViewModelBase
 				{
 					ClientVersion = srcVer,
 					ExtendedSpriteIds = MigSourceExtendedIds,
-					TransparentSprites = MigSourceTransparent
+					TransparentSprites = MigSourceTransparent,
+					ImprovedAnimations = MigSourceImprovedAnimations,
+					OutfitFrameGroups = MigSourceOutfitGroups
 				};
 
 				var tgtOptions = new ClientDataReadOptions
@@ -330,29 +439,31 @@ public partial class ConverterViewModel : ViewModelBase
 				using var srcSpr = SpriteArchive.OpenReadOnlyFile(MigSourceSprPath, srcOptions.ResolveExtendedSpriteIds(), srcOptions.TransparentSprites);
 				var count = srcSpr.SpriteCount;
 				byte[]?[] spritesList = new byte[count + 1][];
-				Parallel.For(1, (int)count + 1, id =>
+				for (uint id = 1; id <= count; id++)
 				{
-					if (srcSpr.IsEmptySprite((uint)id))
+					if (srcSpr.IsEmptySprite(id))
 					{
 						spritesList[id] = null;
 					}
 					else
 					{
 						var rgba = new byte[SpritePixelCodec.RgbaBufferLength];
-						if (srcSpr.TryDecodeSpriteById((uint)id, rgba))
+						if (srcSpr.TryDecodeSpriteById(id, rgba))
 							spritesList[id] = rgba;
 					}
-				});
+				}
 
-				uint sig = srcSpr.Signature;
-				if (uint.TryParse(MigTargetSignatureText, out var parsedSig) && parsedSig != 0)
-					sig = parsedSig;
+				uint sprSig = ParseSignature(MigTargetSprSignatureText);
+				if (sprSig == 0) sprSig = srcSpr.Signature;
+
+				uint datSig = ParseSignature(MigTargetDatSignatureText);
+				if (datSig == 0) datSig = srcSpr.Signature;
 
 				using (var outputSpr = File.Create(MigTargetSprPath))
 				{
 					SpriteSheetCompiler.WriteToStream(
 						outputSpr,
-						sig,
+						sprSig,
 						tgtOptions.ResolveExtendedSpriteIds(),
 						tgtOptions.TransparentSprites,
 						spritesList
@@ -363,7 +474,7 @@ public partial class ConverterViewModel : ViewModelBase
 				StatusText = "Migrating catalog metadata...";
 				var catalog = ThingCatalog.Load(File.ReadAllBytes(MigSourceDatPath), srcOptions);
 				catalog.DatFormat = tgtOptions.ResolveDatThingFormat();
-				catalog.DatSignature = sig;
+				catalog.DatSignature = datSig;
 
 				// Sanitize animations for improved animation targets (>= 10.50)
 				if (tgtOptions.ResolveImprovedAnimations())
@@ -400,7 +511,7 @@ public partial class ConverterViewModel : ViewModelBase
 
 				using (var outputDat = File.Create(MigTargetDatPath))
 				{
-					new DatThingCatalogWriter().Write(catalog, outputDat, tgtOptions, sig);
+					new DatThingCatalogWriter().Write(catalog, outputDat, tgtOptions, datSig);
 				}
 			});
 
