@@ -104,6 +104,30 @@ public partial class ConverterView : UserControl
 		}
 	}
 
+	private async void OnBrowseItemsXml(object? sender, RoutedEventArgs e)
+	{
+		var vm = ViewModel;
+		if (vm == null) return;
+
+		var topLevel = TopLevel.GetTopLevel(this);
+		if (topLevel == null) return;
+
+		var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+		{
+			Title = "Open items.xml",
+			AllowMultiple = false,
+			FileTypeFilter = new[]
+			{
+				new FilePickerFileType("XML Files") { Patterns = new[] { "*.xml" } }
+			}
+		});
+
+		if (files != null && files.Count > 0)
+		{
+			vm.ItemsXmlPath = files[0].Path.LocalPath;
+		}
+	}
+
 	private async void OnBrowseDatTarget(object? sender, RoutedEventArgs e)
 	{
 		var vm = ViewModel;

@@ -79,7 +79,7 @@
 							<StackPanel Spacing="15">
 								<TextBlock Text="DAT ↔ JSON Things Converter" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF"/>
 
-								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
+								<Grid ColumnDefinitions="160, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="12">
 									<!-- Mode Selection -->
 									<TextBlock Grid.Row="0" Grid.Column="0" Text="Mode:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="20">
@@ -97,25 +97,30 @@
 									<TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DatTargetPath}" Margin="0,0,8,0" Height="28" VerticalContentAlignment="Center"/>
 									<Button Grid.Row="2" Grid.Column="2" Content="Browse..." Click="OnBrowseDatTarget" Padding="12,4"/>
 
+									<!-- Optional items.xml Merge -->
+									<TextBlock Grid.Row="3" Grid.Column="0" Text="items.xml (Optional):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding DatToThingsMode}"/>
+									<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ItemsXmlPath}" Watermark="Path to items.xml to merge attributes into properties..." Margin="0,0,8,0" Height="28" VerticalContentAlignment="Center" IsVisible="{Binding DatToThingsMode}"/>
+									<Button Grid.Row="3" Grid.Column="2" Content="Browse..." Click="OnBrowseItemsXml" Padding="12,4" IsVisible="{Binding DatToThingsMode}"/>
+
 									<!-- Client Version -->
-									<TextBlock Grid.Row="3" Grid.Column="0" Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+									<TextBlock Grid.Row="4" Grid.Column="0" Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="10">
 										<TextBox Text="{Binding DatClientVersionText}" Width="100" Height="28" VerticalContentAlignment="Center"/>
 										<TextBlock Text="(e.g., 860 for 8.60, 1098 for 10.98)" FontSize="11" Foreground="#666666" VerticalAlignment="Center"/>
 									</StackPanel>
 
 									<!-- Compatibility Options -->
-									<TextBlock Grid.Row="4" Grid.Column="0" Text="Extended Sprite IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding DatExtendedIds}"/>
+									<TextBlock Grid.Row="5" Grid.Column="0" Text="Extended Sprite IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="5" Grid.Column="1" IsChecked="{Binding DatExtendedIds}"/>
 
-									<TextBlock Grid.Row="5" Grid.Column="0" Text="Improved Animations:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="5" Grid.Column="1" IsChecked="{Binding DatImprovedAnimations}"/>
+									<TextBlock Grid.Row="6" Grid.Column="0" Text="Improved Animations:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="6" Grid.Column="1" IsChecked="{Binding DatImprovedAnimations}"/>
 
-									<TextBlock Grid.Row="6" Grid.Column="0" Text="Outfit Frame Groups:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="6" Grid.Column="1" IsChecked="{Binding DatOutfitFrameGroups}"/>
+									<TextBlock Grid.Row="7" Grid.Column="0" Text="Outfit Frame Groups:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding DatOutfitFrameGroups}"/>
 
-									<TextBlock Grid.Row="7" Grid.Column="0" Text="Transparent Sprites:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-									<CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding DatTransparentSprites}"/>
+									<TextBlock Grid.Row="8" Grid.Column="0" Text="Transparent Sprites:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding DatTransparentSprites}"/>
 								</Grid>
 
 								<Button Content="Convert Things" Command="{Binding ExecuteDatConversionCommand}" IsEnabled="{Binding !IsBusy}" Background="#5E94FF" Foreground="#FFFFFF" Padding="20,10" HorizontalAlignment="Left" Margin="0,10,0,0"/>

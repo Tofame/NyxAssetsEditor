@@ -77,6 +77,9 @@ public partial class ConverterViewModel : ViewModelBase
 
 	[ObservableProperty]
 	private bool _datTransparentSprites = true;
+
+	[ObservableProperty]
+	private string _itemsXmlPath = string.Empty;
 	#endregion
 
 	#region TAB 3: Target Version Migrator
@@ -368,6 +371,10 @@ public partial class ConverterViewModel : ViewModelBase
 				if (DatToThingsMode)
 				{
 					var catalog = ThingCatalog.Load(File.ReadAllBytes(DatSourcePath), options);
+					if (!string.IsNullOrWhiteSpace(ItemsXmlPath) && File.Exists(ItemsXmlPath))
+					{
+						ItemsXmlMerger.MergeFromFile(catalog, ItemsXmlPath);
+					}
 					catalog.ExportJson(DatTargetPath, options);
 				}
 				else
