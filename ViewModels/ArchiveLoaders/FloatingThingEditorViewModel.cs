@@ -2243,7 +2243,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	public int GetFlagUsageCount(string flagName)
 	{
-		if (_cachedFlagUsageCounts.TryGetValue(flagName, out var count))
+		if (SourcePanel.GetOrBuildFlagUsageCounts().TryGetValue(flagName, out var count))
 			return Math.Max(count, 1);
 		return 1;
 	}
@@ -2321,48 +2321,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		if (!IsJson) return;
 
-		// Calculate flag usage counts across catalog in a single fast pass (O(N) total instead of O(N * M))
-		if (SourcePanel.Catalog != null)
-		{
-			void ScanThing(ThingType t)
-			{
-				foreach (var key in t.ExtraProperties.Keys)
-				{
-					_cachedFlagUsageCounts.TryGetValue(key, out var cur);
-					_cachedFlagUsageCounts[key] = cur + 1;
-				}
-
-				foreach (var pair in PropertyMap)
-				{
-					var val = pair.Value.GetValue(t);
-					if (val is bool b && b)
-					{
-						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
-						_cachedFlagUsageCounts[pair.Key] = cur + 1;
-					}
-					else if (val is uint u && u > 0)
-					{
-						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
-						_cachedFlagUsageCounts[pair.Key] = cur + 1;
-					}
-					else if (val is int i && i != 0)
-					{
-						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
-						_cachedFlagUsageCounts[pair.Key] = cur + 1;
-					}
-					else if (val is string s && !string.IsNullOrEmpty(s))
-					{
-						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
-						_cachedFlagUsageCounts[pair.Key] = cur + 1;
-					}
-				}
-			}
-
-			foreach (var t in SourcePanel.Catalog.EnumerateItems()) ScanThing(t);
-			foreach (var t in SourcePanel.Catalog.EnumerateOutfits()) ScanThing(t);
-			foreach (var t in SourcePanel.Catalog.EnumerateEffects()) ScanThing(t);
-			foreach (var t in SourcePanel.Catalog.EnumerateMissiles()) ScanThing(t);
-		}
+		var usageCounts = SourcePanel.GetOrBuildFlagUsageCounts();
 
 		// Build schema-defined flag groups
 		var schemaKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -2438,7 +2397,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		// Build ad-hoc flags: ExtraProperties keys not covered by schema
 		if (SourcePanel.Catalog != null)
 		{
-			foreach (var key in _cachedFlagUsageCounts.Keys)
+			foreach (var key in usageCounts.Keys)
 			{
 				if (!schemaKeys.Contains(key) && !PropertyMap.ContainsKey(key))
 					_adHocFlagNames.Add(key);

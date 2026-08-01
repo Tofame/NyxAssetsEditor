@@ -275,7 +275,36 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public ArchiveFormat ArchiveFormat => ArchiveFormatHelper.FromPath(FilePath);
 
+		private Dictionary<string, int>? _catalogFlagUsageCounts;
+
 		public ThingCatalog? Catalog => _catalog;
+
+		public Dictionary<string, int> GetOrBuildFlagUsageCounts()
+		{
+			if (_catalogFlagUsageCounts != null) return _catalogFlagUsageCounts;
+			_catalogFlagUsageCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+			if (_catalog != null)
+			{
+				foreach (var t in _catalog.EnumerateItems()) ScanThing(t);
+				foreach (var t in _catalog.EnumerateOutfits()) ScanThing(t);
+				foreach (var t in _catalog.EnumerateEffects()) ScanThing(t);
+				foreach (var t in _catalog.EnumerateMissiles()) ScanThing(t);
+			}
+
+			return _catalogFlagUsageCounts;
+
+			void ScanThing(ThingType t)
+			{
+				foreach (var key in t.ExtraProperties.Keys)
+				{
+					_catalogFlagUsageCounts.TryGetValue(key, out var cur);
+					_catalogFlagUsageCounts[key] = cur + 1;
+				}
+			}
+		}
+
+		public void InvalidateFlagUsageCountsCache() => _catalogFlagUsageCounts = null;
 
 		public ClientDataReadOptions GetWriteOptions() => new ClientDataReadOptions
 		{
