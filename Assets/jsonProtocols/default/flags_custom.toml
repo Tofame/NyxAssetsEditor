@@ -126,9 +126,10 @@ type = "bool"
 group = "physics"
 locked = true
 
-[flag.floorChange]
+[flag.floorchange]
 label = "Floor Change"
-type = "bool"
+type = "enum"
+options = ["up", "down", "north", "south", "east", "west"]
 group = "physics"
 locked = true
 

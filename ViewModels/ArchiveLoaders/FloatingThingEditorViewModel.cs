@@ -2180,7 +2180,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	private static readonly Dictionary<string, System.Reflection.PropertyInfo> PropertyMap =
 		typeof(ThingType).GetProperties()
-			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.Ordinal);
+			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.OrdinalIgnoreCase);
 
 	public int GetFlagUsageCount(string flagName)
 	{

@@ -66,7 +66,7 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 
 	private static readonly Dictionary<string, System.Reflection.PropertyInfo> PropertyMap =
 		typeof(ThingType).GetProperties()
-			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.Ordinal);
+			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.OrdinalIgnoreCase);
 
 	protected string? GetRawValue()
 	{
@@ -216,8 +216,16 @@ public partial class EnumFlagViewModel : CustomFlagViewModelBase
 		get
 		{
 			var raw = GetRawValue();
-			if (raw != null && Options.Contains(raw)) return raw;
-			if (Definition.Default != null && Options.Contains(Definition.Default)) return Definition.Default;
+			if (raw != null)
+			{
+				var match = Options.FirstOrDefault(o => string.Equals(o, raw, StringComparison.OrdinalIgnoreCase));
+				if (match != null) return match;
+			}
+			if (Definition.Default != null)
+			{
+				var matchDef = Options.FirstOrDefault(o => string.Equals(o, Definition.Default, StringComparison.OrdinalIgnoreCase));
+				if (matchDef != null) return matchDef;
+			}
 			return Options.Count > 0 ? Options[0] : null;
 		}
 		set
@@ -234,7 +242,7 @@ public partial class EnumFlagViewModel : CustomFlagViewModelBase
 		{
 			var sel = SelectedOption;
 			if (sel == null) return -1;
-			return Options.IndexOf(sel);
+			return Options.FindIndex(o => string.Equals(o, sel, StringComparison.OrdinalIgnoreCase));
 		}
 		set
 		{
