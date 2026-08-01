@@ -475,6 +475,145 @@ public partial class ConverterViewModel : ViewModelBase
 				var catalog = ThingCatalog.Load(File.ReadAllBytes(MigSourceDatPath), srcOptions);
 				catalog.DatFormat = tgtOptions.ResolveDatThingFormat();
 				catalog.DatSignature = datSig;
+				// Split or merge outfit frame groups based on outfit frame group support changes
+				if (tgtOptions.ResolveOutfitFrameGroups() && !srcOptions.ResolveOutfitFrameGroups())
+				{
+					foreach (var thing in catalog.EnumerateOutfits())
+					{
+						if (thing.FrameGroups.Count == 1)
+						{
+							var srcFg = thing.FrameGroups[0];
+							
+							// 1. Create Idle/Stand Frame Group (GroupTypeId = 0, Frames = 1)
+							var idleFg = new ThingFrameGroup
+							{
+								GroupTypeId = 0,
+								Width = srcFg.Width,
+								Height = srcFg.Height,
+								ExactSize = srcFg.ExactSize,
+								Layers = srcFg.Layers,
+								PatternX = srcFg.PatternX,
+								PatternY = srcFg.PatternY,
+								PatternZ = srcFg.PatternZ,
+								Frames = 1,
+								IsAnimation = false
+							};
+							var idleTotal = idleFg.GetTotalSpriteSlots();
+							idleFg.SpriteIds = new uint[idleTotal];
+
+							for (uint w = 0; w < idleFg.Width; w++)
+							for (uint h = 0; h < idleFg.Height; h++)
+							for (uint l = 0; l < idleFg.Layers; l++)
+							for (uint px = 0; px < idleFg.PatternX; px++)
+							for (uint py = 0; py < idleFg.PatternY; py++)
+							for (uint pz = 0; pz < idleFg.PatternZ; pz++)
+							{
+								var srcIndex = srcFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+								var dstIndex = idleFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+								idleFg.SpriteIds[dstIndex] = srcFg.SpriteIds[srcIndex];
+							}
+
+							// 2. Create Walking Frame Group (GroupTypeId = 1, Frames = srcFg.Frames - 1)
+							var walkFrames = srcFg.Frames > 1 ? srcFg.Frames - 1 : 1;
+							var walkFg = new ThingFrameGroup
+							{
+								GroupTypeId = 1,
+								Width = srcFg.Width,
+								Height = srcFg.Height,
+								ExactSize = srcFg.ExactSize,
+								Layers = srcFg.Layers,
+								PatternX = srcFg.PatternX,
+								PatternY = srcFg.PatternY,
+								PatternZ = srcFg.PatternZ,
+								Frames = walkFrames,
+								IsAnimation = walkFrames > 1
+							};
+							if (walkFg.IsAnimation)
+							{
+								var duration = tgtOptions.ResolveDefaultFrameDurationMs(ThingKind.Outfit);
+								if (duration == 0) duration = 150;
+								walkFg.FrameTimings = new AnimationFrameTiming[walkFrames];
+								for (int i = 0; i < walkFrames; i++)
+									walkFg.FrameTimings[i] = new AnimationFrameTiming(duration, duration);
+							}
+							var walkTotal = walkFg.GetTotalSpriteSlots();
+							walkFg.SpriteIds = new uint[walkTotal];
+
+							for (uint w = 0; w < walkFg.Width; w++)
+							for (uint h = 0; h < walkFg.Height; h++)
+							for (uint l = 0; l < walkFg.Layers; l++)
+							for (uint px = 0; px < walkFg.PatternX; px++)
+							for (uint py = 0; py < walkFg.PatternY; py++)
+							for (uint pz = 0; pz < walkFg.PatternZ; pz++)
+							for (uint f = 0; f < walkFrames; f++)
+							{
+								var srcFrame = srcFg.Frames > 1 ? f + 1 : 0;
+								var srcIndex = srcFg.GetSpriteIndex(w, h, l, px, py, pz, srcFrame);
+								var dstIndex = walkFg.GetSpriteIndex(w, h, l, px, py, pz, f);
+								walkFg.SpriteIds[dstIndex] = srcFg.SpriteIds[srcIndex];
+							}
+
+							thing.FrameGroups.Clear();
+							thing.FrameGroups.Add(idleFg);
+							thing.FrameGroups.Add(walkFg);
+						}
+					}
+				}
+				else if (!tgtOptions.ResolveOutfitFrameGroups() && srcOptions.ResolveOutfitFrameGroups())
+				{
+					foreach (var thing in catalog.EnumerateOutfits())
+					{
+						if (thing.FrameGroups.Count > 1)
+						{
+							var idleFg = thing.FrameGroups.Find(g => g.GroupTypeId == 0) ?? thing.FrameGroups[0];
+							var walkFg = thing.FrameGroups.Find(g => g.GroupTypeId == 1) ?? (thing.FrameGroups.Count > 1 ? thing.FrameGroups[1] : idleFg);
+
+							var mergedFrames = idleFg.Frames + (walkFg != idleFg ? walkFg.Frames : 0);
+							var mergedFg = new ThingFrameGroup
+							{
+								GroupTypeId = 0,
+								Width = idleFg.Width,
+								Height = idleFg.Height,
+								ExactSize = idleFg.ExactSize,
+								Layers = idleFg.Layers,
+								PatternX = idleFg.PatternX,
+								PatternY = idleFg.PatternY,
+								PatternZ = idleFg.PatternZ,
+								Frames = mergedFrames,
+								IsAnimation = mergedFrames > 1
+							};
+							var mergedTotal = mergedFg.GetTotalSpriteSlots();
+							mergedFg.SpriteIds = new uint[mergedTotal];
+
+							for (uint w = 0; w < mergedFg.Width; w++)
+							for (uint h = 0; h < mergedFg.Height; h++)
+							for (uint l = 0; l < mergedFg.Layers; l++)
+							for (uint px = 0; px < mergedFg.PatternX; px++)
+							for (uint py = 0; py < mergedFg.PatternY; py++)
+							for (uint pz = 0; pz < mergedFg.PatternZ; pz++)
+							{
+								// Copy idle frames (frame 0)
+								var idleSrcIndex = idleFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+								var idleDstIndex = mergedFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+								mergedFg.SpriteIds[idleDstIndex] = idleFg.SpriteIds[idleSrcIndex];
+
+								// Copy walking frames
+								if (walkFg != idleFg)
+								{
+									for (uint f = 0; f < walkFg.Frames; f++)
+									{
+										var walkSrcIndex = walkFg.GetSpriteIndex(w, h, l, px, py, pz, f);
+										var walkDstIndex = mergedFg.GetSpriteIndex(w, h, l, px, py, pz, f + 1);
+										mergedFg.SpriteIds[walkDstIndex] = walkFg.SpriteIds[walkSrcIndex];
+									}
+								}
+							}
+
+							thing.FrameGroups.Clear();
+							thing.FrameGroups.Add(mergedFg);
+						}
+					}
+				}
 
 				// Sanitize animations for improved animation targets (>= 10.50)
 				if (tgtOptions.ResolveImprovedAnimations())
