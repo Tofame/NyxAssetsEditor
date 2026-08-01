@@ -1,21 +1,25 @@
 # Master custom flag definitions for things.json format.
 # All DAT properties and JSON properties schema-defined with human readable labels and groups.
+# All default schema flags are locked by default. Edit this file or create a local flags_custom_override.toml to change.
 
 # --- Text & Metadata ---
 [flag.name]
 label = "Name"
 type = "string"
 group = "metadata"
+locked = true
 
 [flag.article]
 label = "Article"
 type = "string"
 group = "metadata"
+locked = true
 
 [flag.description]
 label = "Description"
 type = "string"
 group = "metadata"
+locked = true
 
 [groups.metadata]
 label = "Metadata"
@@ -49,41 +53,49 @@ order = 2
 label = "Pickupable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.usable]
 label = "Usable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.forceUse]
 label = "Force Use"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.multiUse]
 label = "Multi Use"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.rotatable]
 label = "Rotatable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.hangable]
 label = "Hangable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.wrappable]
 label = "Wrappable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [flag.unwrappable]
 label = "Unwrappable"
 type = "bool"
 group = "interaction"
+locked = true
 
 [groups.interaction]
 label = "Usage & Interaction"
@@ -94,26 +106,31 @@ order = 3
 label = "Unpassable"
 type = "bool"
 group = "physics"
+locked = true
 
 [flag.isUnmoveable]
 label = "Unmoveable"
 type = "bool"
 group = "physics"
+locked = true
 
 [flag.blockMissile]
 label = "Block Missile"
 type = "bool"
 group = "physics"
+locked = true
 
 [flag.blockPathfind]
 label = "Block Pathfinder"
 type = "bool"
 group = "physics"
+locked = true
 
 [flag.floorChange]
 label = "Floor Change"
 type = "bool"
 group = "physics"
+locked = true
 
 [groups.physics]
 label = "Physics & Collision"
@@ -124,46 +141,55 @@ order = 4
 label = "Hook East"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.isVertical]
 label = "Hook South"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.dontHide]
 label = "Don't Hide"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.isTranslucent]
 label = "Translucent"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.isLyingObject]
 label = "Lying Object"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.isFullGround]
 label = "Full Ground"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.noMoveAnimation]
 label = "No Move Animation"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.ignoreLook]
 label = "Ignore Look"
 type = "bool"
 group = "rendering"
+locked = true
 
 [flag.bottomEffect]
 label = "Top Effect"
 type = "bool"
 group = "rendering"
+locked = true
 
 [groups.rendering]
 label = "Rendering & Placement"
