@@ -24,14 +24,19 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 	public int UsageCount => Editor.GetFlagUsageCount(Name);
 	public bool CanDelete => !IsLocked && UsageCount <= 1;
 
+	public bool IsLowUsage => UsageCount >= 1 && UsageCount <= 10;
+	public string LowUsageWarning => IsLowUsage ? $"Flag may be redundant, it is not used in a lot of items (x{UsageCount})" : string.Empty;
+	public string LabelColor => IsLowUsage ? "#FFD54F" : "#AAA";
+
 	public string DeleteTooltip
 	{
 		get
 		{
 			string usageStr = UsageCount == 1 ? "Used in 1 item" : $"Used in {UsageCount} items";
-			if (IsLocked) return $"Flag is locked in TOML schema ({usageStr}, unremovable)";
-			if (UsageCount > 1) return $"{usageStr} (remove disabled)";
-			return "Remove flag from this item";
+			string warn = IsLowUsage ? $" — {LowUsageWarning}" : string.Empty;
+			if (IsLocked) return $"Flag is locked in TOML schema ({usageStr}, unremovable){warn}";
+			if (UsageCount > 1) return $"{usageStr} (remove disabled){warn}";
+			return $"Remove flag from this item{warn}";
 		}
 	}
 
@@ -41,7 +46,8 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 		{
 			if (!IsLocked) return string.Empty;
 			string usageStr = UsageCount == 1 ? "Used in 1 item" : $"Used in {UsageCount} items";
-			return $"Locked in TOML schema ({usageStr})";
+			string warn = IsLowUsage ? $" — {LowUsageWarning}" : string.Empty;
+			return $"Locked in TOML schema ({usageStr}){warn}";
 		}
 	}
 
