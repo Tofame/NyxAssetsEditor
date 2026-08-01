@@ -2239,35 +2239,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		typeof(ThingType).GetProperties()
 			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.OrdinalIgnoreCase);
 
+	private readonly Dictionary<string, int> _cachedFlagUsageCounts = new(StringComparer.OrdinalIgnoreCase);
+
 	public int GetFlagUsageCount(string flagName)
 	{
-		if (SourcePanel.Catalog == null) return 1;
-
-		int count = 0;
-		bool isProp = PropertyMap.TryGetValue(flagName, out var prop);
-
-		void Check(ThingType t)
-		{
-			if (t.ExtraProperties.ContainsKey(flagName))
-			{
-				count++;
-			}
-			else if (isProp && prop != null)
-			{
-				var val = prop.GetValue(t);
-				if (val is bool b && b) count++;
-				else if (val is uint u && u > 0) count++;
-				else if (val is int i && i != 0) count++;
-				else if (val is string s && !string.IsNullOrEmpty(s)) count++;
-			}
-		}
-
-		foreach (var t in SourcePanel.Catalog.EnumerateItems()) Check(t);
-		foreach (var t in SourcePanel.Catalog.EnumerateOutfits()) Check(t);
-		foreach (var t in SourcePanel.Catalog.EnumerateEffects()) Check(t);
-		foreach (var t in SourcePanel.Catalog.EnumerateMissiles()) Check(t);
-
-		return Math.Max(count, 1);
+		if (_cachedFlagUsageCounts.TryGetValue(flagName, out var count))
+			return Math.Max(count, 1);
+		return 1;
 	}
 
 	public void RemoveSchemaFlag(string flagName)
@@ -2339,8 +2317,52 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		CustomFlagGroups.Clear();
 		AdHocFlags.Clear();
 		_adHocFlagNames.Clear();
+		_cachedFlagUsageCounts.Clear();
 
 		if (!IsJson) return;
+
+		// Calculate flag usage counts across catalog in a single fast pass (O(N) total instead of O(N * M))
+		if (SourcePanel.Catalog != null)
+		{
+			void ScanThing(ThingType t)
+			{
+				foreach (var key in t.ExtraProperties.Keys)
+				{
+					_cachedFlagUsageCounts.TryGetValue(key, out var cur);
+					_cachedFlagUsageCounts[key] = cur + 1;
+				}
+
+				foreach (var pair in PropertyMap)
+				{
+					var val = pair.Value.GetValue(t);
+					if (val is bool b && b)
+					{
+						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
+						_cachedFlagUsageCounts[pair.Key] = cur + 1;
+					}
+					else if (val is uint u && u > 0)
+					{
+						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
+						_cachedFlagUsageCounts[pair.Key] = cur + 1;
+					}
+					else if (val is int i && i != 0)
+					{
+						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
+						_cachedFlagUsageCounts[pair.Key] = cur + 1;
+					}
+					else if (val is string s && !string.IsNullOrEmpty(s))
+					{
+						_cachedFlagUsageCounts.TryGetValue(pair.Key, out var cur);
+						_cachedFlagUsageCounts[pair.Key] = cur + 1;
+					}
+				}
+			}
+
+			foreach (var t in SourcePanel.Catalog.EnumerateItems()) ScanThing(t);
+			foreach (var t in SourcePanel.Catalog.EnumerateOutfits()) ScanThing(t);
+			foreach (var t in SourcePanel.Catalog.EnumerateEffects()) ScanThing(t);
+			foreach (var t in SourcePanel.Catalog.EnumerateMissiles()) ScanThing(t);
+		}
 
 		// Build schema-defined flag groups
 		var schemaKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -2416,18 +2438,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		// Build ad-hoc flags: ExtraProperties keys not covered by schema
 		if (SourcePanel.Catalog != null)
 		{
-			foreach (var t in SourcePanel.Catalog.EnumerateItems())
-				foreach (var key in t.ExtraProperties.Keys)
-					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
-			foreach (var t in SourcePanel.Catalog.EnumerateOutfits())
-				foreach (var key in t.ExtraProperties.Keys)
-					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
-			foreach (var t in SourcePanel.Catalog.EnumerateEffects())
-				foreach (var key in t.ExtraProperties.Keys)
-					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
-			foreach (var t in SourcePanel.Catalog.EnumerateMissiles())
-				foreach (var key in t.ExtraProperties.Keys)
-					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
+			foreach (var key in _cachedFlagUsageCounts.Keys)
+			{
+				if (!schemaKeys.Contains(key) && !PropertyMap.ContainsKey(key))
+					_adHocFlagNames.Add(key);
+			}
 		}
 
 		foreach (var key in Thing.ExtraProperties.Keys)
