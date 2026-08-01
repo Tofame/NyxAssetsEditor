@@ -2029,6 +2029,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public ObservableCollection<CustomFlagViewModelBase> AbsorbsFlags { get; } = new();
 	public ObservableCollection<CustomFlagViewModelBase> LeechFlags { get; } = new();
 	public ObservableCollection<CustomFlagViewModelBase> HealthManaFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> SuppressionsFlags { get; } = new();
 
 	private bool _showSkillsModal;
 	public bool ShowSkillsModal
@@ -2065,6 +2066,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _showHealthManaModal, value);
 	}
 
+	private bool _showSuppressionsModal;
+	public bool ShowSuppressionsModal
+	{
+		get => _showSuppressionsModal;
+		set => SetProperty(ref _showSuppressionsModal, value);
+	}
+
 	[RelayCommand] public void OpenSkillsModal() => ShowSkillsModal = true;
 	[RelayCommand] public void CloseSkillsModal() => ShowSkillsModal = false;
 
@@ -2079,6 +2087,9 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	[RelayCommand] public void OpenHealthManaModal() => ShowHealthManaModal = true;
 	[RelayCommand] public void CloseHealthManaModal() => ShowHealthManaModal = false;
+
+	[RelayCommand] public void OpenSuppressionsModal() => ShowSuppressionsModal = true;
+	[RelayCommand] public void CloseSuppressionsModal() => ShowSuppressionsModal = false;
 
 	// Flag Creator Modal State
 	private bool _showFlagCreatorModal;
@@ -2365,6 +2376,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		AbsorbsFlags.Clear();
 		LeechFlags.Clear();
 		HealthManaFlags.Clear();
+		SuppressionsFlags.Clear();
 
 		foreach (var g in groupMap.Values.OrderBy(g => g.Order).ThenBy(g => g.Label))
 		{
@@ -2387,6 +2399,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			else if (g.GroupKey.Equals("health_mana", StringComparison.OrdinalIgnoreCase))
 			{
 				foreach (var f in g.Flags) HealthManaFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("suppressions_condition", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) SuppressionsFlags.Add(f);
 			}
 			else
 			{

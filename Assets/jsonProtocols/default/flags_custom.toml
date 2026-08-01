@@ -91,6 +91,13 @@ options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "
 group = "classification"
 locked = true
 
+[flag.slot]
+label = "Slot Type"
+type = "enum"
+options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "two-handed", "legs", "feet", "ring", "ammo"]
+group = "classification"
+locked = true
+
 [flag.ammotype]
 label = "Ammo Type"
 type = "string"
@@ -353,6 +360,18 @@ type = "int"
 group = "absorbs_protection"
 locked = true
 
+[flag.absorbpercentallelements]
+label = "Absorb All Elements (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentelements]
+label = "Absorb Elements (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
 [flag.absorbpercentphysical]
 label = "Absorb Physical (%)"
 type = "int"
@@ -373,6 +392,12 @@ locked = true
 
 [flag.absorbpercentice]
 label = "Absorb Ice (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentpoison]
+label = "Absorb Poison (%)"
 type = "int"
 group = "absorbs_protection"
 locked = true
@@ -399,6 +424,110 @@ locked = true
 label = "Absorb Magic (%)"
 type = "int"
 group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentlifedrain]
+label = "Absorb Life Drain (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentmanadrain]
+label = "Absorb Mana Drain (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentdrown]
+label = "Absorb Drown (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercenthealing]
+label = "Absorb Healing (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+# Field Absorbs
+[flag.fieldabsorbpercentenergy]
+label = "Field Absorb Energy (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.fieldabsorbpercentfire]
+label = "Field Absorb Fire (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.fieldabsorbpercentpoison]
+label = "Field Absorb Poison (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.fieldabsorbpercentearth]
+label = "Field Absorb Earth (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+# Condition Suppressions (Special Sub-Window)
+[flag.suppressdrunk]
+label = "Suppress Drunk (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressenergy]
+label = "Suppress Energy (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressfire]
+label = "Suppress Fire (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppresspoison]
+label = "Suppress Poison (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressdrown]
+label = "Suppress Drown (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressphysical]
+label = "Suppress Physical (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressfreeze]
+label = "Suppress Freeze (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppressdazzle]
+label = "Suppress Dazzle (%)"
+type = "int"
+group = "suppressions_condition"
+locked = true
+
+[flag.suppresscurse]
+label = "Suppress Curse (%)"
+type = "int"
+group = "suppressions_condition"
 locked = true
 
 [groups.stats]
