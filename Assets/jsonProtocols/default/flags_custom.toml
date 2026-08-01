@@ -1,4 +1,5 @@
 # Master custom flag definitions for things.json format.
+# Standard DAT properties and TFS items.xml attributes defined with accurate types and groups.
 # All default schema flags are locked by default. Edit this file or create a local flags_custom_override.toml to change.
 
 # --- Text & Metadata ---
@@ -55,6 +56,13 @@ type = "bool"
 group = "classification"
 locked = true
 
+[flag.type]
+label = "Item Type"
+type = "enum"
+options = ["key", "magicfield", "container", "depot", "mailbox", "trashholder", "teleport", "door", "bed", "rune"]
+group = "classification"
+locked = true
+
 [flag.fluidsource]
 label = "Fluid Source"
 type = "enum"
@@ -80,6 +88,24 @@ locked = true
 label = "Slot Type"
 type = "enum"
 options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "two-handed", "legs", "feet", "ring", "ammo"]
+group = "classification"
+locked = true
+
+[flag.ammotype]
+label = "Ammo Type"
+type = "string"
+group = "classification"
+locked = true
+
+[flag.shoottype]
+label = "Shoot / Distance Effect"
+type = "string"
+group = "classification"
+locked = true
+
+[flag.effect]
+label = "Magic Effect"
+type = "string"
 group = "classification"
 locked = true
 
@@ -124,6 +150,12 @@ type = "int"
 group = "stats"
 locked = true
 
+[flag.worth]
+label = "Worth (value)"
+type = "int"
+group = "stats"
+locked = true
+
 [flag.range]
 label = "Range"
 type = "int"
@@ -134,6 +166,239 @@ locked = true
 label = "Hit Chance (%)"
 type = "int"
 group = "stats"
+locked = true
+
+[flag.maxhitchance]
+label = "Max Hit Chance (%)"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.speed]
+label = "Speed Modifier"
+type = "int"
+group = "stats"
+locked = true
+
+# Health & Mana (Special Sub-Window)
+[flag.healthgain]
+label = "Health Gain"
+type = "int"
+group = "health_mana"
+locked = true
+
+[flag.healthticks]
+label = "Health Ticks (ms)"
+type = "int"
+group = "health_mana"
+locked = true
+
+[flag.managain]
+label = "Mana Gain"
+type = "int"
+group = "health_mana"
+locked = true
+
+[flag.manaticks]
+label = "Mana Ticks (ms)"
+type = "int"
+group = "health_mana"
+locked = true
+
+[flag.manashield]
+label = "Mana Shield (Utamo)"
+type = "bool"
+group = "health_mana"
+locked = true
+
+# Critical & Leech (Special Sub-Window)
+[flag.criticalhitchance]
+label = "Critical Hit Chance (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+[flag.criticalhitamount]
+label = "Critical Hit Amount (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+[flag.lifeleechchance]
+label = "Life Leech Chance (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+[flag.lifeleechamount]
+label = "Life Leech Amount (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+[flag.manaleechchance]
+label = "Mana Leech Chance (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+[flag.manaleechamount]
+label = "Mana Leech Amount (%)"
+type = "int"
+group = "special_leech"
+locked = true
+
+# Skill Boosts (Special Sub-Window)
+[flag.skillsword]
+label = "Skill Sword"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skillaxe]
+label = "Skill Axe"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skillclub]
+label = "Skill Club"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skilldist]
+label = "Skill Distance"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skillshield]
+label = "Skill Shield"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skillfish]
+label = "Skill Fishing"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.skillfist]
+label = "Skill Fist"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.magicpoints]
+label = "Magic Level Boost"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.maxhitpoints]
+label = "Max HP Boost"
+type = "int"
+group = "skills_boost"
+locked = true
+
+[flag.maxmanapoints]
+label = "Max Mana Boost"
+type = "int"
+group = "skills_boost"
+locked = true
+
+# Element Damage (Special Sub-Window)
+[flag.elementfire]
+label = "Element Fire Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+[flag.elementice]
+label = "Element Ice Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+[flag.elementearth]
+label = "Element Earth Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+[flag.elementenergy]
+label = "Element Energy Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+[flag.elementdeath]
+label = "Element Death Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+[flag.elementholy]
+label = "Element Holy Damage"
+type = "int"
+group = "elements_damage"
+locked = true
+
+# Protections & Absorbs (Special Sub-Window)
+[flag.absorbpercentall]
+label = "Absorb All Elements (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentphysical]
+label = "Absorb Physical (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentfire]
+label = "Absorb Fire (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentenergy]
+label = "Absorb Energy (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentice]
+label = "Absorb Ice (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentearth]
+label = "Absorb Earth (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentdeath]
+label = "Absorb Death (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentholy]
+label = "Absorb Holy (%)"
+type = "int"
+group = "absorbs_protection"
+locked = true
+
+[flag.absorbpercentmagic]
+label = "Absorb Magic (%)"
+type = "int"
+group = "absorbs_protection"
 locked = true
 
 [groups.stats]
@@ -207,6 +472,126 @@ type = "int"
 group = "interaction"
 locked = true
 
+[flag.stopduration]
+label = "Stop Duration On Move"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.showduration]
+label = "Show Duration"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.charges]
+label = "Charges"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.showcharges]
+label = "Show Charges"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.showattributes]
+label = "Show Attributes"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.showcount]
+label = "Show Count"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.forceserialize]
+label = "Force Save/Serialize"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.writeable]
+label = "Writeable"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.readable]
+label = "Readable"
+type = "bool"
+group = "interaction"
+locked = true
+
+[flag.maxtextlen]
+label = "Max Text Length"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.writeonceitemid]
+label = "Write Once Item ID"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.transformto]
+label = "Transform To (Item ID)"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.destroyto]
+label = "Destroy To (Item ID)"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.transformequipto]
+label = "Transform Equip To"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.transformdeequipto]
+label = "Transform De-equip To"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.maletransformto]
+label = "Male Transform To"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.femaletransformto]
+label = "Female Transform To"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.rotateto]
+label = "Rotate To (Item ID)"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.leveldoor]
+label = "Level Door Min Level"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.storeitem]
+label = "Store Item"
+type = "bool"
+group = "interaction"
+locked = true
+
 [groups.interaction]
 label = "Usage & Interaction"
 order = 4
@@ -232,6 +617,12 @@ locked = true
 
 [flag.blockPathfind]
 label = "Block Pathfinder"
+type = "bool"
+group = "physics"
+locked = true
+
+[flag.blocking]
+label = "Blocking"
 type = "bool"
 group = "physics"
 locked = true

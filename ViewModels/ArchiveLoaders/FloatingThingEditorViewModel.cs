@@ -2023,6 +2023,63 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _newFlagName, value);
 	}
 
+	// Special Sub-Window Modal States & Flags
+	public ObservableCollection<CustomFlagViewModelBase> SkillsFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> ElementsFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> AbsorbsFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> LeechFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> HealthManaFlags { get; } = new();
+
+	private bool _showSkillsModal;
+	public bool ShowSkillsModal
+	{
+		get => _showSkillsModal;
+		set => SetProperty(ref _showSkillsModal, value);
+	}
+
+	private bool _showElementsModal;
+	public bool ShowElementsModal
+	{
+		get => _showElementsModal;
+		set => SetProperty(ref _showElementsModal, value);
+	}
+
+	private bool _showAbsorbsModal;
+	public bool ShowAbsorbsModal
+	{
+		get => _showAbsorbsModal;
+		set => SetProperty(ref _showAbsorbsModal, value);
+	}
+
+	private bool _showLeechModal;
+	public bool ShowLeechModal
+	{
+		get => _showLeechModal;
+		set => SetProperty(ref _showLeechModal, value);
+	}
+
+	private bool _showHealthManaModal;
+	public bool ShowHealthManaModal
+	{
+		get => _showHealthManaModal;
+		set => SetProperty(ref _showHealthManaModal, value);
+	}
+
+	[RelayCommand] public void OpenSkillsModal() => ShowSkillsModal = true;
+	[RelayCommand] public void CloseSkillsModal() => ShowSkillsModal = false;
+
+	[RelayCommand] public void OpenElementsModal() => ShowElementsModal = true;
+	[RelayCommand] public void CloseElementsModal() => ShowElementsModal = false;
+
+	[RelayCommand] public void OpenAbsorbsModal() => ShowAbsorbsModal = true;
+	[RelayCommand] public void CloseAbsorbsModal() => ShowAbsorbsModal = false;
+
+	[RelayCommand] public void OpenLeechModal() => ShowLeechModal = true;
+	[RelayCommand] public void CloseLeechModal() => ShowLeechModal = false;
+
+	[RelayCommand] public void OpenHealthManaModal() => ShowHealthManaModal = true;
+	[RelayCommand] public void CloseHealthManaModal() => ShowHealthManaModal = false;
+
 	// Flag Creator Modal State
 	private bool _showFlagCreatorModal;
 	public bool ShowFlagCreatorModal
@@ -2322,8 +2379,39 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			groupVm.Flags.Add(flagVm);
 		}
 
+		SkillsFlags.Clear();
+		ElementsFlags.Clear();
+		AbsorbsFlags.Clear();
+		LeechFlags.Clear();
+		HealthManaFlags.Clear();
+
 		foreach (var g in groupMap.Values.OrderBy(g => g.Order).ThenBy(g => g.Label))
-			CustomFlagGroups.Add(g);
+		{
+			if (g.GroupKey.Equals("skills_boost", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) SkillsFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("elements_damage", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) ElementsFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("absorbs_protection", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) AbsorbsFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("special_leech", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) LeechFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("health_mana", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) HealthManaFlags.Add(f);
+			}
+			else
+			{
+				CustomFlagGroups.Add(g);
+			}
+		}
 
 		// Build ad-hoc flags: ExtraProperties keys not covered by schema
 		if (SourcePanel.Catalog != null)

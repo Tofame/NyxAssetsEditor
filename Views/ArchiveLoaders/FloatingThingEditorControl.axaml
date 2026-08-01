@@ -587,6 +587,16 @@
 									<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" Margin="0,0,0,8">
 										<StackPanel Spacing="6">
 											<TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,4"/>
+											
+											<!-- Sub-Window Launcher Buttons inside Combat & Item Stats section -->
+											<WrapPanel Orientation="Horizontal" IsVisible="{Binding IsStats}" Margin="0,0,0,8">
+												<Button Content="Skills Boosts..." Command="{Binding $parent[UserControl].DataContext.OpenSkillsModalCommand}" FontSize="11" Padding="10,5" Margin="0,0,6,6" Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#3D3D3D" BorderThickness="1"/>
+												<Button Content="Health &amp; Mana..." Command="{Binding $parent[UserControl].DataContext.OpenHealthManaModalCommand}" FontSize="11" Padding="10,5" Margin="0,0,6,6" Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#3D3D3D" BorderThickness="1"/>
+												<Button Content="Element Damage..." Command="{Binding $parent[UserControl].DataContext.OpenElementsModalCommand}" FontSize="11" Padding="10,5" Margin="0,0,6,6" Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#3D3D3D" BorderThickness="1"/>
+												<Button Content="Protection &amp; Absorbs..." Command="{Binding $parent[UserControl].DataContext.OpenAbsorbsModalCommand}" FontSize="11" Padding="10,5" Margin="0,0,6,6" Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#3D3D3D" BorderThickness="1"/>
+												<Button Content="Critical &amp; Leech..." Command="{Binding $parent[UserControl].DataContext.OpenLeechModalCommand}" FontSize="11" Padding="10,5" Margin="0,0,6,6" Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#3D3D3D" BorderThickness="1"/>
+											</WrapPanel>
+
 											<ItemsControl ItemsSource="{Binding Flags}">
 												<ItemsControl.ItemTemplate>
 													<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
@@ -842,6 +852,191 @@
 							<Button Grid.Column="1" Content="Save &amp; Define Flag" Command="{Binding SaveFlagDefinitionCommand}" Background="#3A7BD5" Foreground="White" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,8"/>
 						</Grid>
 					</StackPanel>
+				</Border>
+			</Border>
+
+			<!-- Sub-Window Modal: Skills Boosts -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowSkillsModal}" CornerRadius="8">
+				<Border Background="#252525" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<Grid RowDefinitions="Auto, *, Auto">
+						<StackPanel Grid.Row="0" Margin="0,0,0,12">
+							<TextBlock Text="Skill Boosts &amp; Stats" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14"/>
+							<TextBlock Text="Configure skill points, magic level, and HP/Mana bonuses" FontSize="11" Foreground="#888888"/>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MaxHeight="380">
+							<ItemsControl ItemsSource="{Binding SkillsFlags}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+										<Grid ColumnDefinitions="*, Auto" Margin="0,4" VerticalAlignment="Center">
+											<ContentControl Grid.Column="0" Content="{Binding}" VerticalAlignment="Center">
+												<ContentControl.DataTemplates>
+													<DataTemplate DataType="vm:BoolFlagViewModel"><ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/></DataTemplate>
+													<DataTemplate DataType="vm:IntFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:StringFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:EnumFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="180" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+												</ContentControl.DataTemplates>
+											</ContentControl>
+											<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+												<Image Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+												<Border ToolTip.Tip="{Binding DeleteTooltip}" Background="Transparent" VerticalAlignment="Center">
+													<Button Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+												</Border>
+											</StackPanel>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+						<Button Grid.Row="2" Content="Close" Command="{Binding CloseSkillsModalCommand}" Margin="0,12,0,0" HorizontalAlignment="Right" Width="90" Height="28" Background="#3A7BD5" Foreground="White" FontSize="11" HorizontalContentAlignment="Center"/>
+					</Grid>
+				</Border>
+			</Border>
+
+			<!-- Sub-Window Modal: Element Damage -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowElementsModal}" CornerRadius="8">
+				<Border Background="#252525" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<Grid RowDefinitions="Auto, *, Auto">
+						<StackPanel Grid.Row="0" Margin="0,0,0,12">
+							<TextBlock Text="Elemental Damage Modifiers" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14"/>
+							<TextBlock Text="Configure elemental weapon attack damage values" FontSize="11" Foreground="#888888"/>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MaxHeight="380">
+							<ItemsControl ItemsSource="{Binding ElementsFlags}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+										<Grid ColumnDefinitions="*, Auto" Margin="0,4" VerticalAlignment="Center">
+											<ContentControl Grid.Column="0" Content="{Binding}" VerticalAlignment="Center">
+												<ContentControl.DataTemplates>
+													<DataTemplate DataType="vm:BoolFlagViewModel"><ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/></DataTemplate>
+													<DataTemplate DataType="vm:IntFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:StringFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:EnumFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="180" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+												</ContentControl.DataTemplates>
+											</ContentControl>
+											<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+												<Image Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+												<Border ToolTip.Tip="{Binding DeleteTooltip}" Background="Transparent" VerticalAlignment="Center">
+													<Button Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+												</Border>
+											</StackPanel>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+						<Button Grid.Row="2" Content="Close" Command="{Binding CloseElementsModalCommand}" Margin="0,12,0,0" HorizontalAlignment="Right" Width="90" Height="28" Background="#3A7BD5" Foreground="White" FontSize="11" HorizontalContentAlignment="Center"/>
+					</Grid>
+				</Border>
+			</Border>
+
+			<!-- Sub-Window Modal: Protection & Absorbs -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowAbsorbsModal}" CornerRadius="8">
+				<Border Background="#252525" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<Grid RowDefinitions="Auto, *, Auto">
+						<StackPanel Grid.Row="0" Margin="0,0,0,12">
+							<TextBlock Text="Protection &amp; Damage Absorbs (%)" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14"/>
+							<TextBlock Text="Configure percentage elemental and magic resistance" FontSize="11" Foreground="#888888"/>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MaxHeight="380">
+							<ItemsControl ItemsSource="{Binding AbsorbsFlags}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+										<Grid ColumnDefinitions="*, Auto" Margin="0,4" VerticalAlignment="Center">
+											<ContentControl Grid.Column="0" Content="{Binding}" VerticalAlignment="Center">
+												<ContentControl.DataTemplates>
+													<DataTemplate DataType="vm:BoolFlagViewModel"><ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/></DataTemplate>
+													<DataTemplate DataType="vm:IntFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:StringFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:EnumFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="180" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+												</ContentControl.DataTemplates>
+											</ContentControl>
+											<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+												<Image Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+												<Border ToolTip.Tip="{Binding DeleteTooltip}" Background="Transparent" VerticalAlignment="Center">
+													<Button Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+												</Border>
+											</StackPanel>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+						<Button Grid.Row="2" Content="Close" Command="{Binding CloseAbsorbsModalCommand}" Margin="0,12,0,0" HorizontalAlignment="Right" Width="90" Height="28" Background="#3A7BD5" Foreground="White" FontSize="11" HorizontalContentAlignment="Center"/>
+					</Grid>
+				</Border>
+			</Border>
+
+			<!-- Sub-Window Modal: Critical & Leech -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowLeechModal}" CornerRadius="8">
+				<Border Background="#252525" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<Grid RowDefinitions="Auto, *, Auto">
+						<StackPanel Grid.Row="0" Margin="0,0,0,12">
+							<TextBlock Text="Critical &amp; Life / Mana Leech" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14"/>
+							<TextBlock Text="Configure critical hit, life leech, and mana leech values" FontSize="11" Foreground="#888888"/>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MaxHeight="380">
+							<ItemsControl ItemsSource="{Binding LeechFlags}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+										<Grid ColumnDefinitions="*, Auto" Margin="0,4" VerticalAlignment="Center">
+											<ContentControl Grid.Column="0" Content="{Binding}" VerticalAlignment="Center">
+												<ContentControl.DataTemplates>
+													<DataTemplate DataType="vm:BoolFlagViewModel"><ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/></DataTemplate>
+													<DataTemplate DataType="vm:IntFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:StringFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:EnumFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="180" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+												</ContentControl.DataTemplates>
+											</ContentControl>
+											<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+												<Image Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+												<Border ToolTip.Tip="{Binding DeleteTooltip}" Background="Transparent" VerticalAlignment="Center">
+													<Button Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+												</Border>
+											</StackPanel>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+						<Button Grid.Row="2" Content="Close" Command="{Binding CloseLeechModalCommand}" Margin="0,12,0,0" HorizontalAlignment="Right" Width="90" Height="28" Background="#3A7BD5" Foreground="White" FontSize="11" HorizontalContentAlignment="Center"/>
+					</Grid>
+				</Border>
+			</Border>
+
+			<!-- Sub-Window Modal: Health & Mana -->
+			<Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding ShowHealthManaModal}" CornerRadius="8">
+				<Border Background="#252525" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="16" Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 12 0 #7F000000">
+					<Grid RowDefinitions="Auto, *, Auto">
+						<StackPanel Grid.Row="0" Margin="0,0,0,12">
+							<TextBlock Text="Health &amp; Mana Regeneration / Shield" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14"/>
+							<TextBlock Text="Configure health gain, mana gain, ticks, and mana shield" FontSize="11" Foreground="#888888"/>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MaxHeight="380">
+							<ItemsControl ItemsSource="{Binding HealthManaFlags}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+										<Grid ColumnDefinitions="*, Auto" Margin="0,4" VerticalAlignment="Center">
+											<ContentControl Grid.Column="0" Content="{Binding}" VerticalAlignment="Center">
+												<ContentControl.DataTemplates>
+													<DataTemplate DataType="vm:BoolFlagViewModel"><ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/></DataTemplate>
+													<DataTemplate DataType="vm:IntFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:StringFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/></StackPanel></DataTemplate>
+													<DataTemplate DataType="vm:EnumFlagViewModel"><StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="140"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="180" FontSize="11" Height="28"/></StackPanel></DataTemplate>
+												</ContentControl.DataTemplates>
+											</ContentControl>
+											<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+												<Image Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+												<Border ToolTip.Tip="{Binding DeleteTooltip}" Background="Transparent" VerticalAlignment="Center">
+													<Button Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+												</Border>
+											</StackPanel>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+						<Button Grid.Row="2" Content="Close" Command="{Binding CloseHealthManaModalCommand}" Margin="0,12,0,0" HorizontalAlignment="Right" Width="90" Height="28" Background="#3A7BD5" Foreground="White" FontSize="11" HorizontalContentAlignment="Center"/>
+					</Grid>
 				</Border>
 			</Border>
 		</Grid>
