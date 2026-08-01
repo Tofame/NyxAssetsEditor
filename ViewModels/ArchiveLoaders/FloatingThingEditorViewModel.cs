@@ -2074,12 +2074,24 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _showSuppressionsModal, value);
 	}
 
-	private bool _showFieldModal;
-	public bool ShowFieldModal
+	private CustomFlagViewModelBase? _activeChildFlag;
+	public CustomFlagViewModelBase? ActiveChildFlag
 	{
-		get => _showFieldModal;
-		set => SetProperty(ref _showFieldModal, value);
+		get => _activeChildFlag;
+		set
+		{
+			if (SetProperty(ref _activeChildFlag, value))
+				OnPropertyChanged(nameof(ShowChildModal));
+		}
 	}
+
+	public bool ShowChildModal => ActiveChildFlag != null;
+
+	[RelayCommand]
+	public void OpenChildModal(CustomFlagViewModelBase flag) => ActiveChildFlag = flag;
+	public void CloseChildModal() => ActiveChildFlag = null;
+
+	[RelayCommand] public void CloseChildModalCommand() => CloseChildModal();
 
 	[RelayCommand] public void OpenSkillsModal() => ShowSkillsModal = true;
 	[RelayCommand] public void CloseSkillsModal() => ShowSkillsModal = false;
@@ -2098,6 +2110,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	[RelayCommand] public void OpenSuppressionsModal() => ShowSuppressionsModal = true;
 	[RelayCommand] public void CloseSuppressionsModal() => ShowSuppressionsModal = false;
+
+	private bool _showFieldModal;
+	public bool ShowFieldModal
+	{
+		get => _showFieldModal;
+		set => SetProperty(ref _showFieldModal, value);
+	}
 
 	[RelayCommand] public void OpenFieldModal() => ShowFieldModal = true;
 	[RelayCommand] public void CloseFieldModal() => ShowFieldModal = false;
