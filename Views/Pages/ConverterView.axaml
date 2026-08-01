@@ -39,15 +39,15 @@
 									<Button Grid.Row="2" Grid.Column="2" Content="Browse..." Click="OnBrowseSprTarget" Padding="12,4"/>
 
 									<!-- Settings -->
-									<TextBlock Grid.Row="3" Grid.Column="0" Text="Extended Sprite IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<TextBlock Grid.Row="3" Grid.Column="0" Text="SPR Extended IDs:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding SprExtendedIds}"/>
 
-									<TextBlock Grid.Row="4" Grid.Column="0" Text="Transparent Pixels:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<TextBlock Grid.Row="4" Grid.Column="0" Text="SPR Transparent Pixels:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
 									<CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding SprTransparentPixels}"/>
 
 									<!-- Client Version -->
-									<TextBlock Grid.Row="5" Grid.Column="0" Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding !SprToAssetsMode}"/>
-									<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SprClientVersionText}" IsVisible="{Binding !SprToAssetsMode}" Width="120" Height="28" VerticalContentAlignment="Center"/>
+									<TextBlock Grid.Row="5" Grid.Column="0" Text="Client Version:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+									<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SprClientVersionText}" Width="120" Height="28" VerticalContentAlignment="Center"/>
 
 									<!-- Format specific settings -->
 									<TextBlock Grid.Row="6" Grid.Column="0" Text="Compression (Assets):" VerticalAlignment="Center" Foreground="#CCCCCC" IsVisible="{Binding SprToAssetsMode}"/>
