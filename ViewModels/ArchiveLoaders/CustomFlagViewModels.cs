@@ -28,13 +28,22 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 	{
 		get
 		{
-			if (IsLocked) return "Flag is locked in TOML schema (unremovable)";
-			if (UsageCount > 1) return $"Used in {UsageCount} items (remove disabled)";
+			string usageStr = UsageCount == 1 ? "Used in 1 item" : $"Used in {UsageCount} items";
+			if (IsLocked) return $"Flag is locked in TOML schema ({usageStr}, unremovable)";
+			if (UsageCount > 1) return $"{usageStr} (remove disabled)";
 			return "Remove flag from this item";
 		}
 	}
 
-	public string LockTooltip => IsLocked ? "Locked flag (defined in TOML)" : string.Empty;
+	public string LockTooltip
+	{
+		get
+		{
+			if (!IsLocked) return string.Empty;
+			string usageStr = UsageCount == 1 ? "Used in 1 item" : $"Used in {UsageCount} items";
+			return $"Locked in TOML schema ({usageStr})";
+		}
+	}
 
 	[RelayCommand]
 	public void RemoveFlag()
