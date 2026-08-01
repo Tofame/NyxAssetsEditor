@@ -940,6 +940,153 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		RefreshAppearance();
 	}
 
+	public bool CanGenerateMissileOrthogonalDirections => GetMissileOrthogonalSourceDirection() != null;
+	public bool CanGenerateMissileDiagonalDirections => GetMissileDiagonalSourceDirection() != null;
+
+	private Direction8? GetMissileOrthogonalSourceDirection()
+	{
+		if (!IsMissile) return null;
+		var fg = CurrentFrameGroup;
+		Span<Direction8> orthos = stackalloc Direction8[] { Direction8.North, Direction8.East, Direction8.South, Direction8.West };
+		Direction8? source = null;
+		int count = 0;
+		foreach (var dir in orthos)
+		{
+			var (px, py) = MissileDirectionPatterns.GetPattern(dir);
+			var spriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, (uint)SelectedFrame);
+			if (spriteId > 0)
+			{
+				count++;
+				source = dir;
+			}
+		}
+		return count == 1 ? source : null;
+	}
+
+	private Direction8? GetMissileDiagonalSourceDirection()
+	{
+		if (!IsMissile) return null;
+		var fg = CurrentFrameGroup;
+		Span<Direction8> diags = stackalloc Direction8[] { Direction8.NorthWest, Direction8.NorthEast, Direction8.SouthEast, Direction8.SouthWest };
+		Direction8? source = null;
+		int count = 0;
+		foreach (var dir in diags)
+		{
+			var (px, py) = MissileDirectionPatterns.GetPattern(dir);
+			var spriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, (uint)SelectedFrame);
+			if (spriteId > 0)
+			{
+				count++;
+				source = dir;
+			}
+		}
+		return count == 1 ? source : null;
+	}
+
+	[RelayCommand]
+	private void GenerateMissileOrthogonalDirections()
+	{
+		var sourceDir = GetMissileOrthogonalSourceDirection();
+		if (sourceDir == null) return;
+		GenerateMissileRotations(sourceDir.Value, isOrthogonal: true);
+	}
+
+	[RelayCommand]
+	private void GenerateMissileDiagonalDirections()
+	{
+		var sourceDir = GetMissileDiagonalSourceDirection();
+		if (sourceDir == null) return;
+		GenerateMissileRotations(sourceDir.Value, isOrthogonal: false);
+	}
+
+	private void GenerateMissileRotations(Direction8 sourceDir, bool isOrthogonal)
+	{
+		var loader = SourcePanel.GetActiveSpriteLoader();
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (loader == null || linkedPanel == null) return;
+
+		var fg = CurrentFrameGroup;
+		var (srcPx, srcPy) = MissileDirectionPatterns.GetPattern(sourceDir);
+		var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, (uint)SelectedFrame);
+		if (srcSpriteId < 1) return;
+
+		byte[] srcRgba;
+		try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
+		catch { return; }
+		if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) return;
+
+		Direction8[] targets = isOrthogonal
+			? new[] { Direction8.North, Direction8.East, Direction8.South, Direction8.West }
+			: new[] { Direction8.NorthWest, Direction8.NorthEast, Direction8.SouthEast, Direction8.SouthWest };
+
+		int sourceIdx = Array.IndexOf(targets, sourceDir);
+		if (sourceIdx < 0) return;
+
+		for (int i = 0; i < targets.Length; i++)
+		{
+			if (i == sourceIdx) continue;
+
+			int rotSteps = (i - sourceIdx + 4) % 4;
+			byte[] rotatedRgba = RotateRgba90(srcRgba, rotSteps);
+
+			var newId = linkedPanel.Loader.AddNewSprite();
+			linkedPanel.Loader.SetSpritePixels(newId, rotatedRgba);
+
+			var targetDir = targets[i];
+			var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
+			var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, (uint)SelectedFrame);
+			if (index < fg.SpriteIds.Length)
+			{
+				fg.SpriteIds[index] = newId;
+			}
+		}
+
+		linkedPanel.NotifyExternalArchiveMutation();
+		linkedPanel.HasSavedChanges = true;
+		ApplyToCatalog();
+		RefreshAppearance();
+	}
+
+	private static byte[] RotateRgba90(byte[] src, int steps)
+	{
+		steps = (steps % 4 + 4) % 4;
+		if (steps == 0) return (byte[])src.Clone();
+
+		int edge = SpritePixelCodec.SpriteEdgeLength;
+		byte[] dest = new byte[src.Length];
+
+		for (int y = 0; y < edge; y++)
+		{
+			for (int x = 0; x < edge; x++)
+			{
+				int srcIdx = (y * edge + x) * 4;
+				int newX = x;
+				int newY = y;
+
+				switch (steps)
+				{
+					case 1: // 90° clockwise
+						newX = edge - 1 - y;
+						newY = x;
+						break;
+					case 2: // 180°
+						newX = edge - 1 - x;
+						newY = edge - 1 - y;
+						break;
+					case 3: // 270° clockwise (90° counter-clockwise)
+						newX = y;
+						newY = edge - 1 - x;
+						break;
+				}
+
+				int destIdx = (newY * edge + newX) * 4;
+				Buffer.BlockCopy(src, srcIdx, dest, destIdx, 4);
+			}
+		}
+
+		return dest;
+	}
+
 	[RelayCommand]
 	private void ApplyDefaultDurations()
 	{
@@ -1049,6 +1196,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			OnPropertyChanged(nameof(HasPatterns));
 			return;
+		}
+
+		if (IsMissile && (group.PatternX < 3 || group.PatternY < 3))
+		{
+			group.PatternX = Math.Max(3u, group.PatternX);
+			group.PatternY = Math.Max(3u, group.PatternY);
+			ThingFrameGroupEditor.EnsureSpriteCapacity(group);
 		}
 
 		_patternFieldGuard = true;
@@ -1342,6 +1496,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_appearancePixelHeight = h;
 		OnPropertyChanged(nameof(AppearancePixelWidth));
 		OnPropertyChanged(nameof(AppearancePixelHeight));
+		OnPropertyChanged(nameof(CanGenerateMissileOrthogonalDirections));
+		OnPropertyChanged(nameof(CanGenerateMissileDiagonalDirections));
 		AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
 	}
 

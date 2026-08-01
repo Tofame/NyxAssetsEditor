@@ -46,8 +46,8 @@ public static class ThingAppearanceDropTarget
 		if (cellW <= 0 || cellH <= 0)
 			return null;
 
-		var col = (int)Math.Clamp(dropX / cellW, 0, 2);
-		var row = (int)Math.Clamp(dropY / cellH, 0, 2);
+		var col = Math.Clamp((int)(dropX / cellW), 0, 2);
+		var row = Math.Clamp((int)(dropY / cellH), 0, 2);
 		if (col == 1 && row == 1)
 			return null;
 
@@ -67,7 +67,10 @@ public static class ThingAppearanceDropTarget
 		var (patternX, patternY) = MissileDirectionPatterns.GetPattern(direction);
 		var localX = dropX - col * cellW;
 		var localY = dropY - row * cellH;
-		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, (int)patternX, (int)patternY);
+
+		var innerW = (uint)Math.Clamp(fg.Width - 1 - (int)(Math.Clamp(localX, 0, cellW - 1) / edge), 0, (int)fg.Width - 1);
+		var innerH = (uint)Math.Clamp(fg.Height - 1 - (int)(Math.Clamp(localY, 0, cellH - 1) / edge), 0, (int)fg.Height - 1);
+		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY);
 	}
 
 	private static ThingAppearanceSlot? ResolvePatternGrid(
@@ -100,14 +103,14 @@ public static class ThingAppearanceDropTarget
 		int patternX,
 		int patternY)
 	{
-		if (dropX < 0 || dropY < 0 || dropX >= cellWidth || dropY >= cellHeight)
-			return null;
-
 		if (fg.Width == 0 || fg.Height == 0)
 			return null;
 
-		var innerW = (uint)Math.Clamp(fg.Width - 1 - (int)(dropX / edge), 0, (int)fg.Width - 1);
-		var innerH = (uint)Math.Clamp(fg.Height - 1 - (int)(dropY / edge), 0, (int)fg.Height - 1);
+		var clampedX = Math.Clamp(dropX, 0, Math.Max(0, cellWidth - 1));
+		var clampedY = Math.Clamp(dropY, 0, Math.Max(0, cellHeight - 1));
+
+		var innerW = (uint)Math.Clamp(fg.Width - 1 - (int)(clampedX / edge), 0, (int)fg.Width - 1);
+		var innerH = (uint)Math.Clamp(fg.Height - 1 - (int)(clampedY / edge), 0, (int)fg.Height - 1);
 		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY);
 	}
 }

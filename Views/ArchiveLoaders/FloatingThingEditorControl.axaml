@@ -156,6 +156,12 @@
 											</StackPanel>
 										</StackPanel>
 
+										<!-- Left controls panel (only for missile generator buttons) -->
+										<StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,0" Spacing="6" IsVisible="{Binding IsMissile}" Width="150">
+											<Button Content="Generate 90° directions" Command="{Binding GenerateMissileOrthogonalDirectionsCommand}" IsVisible="{Binding CanGenerateMissileOrthogonalDirections}" FontSize="10" Padding="6,4"/>
+											<Button Content="Generate angled directions" Command="{Binding GenerateMissileDiagonalDirectionsCommand}" IsVisible="{Binding CanGenerateMissileDiagonalDirections}" FontSize="10" Padding="6,4"/>
+										</StackPanel>
+
 										<!-- Preview (centered) -->
 										<StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
 											<!-- Direction headers (only when ShowAllOutfitDirections is true) -->

@@ -820,7 +820,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			foreach (var id in ids)
 			{
-				if (id == Loader.SpriteCount)
+				if (id >= Loader.SpriteCount)
 					Loader.RemoveLastSprite();
 				else
 					Loader.ClearSprite(id);
@@ -836,11 +836,16 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_selectionAnchor = null;
 			SelectedSprite = null;
 			HasSavedChanges = true;
-			if (CurrentPage > TotalPages && TotalPages > 0)
-				CurrentPage = TotalPages;
-			else
-				UpdatePage();
 
+			if (CurrentPage > TotalPages && TotalPages > 0)
+			{
+				_currentPage = TotalPages;
+				OnPropertyChanged(nameof(CurrentPage));
+				OnPropertyChanged(nameof(HasNextPage));
+				OnPropertyChanged(nameof(HasPreviousPage));
+			}
+
+			UpdatePage();
 			NotifySelectionChanged();
 
 			EndSpriteTransaction(ids);
