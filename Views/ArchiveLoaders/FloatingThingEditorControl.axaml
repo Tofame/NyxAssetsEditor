@@ -590,52 +590,61 @@
 											<ItemsControl ItemsSource="{Binding Flags}">
 												<ItemsControl.ItemTemplate>
 													<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
-														<ContentControl Content="{Binding}" Margin="0,2">
-															<ContentControl.DataTemplates>
-																<!-- Bool flag: ToggleSwitch -->
-																<DataTemplate DataType="vm:BoolFlagViewModel">
-																	<ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11"/>
-																</DataTemplate>
-																<!-- Int flag: label + NumericUpDown -->
-																<DataTemplate DataType="vm:IntFlagViewModel">
-																	<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-																		<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
-																		<NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/>
-																	</StackPanel>
-																</DataTemplate>
-																<!-- String flag: label + TextBox -->
-																<DataTemplate DataType="vm:StringFlagViewModel">
-																	<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-																		<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
-																		<TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/>
-																	</StackPanel>
-																</DataTemplate>
-																<!-- Enum flag: Dropdown or Radio Group -->
-																<DataTemplate DataType="vm:EnumFlagViewModel">
-																	<StackPanel Spacing="4">
-																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
+														<Grid ColumnDefinitions="Auto, *, Auto" Margin="0,2" VerticalAlignment="Center">
+															<!-- Lock icon indicator -->
+															<Image Grid.Column="0" Source="avares://NyxAssetsEditor/Assets/Icons/lock.png" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,6,0" IsVisible="{Binding IsLocked}" ToolTip.Tip="{Binding LockTooltip}"/>
+
+															<!-- Flag control -->
+															<ContentControl Grid.Column="1" Content="{Binding}" VerticalAlignment="Center">
+																<ContentControl.DataTemplates>
+																	<!-- Bool flag: ToggleSwitch -->
+																	<DataTemplate DataType="vm:BoolFlagViewModel">
+																		<ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11"/>
+																	</DataTemplate>
+																	<!-- Int flag: label + NumericUpDown -->
+																	<DataTemplate DataType="vm:IntFlagViewModel">
+																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
 																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
-																			<ComboBox ItemsSource="{Binding Options}" SelectedIndex="{Binding SelectedIndex}" Width="180" FontSize="11" Height="28"/>
+																			<NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/>
 																		</StackPanel>
-																		<StackPanel Spacing="4" IsVisible="{Binding IsRadio}">
-																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA"/>
-																			<ItemsControl ItemsSource="{Binding Options}">
-																				<ItemsControl.ItemsPanel>
-																					<ItemsPanelTemplate>
-																						<WrapPanel Orientation="Horizontal"/>
-																					</ItemsPanelTemplate>
-																				</ItemsControl.ItemsPanel>
-																				<ItemsControl.ItemTemplate>
-																					<DataTemplate DataType="x:String">
-																						<RadioButton Content="{Binding}" GroupName="{Binding $parent[ItemsControl].DataContext.Name}" FontSize="11" Margin="0,0,12,4"/>
-																					</DataTemplate>
-																				</ItemsControl.ItemTemplate>
-																			</ItemsControl>
+																	</DataTemplate>
+																	<!-- String flag: label + TextBox -->
+																	<DataTemplate DataType="vm:StringFlagViewModel">
+																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
+																			<TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/>
 																		</StackPanel>
-																	</StackPanel>
-																</DataTemplate>
-															</ContentControl.DataTemplates>
-														</ContentControl>
+																	</DataTemplate>
+																	<!-- Enum flag: Dropdown or Radio Group -->
+																	<DataTemplate DataType="vm:EnumFlagViewModel">
+																		<StackPanel Spacing="4">
+																			<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
+																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
+																				<ComboBox ItemsSource="{Binding Options}" SelectedIndex="{Binding SelectedIndex}" Width="180" FontSize="11" Height="28"/>
+																			</StackPanel>
+																			<StackPanel Spacing="4" IsVisible="{Binding IsRadio}">
+																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA"/>
+																				<ItemsControl ItemsSource="{Binding Options}">
+																					<ItemsControl.ItemsPanel>
+																						<ItemsPanelTemplate>
+																							<WrapPanel Orientation="Horizontal"/>
+																						</ItemsPanelTemplate>
+																					</ItemsControl.ItemsPanel>
+																					<ItemsControl.ItemTemplate>
+																						<DataTemplate DataType="x:String">
+																							<RadioButton Content="{Binding}" GroupName="{Binding $parent[ItemsControl].DataContext.Name}" FontSize="11" Margin="0,0,12,4"/>
+																						</DataTemplate>
+																					</ItemsControl.ItemTemplate>
+																				</ItemsControl>
+																			</StackPanel>
+																		</StackPanel>
+																	</DataTemplate>
+																</ContentControl.DataTemplates>
+															</ContentControl>
+
+															<!-- Right-aligned Delete / Usage Button -->
+															<Button Grid.Column="2" Content="✕" Command="{Binding RemoveFlagCommand}" IsEnabled="{Binding CanDelete}" ToolTip.Tip="{Binding DeleteTooltip}" FontSize="11" FontWeight="Bold" Foreground="White" Background="#D9534F" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="8,0,0,0"/>
+														</Grid>
 													</DataTemplate>
 												</ItemsControl.ItemTemplate>
 											</ItemsControl>
@@ -795,6 +804,9 @@
 								<ComboBoxItem Content="Enum (Radio Group)"/>
 							</ComboBox>
 						</StackPanel>
+
+						<!-- Lock option -->
+						<CheckBox Content="Lock Flag (unremovable via editor, TOML-only)" IsChecked="{Binding CreatorLocked}" FontSize="11" Margin="0,2,0,4"/>
 
 						<!-- Default Value -->
 						<StackPanel Spacing="4">

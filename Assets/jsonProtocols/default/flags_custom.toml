@@ -26,16 +26,19 @@ order = 1
 label = "Container"
 type = "bool"
 group = "classification"
+locked = true
 
 [flag.isFluidContainer]
 label = "Fluid Container"
 type = "bool"
 group = "classification"
+locked = true
 
 [flag.isFluid]
 label = "Fluid"
 type = "bool"
 group = "classification"
+locked = true
 
 [groups.classification]
 label = "Classification"

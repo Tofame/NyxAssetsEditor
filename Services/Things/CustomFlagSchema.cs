@@ -14,6 +14,7 @@ public class CustomFlagDefinition
 	public string? Description { get; set; }
 	public string? Group { get; set; }
 	public string? GroupType { get; set; }
+	public bool Locked { get; set; }
 	public List<string>? Options { get; set; }
 	public int? Min { get; set; }
 	public int? Max { get; set; }
@@ -41,6 +42,7 @@ public class CustomFlagsTomlFlagEntry
 	public string? description { get; set; }
 	public string? group { get; set; }
 	public string? group_type { get; set; }
+	public bool locked { get; set; }
 	public List<string>? options { get; set; }
 	public int? min { get; set; }
 	public int? max { get; set; }
@@ -164,6 +166,7 @@ public static class CustomFlagSchemaLoader
 						Description = entry.description,
 						Group = entry.group,
 						GroupType = entry.group_type,
+						Locked = entry.locked,
 						Options = entry.options,
 						Min = entry.min,
 						Max = entry.max,
@@ -226,6 +229,8 @@ public static class CustomFlagSchemaLoader
 			sb.AppendLine($"group = \"{def.Group}\"");
 		if (!string.IsNullOrWhiteSpace(def.GroupType))
 			sb.AppendLine($"group_type = \"{def.GroupType}\"");
+		if (def.Locked)
+			sb.AppendLine("locked = true");
 		if (def.Min.HasValue)
 			sb.AppendLine($"min = {def.Min.Value}");
 		if (def.Max.HasValue)

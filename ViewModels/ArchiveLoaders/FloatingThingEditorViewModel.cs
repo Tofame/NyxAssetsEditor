@@ -2146,6 +2146,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			Type = flagType,
 			Group = groupKey,
 			GroupType = groupType,
+			Locked = CreatorLocked,
 			Default = string.IsNullOrWhiteSpace(CreatorDefault) ? null : CreatorDefault.Trim(),
 			Min = IsCreatorTypeInt ? CreatorMin : null,
 			Max = IsCreatorTypeInt ? CreatorMax : null,
@@ -2167,6 +2168,55 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		ShowFlagCreatorModal = false;
 		LoadCustomFlagSchema();
+		RefreshCustomFlags();
+	}
+
+	private bool _creatorLocked;
+	public bool CreatorLocked
+	{
+		get => _creatorLocked;
+		set => SetProperty(ref _creatorLocked, value);
+	}
+
+	private static readonly Dictionary<string, System.Reflection.PropertyInfo> PropertyMap =
+		typeof(ThingType).GetProperties()
+			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.Ordinal);
+
+	public int GetFlagUsageCount(string flagName)
+	{
+		if (SourcePanel.Catalog == null) return 1;
+
+		int count = 0;
+		bool isProp = PropertyMap.TryGetValue(flagName, out var prop);
+
+		void Check(ThingType t)
+		{
+			if (isProp && prop != null)
+			{
+				var val = prop.GetValue(t);
+				if (val is bool b && b) count++;
+				else if (val is uint u && u > 0) count++;
+				else if (val is int i && i != 0) count++;
+				else if (val is string s && !string.IsNullOrEmpty(s)) count++;
+			}
+			else if (t.ExtraProperties.ContainsKey(flagName))
+			{
+				count++;
+			}
+		}
+
+		foreach (var t in SourcePanel.Catalog.EnumerateItems()) Check(t);
+		foreach (var t in SourcePanel.Catalog.EnumerateOutfits()) Check(t);
+		foreach (var t in SourcePanel.Catalog.EnumerateEffects()) Check(t);
+		foreach (var t in SourcePanel.Catalog.EnumerateMissiles()) Check(t);
+
+		return Math.Max(count, 1);
+	}
+
+	public void RemoveSchemaFlag(string flagName)
+	{
+		Thing.ExtraProperties.Remove(flagName);
+		ApplyToCatalog();
 		RefreshCustomFlags();
 	}
 
