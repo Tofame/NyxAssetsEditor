@@ -35,8 +35,8 @@
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="HotAvalonia" Version="3.1.4" />
-        <PackageReference Include="NyxAssets" Version="0.2.7" />
-        <PackageReference Include="SkiaSharp" Version="4.150.1" />
+        <PackageReference Include="NyxAssets" Version="0.2.8" />
+        <PackageReference Include="SkiaSharp" Version="4.151.0" />
         <PackageReference Include="Tomlyn" Version="2.10.1" />
     </ItemGroup>
 </Project>

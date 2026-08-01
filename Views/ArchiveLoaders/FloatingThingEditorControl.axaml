@@ -156,12 +156,6 @@
 											</StackPanel>
 										</StackPanel>
 
-										<!-- Left controls panel (only for missile generator buttons) -->
-										<StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,0" Spacing="6" IsVisible="{Binding IsMissile}" Width="150">
-											<Button Content="Generate 90° directions" Command="{Binding GenerateMissileOrthogonalDirectionsCommand}" IsVisible="{Binding CanGenerateMissileOrthogonalDirections}" FontSize="10" Padding="6,4"/>
-											<Button Content="Generate angled directions" Command="{Binding GenerateMissileDiagonalDirectionsCommand}" IsVisible="{Binding CanGenerateMissileDiagonalDirections}" FontSize="10" Padding="6,4"/>
-										</StackPanel>
-
 										<!-- Preview (centered) -->
 										<StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
 											<!-- Direction headers (only when ShowAllOutfitDirections is true) -->
@@ -204,8 +198,16 @@
 										</StackPanel>
 									</Grid>
 
-									<!-- Controls (right-aligned, OB-style) -->
-									<StackPanel Spacing="6" HorizontalAlignment="Right" Margin="0,4,0,0">
+									<!-- Bottom controls panel (missile buttons left-aligned at bottom, OB sliders right-aligned) -->
+									<Grid Margin="0,4,0,0">
+										<!-- Left: Missile generator buttons (bottom left of appearance section) -->
+										<StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Spacing="6" IsVisible="{Binding IsMissile}">
+											<Button Content="Generate 90° directions" Command="{Binding GenerateMissileOrthogonalDirectionsCommand}" ToolTip.Tip="Prepare 1 direction first" FontSize="10" Padding="6,4"/>
+											<Button Content="Generate angled directions" Command="{Binding GenerateMissileDiagonalDirectionsCommand}" ToolTip.Tip="Prepare 1 direction first" FontSize="10" Padding="6,4"/>
+										</StackPanel>
+
+										<!-- Right: Controls (OB-style) -->
+										<StackPanel Spacing="6" HorizontalAlignment="Right">
 										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowFrameGroupSlider}">
 											<TextBlock Grid.Column="0" Text="Group:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
 											<Slider Grid.Column="1" Theme="{StaticResource FlatSliderTheme}" Minimum="0" Maximum="{Binding FrameGroupMaximum}" Value="{Binding SelectedFrameGroupIndex}" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="1"/>
@@ -262,8 +264,9 @@
 											</Button>
 										</Grid>
 									</StackPanel>
-								</StackPanel>
-							</Border>
+								</Grid>
+							</StackPanel>
+						</Border>
 
 							<!-- Patterns -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding HasPatterns}">

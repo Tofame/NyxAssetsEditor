@@ -943,6 +943,16 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool CanGenerateMissileOrthogonalDirections => GetMissileOrthogonalSourceDirection() != null;
 	public bool CanGenerateMissileDiagonalDirections => GetMissileDiagonalSourceDirection() != null;
 
+	private bool DirectionHasSprites(ThingFrameGroup fg, uint px, uint py)
+	{
+		for (uint f = 0; f < fg.Frames; f++)
+		{
+			if (fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, f) > 0)
+				return true;
+		}
+		return false;
+	}
+
 	private Direction8? GetMissileOrthogonalSourceDirection()
 	{
 		if (!IsMissile) return null;
@@ -953,8 +963,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		foreach (var dir in orthos)
 		{
 			var (px, py) = MissileDirectionPatterns.GetPattern(dir);
-			var spriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, (uint)SelectedFrame);
-			if (spriteId > 0)
+			if (DirectionHasSprites(fg, px, py))
 			{
 				count++;
 				source = dir;
@@ -973,8 +982,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		foreach (var dir in diags)
 		{
 			var (px, py) = MissileDirectionPatterns.GetPattern(dir);
-			var spriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, (uint)SelectedFrame);
-			if (spriteId > 0)
+			if (DirectionHasSprites(fg, px, py))
 			{
 				count++;
 				source = dir;
@@ -983,7 +991,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		return count == 1 ? source : null;
 	}
 
-	[RelayCommand]
+	[RelayCommand(CanExecute = nameof(CanGenerateMissileOrthogonalDirections))]
 	private void GenerateMissileOrthogonalDirections()
 	{
 		var sourceDir = GetMissileOrthogonalSourceDirection();
@@ -991,7 +999,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		GenerateMissileRotations(sourceDir.Value, isOrthogonal: true);
 	}
 
-	[RelayCommand]
+	[RelayCommand(CanExecute = nameof(CanGenerateMissileDiagonalDirections))]
 	private void GenerateMissileDiagonalDirections()
 	{
 		var sourceDir = GetMissileDiagonalSourceDirection();
@@ -1007,13 +1015,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		var fg = CurrentFrameGroup;
 		var (srcPx, srcPy) = MissileDirectionPatterns.GetPattern(sourceDir);
-		var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, (uint)SelectedFrame);
-		if (srcSpriteId < 1) return;
-
-		byte[] srcRgba;
-		try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
-		catch { return; }
-		if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) return;
 
 		Direction8[] targets = isOrthogonal
 			? new[] { Direction8.North, Direction8.East, Direction8.South, Direction8.West }
@@ -1022,22 +1023,33 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		int sourceIdx = Array.IndexOf(targets, sourceDir);
 		if (sourceIdx < 0) return;
 
-		for (int i = 0; i < targets.Length; i++)
+		for (uint frame = 0; frame < fg.Frames; frame++)
 		{
-			if (i == sourceIdx) continue;
+			var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
+			if (srcSpriteId < 1) continue;
 
-			int rotSteps = (i - sourceIdx + 4) % 4;
-			byte[] rotatedRgba = RotateRgba90(srcRgba, rotSteps);
+			byte[] srcRgba;
+			try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
+			catch { continue; }
+			if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) continue;
 
-			var newId = linkedPanel.Loader.AddNewSprite();
-			linkedPanel.Loader.SetSpritePixels(newId, rotatedRgba);
-
-			var targetDir = targets[i];
-			var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
-			var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, (uint)SelectedFrame);
-			if (index < fg.SpriteIds.Length)
+			for (int i = 0; i < targets.Length; i++)
 			{
-				fg.SpriteIds[index] = newId;
+				if (i == sourceIdx) continue;
+
+				int rotSteps = (i - sourceIdx + 4) % 4;
+				byte[] rotatedRgba = RotateRgba90(srcRgba, rotSteps);
+
+				var newId = linkedPanel.Loader.AddNewSprite();
+				linkedPanel.Loader.SetSpritePixels(newId, rotatedRgba);
+
+				var targetDir = targets[i];
+				var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
+				var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, frame);
+				if (index < fg.SpriteIds.Length)
+				{
+					fg.SpriteIds[index] = newId;
+				}
 			}
 		}
 
@@ -1498,6 +1510,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(AppearancePixelHeight));
 		OnPropertyChanged(nameof(CanGenerateMissileOrthogonalDirections));
 		OnPropertyChanged(nameof(CanGenerateMissileDiagonalDirections));
+		GenerateMissileOrthogonalDirectionsCommand.NotifyCanExecuteChanged();
+		GenerateMissileDiagonalDirectionsCommand.NotifyCanExecuteChanged();
 		AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
 	}
 
