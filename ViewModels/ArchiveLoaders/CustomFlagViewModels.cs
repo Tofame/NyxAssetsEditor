@@ -204,10 +204,21 @@ public partial class EnumFlagViewModel : CustomFlagViewModelBase
 	public bool IsRadio { get; }
 	public bool IsDropdown => !IsRadio;
 
+	public const string NoneOption = "(None)";
+
 	public EnumFlagViewModel(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
 		: base(definition, editor)
 	{
-		Options = definition.Options ?? new List<string>();
+		var list = new List<string> { NoneOption };
+		if (definition.Options != null)
+		{
+			foreach (var opt in definition.Options)
+			{
+				if (!string.Equals(opt, NoneOption, StringComparison.OrdinalIgnoreCase))
+					list.Add(opt);
+			}
+		}
+		Options = list;
 		IsRadio = string.Equals(definition.GroupType, "radio", StringComparison.OrdinalIgnoreCase);
 	}
 
@@ -226,11 +237,15 @@ public partial class EnumFlagViewModel : CustomFlagViewModelBase
 				var matchDef = Options.FirstOrDefault(o => string.Equals(o, Definition.Default, StringComparison.OrdinalIgnoreCase));
 				if (matchDef != null) return matchDef;
 			}
-			return Options.Count > 0 ? Options[0] : null;
+			return NoneOption;
 		}
 		set
 		{
-			SetRawValue(value);
+			if (value == null || string.Equals(value, NoneOption, StringComparison.OrdinalIgnoreCase))
+				SetRawValue(null);
+			else
+				SetRawValue(value);
+
 			OnPropertyChanged();
 			OnPropertyChanged(nameof(SelectedIndex));
 		}

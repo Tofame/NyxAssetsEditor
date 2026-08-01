@@ -617,7 +617,7 @@
 																		<StackPanel Spacing="4">
 																			<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
 																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}" VerticalAlignment="Center" Width="120"/>
-																				<ComboBox ItemsSource="{Binding Options}" SelectedIndex="{Binding SelectedIndex}" Width="180" FontSize="11" Height="28"/>
+																				<ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" PlaceholderText="(None)" Width="180" FontSize="11" Height="28"/>
 																			</StackPanel>
 																			<StackPanel Spacing="4" IsVisible="{Binding IsRadio}">
 																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding LowUsageWarning}"/>

@@ -1,5 +1,4 @@
 # Master custom flag definitions for things.json format.
-# All DAT properties and JSON properties schema-defined with human readable labels and groups.
 # All default schema flags are locked by default. Edit this file or create a local flags_custom_override.toml to change.
 
 # --- Text & Metadata ---
@@ -21,11 +20,23 @@ type = "string"
 group = "metadata"
 locked = true
 
+[flag.plural]
+label = "Plural Name"
+type = "string"
+group = "metadata"
+locked = true
+
+[flag.runespellname]
+label = "Rune Spell Name"
+type = "string"
+group = "metadata"
+locked = true
+
 [groups.metadata]
 label = "Metadata"
 order = 1
 
-# --- Classification / Types ---
+# --- Classification & Equipment Types ---
 [flag.isContainer]
 label = "Container"
 type = "bool"
@@ -44,9 +55,90 @@ type = "bool"
 group = "classification"
 locked = true
 
+[flag.fluidsource]
+label = "Fluid Source"
+type = "enum"
+options = ["water", "blood", "beer", "slime", "lemonade", "milk", "mana", "life", "oil", "urine", "coconut", "wine", "mud", "fruitjuice", "lava", "rum", "swamp", "tea", "mead"]
+group = "classification"
+locked = true
+
+[flag.corpsetype]
+label = "Corpse Type"
+type = "enum"
+options = ["venom", "blood", "undead", "fire", "energy"]
+group = "classification"
+locked = true
+
+[flag.weapontype]
+label = "Weapon Type"
+type = "enum"
+options = ["sword", "club", "axe", "shield", "distance", "wand", "ammunition"]
+group = "classification"
+locked = true
+
+[flag.slottype]
+label = "Slot Type"
+type = "enum"
+options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "two-handed", "legs", "feet", "ring", "ammo"]
+group = "classification"
+locked = true
+
 [groups.classification]
-label = "Classification"
+label = "Classification & Types"
 order = 2
+
+# --- Combat & Stats (items.xml) ---
+[flag.armor]
+label = "Armor"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.defense]
+label = "Defense"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.extradef]
+label = "Extra Defense"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.attack]
+label = "Attack"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.attackspeed]
+label = "Attack Speed (ms)"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.weight]
+label = "Weight (cap)"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.range]
+label = "Range"
+type = "int"
+group = "stats"
+locked = true
+
+[flag.hitchance]
+label = "Hit Chance (%)"
+type = "int"
+group = "stats"
+locked = true
+
+[groups.stats]
+label = "Combat & Item Stats"
+order = 3
 
 # --- Item Usage & Movement ---
 [flag.pickupable]
@@ -97,9 +189,27 @@ type = "bool"
 group = "interaction"
 locked = true
 
+[flag.containersize]
+label = "Container Size"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.decayto]
+label = "Decay To (Item ID)"
+type = "int"
+group = "interaction"
+locked = true
+
+[flag.duration]
+label = "Duration (sec)"
+type = "int"
+group = "interaction"
+locked = true
+
 [groups.interaction]
 label = "Usage & Interaction"
-order = 3
+order = 4
 
 # --- Physics & Collision ---
 [flag.isUnpassable]
@@ -129,13 +239,13 @@ locked = true
 [flag.floorchange]
 label = "Floor Change"
 type = "enum"
-options = ["up", "down", "north", "south", "east", "west"]
+options = ["down", "north", "south", "southalt", "west", "east", "eastalt"]
 group = "physics"
 locked = true
 
 [groups.physics]
 label = "Physics & Collision"
-order = 4
+order = 5
 
 # --- Rendering & Visual Hooks ---
 [flag.isHorizontal]
@@ -194,4 +304,4 @@ locked = true
 
 [groups.rendering]
 label = "Rendering & Placement"
-order = 5
+order = 6
