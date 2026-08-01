@@ -297,6 +297,7 @@ public class FlagGroupViewModel : ViewModelBase
 	public ObservableCollection<CustomFlagViewModelBase> Flags { get; } = new();
 
 	public bool IsStats => GroupKey.Equals("stats", StringComparison.OrdinalIgnoreCase);
+	public bool IsClassification => GroupKey.Equals("classification", StringComparison.OrdinalIgnoreCase);
 
 	public FlagGroupViewModel(string key, string label, int order)
 	{

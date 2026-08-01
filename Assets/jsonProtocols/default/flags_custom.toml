@@ -116,6 +116,44 @@ type = "string"
 group = "classification"
 locked = true
 
+# Magic Field Properties (Special Sub-Window)
+[flag."field.value"]
+label = "Field Value / Type"
+type = "enum"
+options = ["fire", "poison", "energy", "drown"]
+group = "field_properties"
+locked = true
+
+[flag."field.count"]
+label = "Field Damage Count"
+type = "int"
+group = "field_properties"
+locked = true
+
+[flag."field.damage"]
+label = "Field Periodic Damage"
+type = "int"
+group = "field_properties"
+locked = true
+
+[flag."field.initdamage"]
+label = "Field Initial Damage"
+type = "int"
+group = "field_properties"
+locked = true
+
+[flag."field.start"]
+label = "Field Start Ticks"
+type = "int"
+group = "field_properties"
+locked = true
+
+[flag."field.ticks"]
+label = "Field Tick Interval (ms)"
+type = "int"
+group = "field_properties"
+locked = true
+
 [groups.classification]
 label = "Classification & Types"
 order = 2

@@ -2030,6 +2030,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public ObservableCollection<CustomFlagViewModelBase> LeechFlags { get; } = new();
 	public ObservableCollection<CustomFlagViewModelBase> HealthManaFlags { get; } = new();
 	public ObservableCollection<CustomFlagViewModelBase> SuppressionsFlags { get; } = new();
+	public ObservableCollection<CustomFlagViewModelBase> FieldFlags { get; } = new();
 
 	private bool _showSkillsModal;
 	public bool ShowSkillsModal
@@ -2073,6 +2074,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _showSuppressionsModal, value);
 	}
 
+	private bool _showFieldModal;
+	public bool ShowFieldModal
+	{
+		get => _showFieldModal;
+		set => SetProperty(ref _showFieldModal, value);
+	}
+
 	[RelayCommand] public void OpenSkillsModal() => ShowSkillsModal = true;
 	[RelayCommand] public void CloseSkillsModal() => ShowSkillsModal = false;
 
@@ -2090,6 +2098,9 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	[RelayCommand] public void OpenSuppressionsModal() => ShowSuppressionsModal = true;
 	[RelayCommand] public void CloseSuppressionsModal() => ShowSuppressionsModal = false;
+
+	[RelayCommand] public void OpenFieldModal() => ShowFieldModal = true;
+	[RelayCommand] public void CloseFieldModal() => ShowFieldModal = false;
 
 	// Flag Creator Modal State
 	private bool _showFlagCreatorModal;
@@ -2392,6 +2403,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		LeechFlags.Clear();
 		HealthManaFlags.Clear();
 		SuppressionsFlags.Clear();
+		FieldFlags.Clear();
 
 		foreach (var g in groupMap.Values.OrderBy(g => g.Order).ThenBy(g => g.Label))
 		{
@@ -2418,6 +2430,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			else if (g.GroupKey.Equals("suppressions_condition", StringComparison.OrdinalIgnoreCase))
 			{
 				foreach (var f in g.Flags) SuppressionsFlags.Add(f);
+			}
+			else if (g.GroupKey.Equals("field_properties", StringComparison.OrdinalIgnoreCase))
+			{
+				foreach (var f in g.Flags) FieldFlags.Add(f);
 			}
 			else
 			{
