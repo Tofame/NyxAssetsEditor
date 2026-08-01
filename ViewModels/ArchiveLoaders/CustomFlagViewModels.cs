@@ -21,6 +21,22 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 	public string FlagType => Definition.Type;
 	public bool IsLocked => Definition.Locked;
 
+	public ObservableCollection<CustomFlagViewModelBase> ChildFlags { get; } = new();
+	public bool HasChildFlags => ChildFlags.Count > 0;
+
+	private bool _showChildModal;
+	public bool ShowChildModal
+	{
+		get => _showChildModal;
+		set => SetProperty(ref _showChildModal, value);
+	}
+
+	[RelayCommand]
+	public void OpenChildModal() => ShowChildModal = true;
+
+	[RelayCommand]
+	public void CloseChildModal() => ShowChildModal = false;
+
 	public int UsageCount => Editor.GetFlagUsageCount(Name);
 	public bool CanDelete => !IsLocked && UsageCount <= 1;
 

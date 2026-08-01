@@ -586,6 +586,14 @@ locked = true
 [flag.containersize]
 label = "Container Size"
 type = "int"
+parent = "isContainer"
+group = "interaction"
+locked = true
+
+[flag.max-slots]
+label = "Max Slots"
+type = "int"
+parent = "isContainer"
 group = "interaction"
 locked = true
 

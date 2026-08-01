@@ -2337,12 +2337,25 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		// Build schema-defined flag groups
 		var schemaKeys = new HashSet<string>(StringComparer.Ordinal);
 		var groupMap = new Dictionary<string, FlagGroupViewModel>(StringComparer.Ordinal);
+		var flagVmMap = new Dictionary<string, CustomFlagViewModelBase>(StringComparer.OrdinalIgnoreCase);
 
 		foreach (var def in _customSchema.Flags)
 		{
 			schemaKeys.Add(def.Name);
-			string groupKey = def.Group ?? "_default";
 
+			CustomFlagViewModelBase flagVm = def.Type.ToLowerInvariant() switch
+			{
+				"int" => new IntFlagViewModel(def, this),
+				"string" => new StringFlagViewModel(def, this),
+				"enum" => new EnumFlagViewModel(def, this),
+				_ => new BoolFlagViewModel(def, this),
+			};
+			flagVmMap[def.Name] = flagVm;
+
+			if (!string.IsNullOrEmpty(def.Parent))
+				continue; // Will be attached as child flag
+
+			string groupKey = def.Group ?? "_default";
 			if (!groupMap.TryGetValue(groupKey, out var groupVm))
 			{
 				string groupLabel;
@@ -2361,14 +2374,16 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				groupMap[groupKey] = groupVm;
 			}
 
-			CustomFlagViewModelBase flagVm = def.Type.ToLowerInvariant() switch
-			{
-				"int" => new IntFlagViewModel(def, this),
-				"string" => new StringFlagViewModel(def, this),
-				"enum" => new EnumFlagViewModel(def, this),
-				_ => new BoolFlagViewModel(def, this),
-			};
 			groupVm.Flags.Add(flagVm);
+		}
+
+		// Attach child flags to parent flag ViewModels
+		foreach (var def in _customSchema.Flags)
+		{
+			if (!string.IsNullOrEmpty(def.Parent) && flagVmMap.TryGetValue(def.Parent, out var parentVm) && flagVmMap.TryGetValue(def.Name, out var childVm))
+			{
+				parentVm.ChildFlags.Add(childVm);
+			}
 		}
 
 		SkillsFlags.Clear();

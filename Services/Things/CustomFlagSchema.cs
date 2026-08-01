@@ -14,6 +14,7 @@ public class CustomFlagDefinition
 	public string? Description { get; set; }
 	public string? Group { get; set; }
 	public string? GroupType { get; set; }
+	public string? Parent { get; set; }
 	public bool Locked { get; set; }
 	public List<string>? Options { get; set; }
 	public int? Min { get; set; }
@@ -42,6 +43,7 @@ public class CustomFlagsTomlFlagEntry
 	public string? description { get; set; }
 	public string? group { get; set; }
 	public string? group_type { get; set; }
+	public string? parent { get; set; }
 	public bool locked { get; set; }
 	public List<string>? options { get; set; }
 	public int? min { get; set; }
@@ -166,6 +168,7 @@ public static class CustomFlagSchemaLoader
 						Description = entry.description,
 						Group = entry.group,
 						GroupType = entry.group_type,
+						Parent = entry.parent,
 						Locked = entry.locked,
 						Options = entry.options,
 						Min = entry.min,
