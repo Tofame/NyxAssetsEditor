@@ -1,0 +1,167 @@
+# Master custom flag definitions for things.json format.
+# All DAT properties and JSON properties schema-defined with human readable labels and groups.
+
+# --- Text & Metadata ---
+[flag.name]
+label = "Name"
+type = "string"
+group = "metadata"
+
+[flag.article]
+label = "Article"
+type = "string"
+group = "metadata"
+
+[flag.description]
+label = "Description"
+type = "string"
+group = "metadata"
+
+[groups.metadata]
+label = "Metadata"
+order = 1
+
+# --- Classification / Types ---
+[flag.isContainer]
+label = "Container"
+type = "bool"
+group = "classification"
+
+[flag.isFluidContainer]
+label = "Fluid Container"
+type = "bool"
+group = "classification"
+
+[flag.isFluid]
+label = "Fluid"
+type = "bool"
+group = "classification"
+
+[groups.classification]
+label = "Classification"
+order = 2
+
+# --- Item Usage & Movement ---
+[flag.pickupable]
+label = "Pickupable"
+type = "bool"
+group = "interaction"
+
+[flag.usable]
+label = "Usable"
+type = "bool"
+group = "interaction"
+
+[flag.forceUse]
+label = "Force Use"
+type = "bool"
+group = "interaction"
+
+[flag.multiUse]
+label = "Multi Use"
+type = "bool"
+group = "interaction"
+
+[flag.rotatable]
+label = "Rotatable"
+type = "bool"
+group = "interaction"
+
+[flag.hangable]
+label = "Hangable"
+type = "bool"
+group = "interaction"
+
+[flag.wrappable]
+label = "Wrappable"
+type = "bool"
+group = "interaction"
+
+[flag.unwrappable]
+label = "Unwrappable"
+type = "bool"
+group = "interaction"
+
+[groups.interaction]
+label = "Usage & Interaction"
+order = 3
+
+# --- Physics & Collision ---
+[flag.isUnpassable]
+label = "Unpassable"
+type = "bool"
+group = "physics"
+
+[flag.isUnmoveable]
+label = "Unmoveable"
+type = "bool"
+group = "physics"
+
+[flag.blockMissile]
+label = "Block Missile"
+type = "bool"
+group = "physics"
+
+[flag.blockPathfind]
+label = "Block Pathfinder"
+type = "bool"
+group = "physics"
+
+[flag.floorChange]
+label = "Floor Change"
+type = "bool"
+group = "physics"
+
+[groups.physics]
+label = "Physics & Collision"
+order = 4
+
+# --- Rendering & Visual Hooks ---
+[flag.isHorizontal]
+label = "Hook East"
+type = "bool"
+group = "rendering"
+
+[flag.isVertical]
+label = "Hook South"
+type = "bool"
+group = "rendering"
+
+[flag.dontHide]
+label = "Don't Hide"
+type = "bool"
+group = "rendering"
+
+[flag.isTranslucent]
+label = "Translucent"
+type = "bool"
+group = "rendering"
+
+[flag.isLyingObject]
+label = "Lying Object"
+type = "bool"
+group = "rendering"
+
+[flag.isFullGround]
+label = "Full Ground"
+type = "bool"
+group = "rendering"
+
+[flag.noMoveAnimation]
+label = "No Move Animation"
+type = "bool"
+group = "rendering"
+
+[flag.ignoreLook]
+label = "Ignore Look"
+type = "bool"
+group = "rendering"
+
+[flag.bottomEffect]
+label = "Top Effect"
+type = "bool"
+group = "rendering"
+
+[groups.rendering]
+label = "Rendering & Placement"
+order = 5

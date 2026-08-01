@@ -11,6 +11,7 @@ using NyxAssets.Sprites;
 using NyxAssets.Things;
 using NyxAssets.Things.Frames;
 using NyxAssetsEditor.Services.Exchange;
+using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
@@ -236,6 +237,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_missileDirection = Direction8.South;
 
 		LoadProtocolFlags();
+		LoadCustomFlagSchema();
 		NotifyThingProperties();
 		if (!IsItem && _selectedTabIndex == 2)
 		{
@@ -2009,8 +2011,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowDontCenterOutfit => DatVersion >= DatVersionFormat.V5;
 	public bool ShowUsable => DatVersion >= DatVersionFormat.V6;
 
-	public ObservableCollection<CustomFlagViewModel> CustomFlags { get; } = new();
-	private readonly System.Collections.Generic.HashSet<string> _possibleFlags = new();
+	public ObservableCollection<FlagGroupViewModel> CustomFlagGroups { get; } = new();
+	public ObservableCollection<AdHocFlagViewModel> AdHocFlags { get; } = new();
+	private readonly HashSet<string> _adHocFlagNames = new(StringComparer.Ordinal);
+	private CustomFlagSchema _customSchema = new();
 	private string _newFlagName = string.Empty;
 
 	public string NewFlagName
@@ -2019,57 +2023,273 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _newFlagName, value);
 	}
 
+	// Flag Creator Modal State
+	private bool _showFlagCreatorModal;
+	public bool ShowFlagCreatorModal
+	{
+		get => _showFlagCreatorModal;
+		set => SetProperty(ref _showFlagCreatorModal, value);
+	}
+
+	private string _creatorKey = string.Empty;
+	public string CreatorKey
+	{
+		get => _creatorKey;
+		set => SetProperty(ref _creatorKey, value);
+	}
+
+	private string _creatorLabel = string.Empty;
+	public string CreatorLabel
+	{
+		get => _creatorLabel;
+		set => SetProperty(ref _creatorLabel, value);
+	}
+
+	private int _creatorTypeIndex;
+	public int CreatorTypeIndex
+	{
+		get => _creatorTypeIndex;
+		set
+		{
+			if (SetProperty(ref _creatorTypeIndex, value))
+			{
+				OnPropertyChanged(nameof(IsCreatorTypeInt));
+				OnPropertyChanged(nameof(IsCreatorTypeEnum));
+			}
+		}
+	}
+
+	public bool IsCreatorTypeInt => CreatorTypeIndex == 1;
+	public bool IsCreatorTypeEnum => CreatorTypeIndex == 3 || CreatorTypeIndex == 4;
+
+	private string _creatorGroup = "Custom Flags";
+	public string CreatorGroup
+	{
+		get => _creatorGroup;
+		set => SetProperty(ref _creatorGroup, value);
+	}
+
+	private string _creatorDefault = string.Empty;
+	public string CreatorDefault
+	{
+		get => _creatorDefault;
+		set => SetProperty(ref _creatorDefault, value);
+	}
+
+	private int _creatorMin;
+	public int CreatorMin
+	{
+		get => _creatorMin;
+		set => SetProperty(ref _creatorMin, value);
+	}
+
+	private int _creatorMax = 100;
+	public int CreatorMax
+	{
+		get => _creatorMax;
+		set => SetProperty(ref _creatorMax, value);
+	}
+
+	private string _creatorOptionsRaw = string.Empty;
+	public string CreatorOptionsRaw
+	{
+		get => _creatorOptionsRaw;
+		set => SetProperty(ref _creatorOptionsRaw, value);
+	}
+
 	[RelayCommand]
-	public void AddCustomFlag()
+	public void OpenFlagCreator()
+	{
+		CreatorKey = string.Empty;
+		CreatorLabel = string.Empty;
+		CreatorTypeIndex = 0;
+		CreatorGroup = "Custom Flags";
+		CreatorDefault = string.Empty;
+		CreatorMin = 0;
+		CreatorMax = 100;
+		CreatorOptionsRaw = string.Empty;
+		ShowFlagCreatorModal = true;
+	}
+
+	[RelayCommand]
+	public void CloseFlagCreator()
+	{
+		ShowFlagCreatorModal = false;
+	}
+
+	[RelayCommand]
+	public void SaveFlagDefinition()
+	{
+		if (string.IsNullOrWhiteSpace(CreatorKey)) return;
+		string key = CreatorKey.Trim();
+
+		string flagType = CreatorTypeIndex switch
+		{
+			1 => "int",
+			2 => "string",
+			3 => "enum",
+			4 => "enum",
+			_ => "bool",
+		};
+
+		string groupType = CreatorTypeIndex == 4 ? "radio" : "dropdown";
+		string groupKey = CreatorGroup.Trim().ToLowerInvariant().Replace(' ', '_');
+
+		var optionsList = IsCreatorTypeEnum
+			? CreatorOptionsRaw.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+			: null;
+
+		var def = new CustomFlagDefinition
+		{
+			Name = key,
+			Label = string.IsNullOrWhiteSpace(CreatorLabel) ? key : CreatorLabel.Trim(),
+			Type = flagType,
+			Group = groupKey,
+			GroupType = groupType,
+			Default = string.IsNullOrWhiteSpace(CreatorDefault) ? null : CreatorDefault.Trim(),
+			Min = IsCreatorTypeInt ? CreatorMin : null,
+			Max = IsCreatorTypeInt ? CreatorMax : null,
+			Options = optionsList,
+		};
+
+		string? archivePath = SourcePanel.FilePath;
+		if (archivePath == "No things loaded") archivePath = null;
+		string versionDirName = DatVersion.ToString().ToLowerInvariant();
+
+		CustomFlagSchemaLoader.SaveDefinition(archivePath, versionDirName, def, CreatorGroup.Trim());
+
+		// Assign default value if set
+		if (!string.IsNullOrEmpty(def.Default))
+		{
+			Thing.ExtraProperties[key] = def.Default;
+			ApplyToCatalog();
+		}
+
+		ShowFlagCreatorModal = false;
+		LoadCustomFlagSchema();
+		RefreshCustomFlags();
+	}
+
+	private int _newFlagTypeIndex;
+	public int NewFlagTypeIndex
+	{
+		get => _newFlagTypeIndex;
+		set => SetProperty(ref _newFlagTypeIndex, value);
+	}
+
+	[RelayCommand]
+	public void AddAdHocFlag()
 	{
 		if (string.IsNullOrWhiteSpace(NewFlagName)) return;
 		string name = NewFlagName.Trim();
-		if (!_possibleFlags.Contains(name))
+		if (_customSchema.Flags.Any(f => f.Name == name)) return;
+		if (!_adHocFlagNames.Contains(name))
 		{
-			_possibleFlags.Add(name);
-			CustomFlags.Add(new CustomFlagViewModel(name, this));
+			_adHocFlagNames.Add(name);
+			AdHocFlags.Add(new AdHocFlagViewModel(name, this, NewFlagTypeIndex));
 		}
-		Thing.ExtraProperties[name] = "true";
+		string defaultValue = NewFlagTypeIndex switch
+		{
+			1 => "0",
+			2 => "",
+			_ => "true",
+		};
+		if (!string.IsNullOrEmpty(defaultValue))
+			Thing.ExtraProperties[name] = defaultValue;
 		NewFlagName = string.Empty;
 		ApplyToCatalog();
 	}
 
-	public void RemoveCustomFlag(string flagName)
+	public void RemoveAdHocFlag(string flagName)
 	{
-		_possibleFlags.Remove(flagName);
-		var vm = CustomFlags.FirstOrDefault(f => f.Name == flagName);
-		if (vm != null) CustomFlags.Remove(vm);
+		_adHocFlagNames.Remove(flagName);
+		var vm = AdHocFlags.FirstOrDefault(f => f.Name == flagName);
+		if (vm != null) AdHocFlags.Remove(vm);
 		Thing.ExtraProperties.Remove(flagName);
 		ApplyToCatalog();
 	}
 
+	private void LoadCustomFlagSchema()
+	{
+		if (!IsJson) return;
+
+		string? archivePath = SourcePanel.FilePath;
+		if (archivePath == "No things loaded") archivePath = null;
+		string versionDirName = DatVersion.ToString().ToLowerInvariant();
+
+		_customSchema = CustomFlagSchemaLoader.Load(archivePath, versionDirName);
+	}
+
 	public void RefreshCustomFlags()
 	{
-		_possibleFlags.Clear();
-		CustomFlags.Clear();
-		if (IsJson && SourcePanel.Catalog != null)
+		CustomFlagGroups.Clear();
+		AdHocFlags.Clear();
+		_adHocFlagNames.Clear();
+
+		if (!IsJson) return;
+
+		// Build schema-defined flag groups
+		var schemaKeys = new HashSet<string>(StringComparer.Ordinal);
+		var groupMap = new Dictionary<string, FlagGroupViewModel>(StringComparer.Ordinal);
+
+		foreach (var def in _customSchema.Flags)
+		{
+			schemaKeys.Add(def.Name);
+			string groupKey = def.Group ?? "_default";
+
+			if (!groupMap.TryGetValue(groupKey, out var groupVm))
+			{
+				string groupLabel;
+				int groupOrder;
+				if (_customSchema.Groups.TryGetValue(groupKey, out var gDef))
+				{
+					groupLabel = gDef.Label;
+					groupOrder = gDef.Order;
+				}
+				else
+				{
+					groupLabel = groupKey == "_default" ? "Custom Flags" : groupKey;
+					groupOrder = groupKey == "_default" ? 999 : 500;
+				}
+				groupVm = new FlagGroupViewModel(groupKey, groupLabel, groupOrder);
+				groupMap[groupKey] = groupVm;
+			}
+
+			CustomFlagViewModelBase flagVm = def.Type.ToLowerInvariant() switch
+			{
+				"int" => new IntFlagViewModel(def, this),
+				"string" => new StringFlagViewModel(def, this),
+				"enum" => new EnumFlagViewModel(def, this),
+				_ => new BoolFlagViewModel(def, this),
+			};
+			groupVm.Flags.Add(flagVm);
+		}
+
+		foreach (var g in groupMap.Values.OrderBy(g => g.Order).ThenBy(g => g.Label))
+			CustomFlagGroups.Add(g);
+
+		// Build ad-hoc flags: ExtraProperties keys not covered by schema
+		if (SourcePanel.Catalog != null)
 		{
 			foreach (var t in SourcePanel.Catalog.EnumerateItems())
 				foreach (var key in t.ExtraProperties.Keys)
-					_possibleFlags.Add(key);
+					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
 			foreach (var t in SourcePanel.Catalog.EnumerateOutfits())
 				foreach (var key in t.ExtraProperties.Keys)
-					_possibleFlags.Add(key);
+					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
 			foreach (var t in SourcePanel.Catalog.EnumerateEffects())
 				foreach (var key in t.ExtraProperties.Keys)
-					_possibleFlags.Add(key);
+					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
 			foreach (var t in SourcePanel.Catalog.EnumerateMissiles())
 				foreach (var key in t.ExtraProperties.Keys)
-					_possibleFlags.Add(key);
-
-			foreach (var key in Thing.ExtraProperties.Keys)
-				_possibleFlags.Add(key);
-
-			foreach (var flag in _possibleFlags.OrderBy(f => f))
-			{
-				CustomFlags.Add(new CustomFlagViewModel(flag, this));
-			}
+					if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
 		}
+
+		foreach (var key in Thing.ExtraProperties.Keys)
+			if (!schemaKeys.Contains(key)) _adHocFlagNames.Add(key);
+
+		foreach (var name in _adHocFlagNames.OrderBy(f => f))
+			AdHocFlags.Add(new AdHocFlagViewModel(name, this));
 	}
 
 	public uint GetSpriteIdAtSlot(NyxAssetsEditor.Services.Rendering.ThingAppearanceSlot slot)
@@ -2520,41 +2740,3 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	};
 }
 
-public partial class CustomFlagViewModel : ViewModelBase
-{
-	private readonly string _name;
-	private readonly FloatingThingEditorViewModel _editor;
-
-	public string Name => _name;
-
-	public bool IsChecked
-	{
-		get => _editor.Thing.ExtraProperties.ContainsKey(_name) && 
-			   _editor.Thing.ExtraProperties[_name].Equals("true", StringComparison.OrdinalIgnoreCase);
-		set
-		{
-			if (value)
-			{
-				_editor.Thing.ExtraProperties[_name] = "true";
-			}
-			else
-			{
-				_editor.Thing.ExtraProperties.Remove(_name);
-			}
-			OnPropertyChanged();
-			_editor.RequestApplyToCatalog();
-		}
-	}
-
-	public CustomFlagViewModel(string name, FloatingThingEditorViewModel editor)
-	{
-		_name = name;
-		_editor = editor;
-	}
-
-	[RelayCommand]
-	private void Remove()
-	{
-		_editor.RemoveCustomFlag(_name);
-	}
-}

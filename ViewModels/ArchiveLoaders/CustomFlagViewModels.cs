@@ -1,0 +1,316 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NyxAssets.Things;
+using NyxAssetsEditor.Services.Things;
+using NyxAssetsEditor.ViewModels.Core;
+
+namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
+
+public abstract class CustomFlagViewModelBase : ViewModelBase
+{
+	protected readonly FloatingThingEditorViewModel Editor;
+	protected readonly CustomFlagDefinition Definition;
+
+	public string Name => Definition.Name;
+	public string Label => Definition.Label;
+	public string? Description => Definition.Description;
+	public string FlagType => Definition.Type;
+
+	protected CustomFlagViewModelBase(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
+	{
+		Definition = definition;
+		Editor = editor;
+	}
+
+	private static readonly Dictionary<string, System.Reflection.PropertyInfo> PropertyMap =
+		typeof(ThingType).GetProperties()
+			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.Ordinal);
+
+	protected string? GetRawValue()
+	{
+		if (PropertyMap.TryGetValue(Name, out var prop))
+		{
+			var val = prop.GetValue(Editor.Thing);
+			if (val == null) return null;
+			if (val is bool b) return b ? "true" : "false";
+			return val.ToString();
+		}
+
+		Editor.Thing.ExtraProperties.TryGetValue(Name, out var extraVal);
+		return extraVal;
+	}
+
+	protected void SetRawValue(string? value)
+	{
+		if (PropertyMap.TryGetValue(Name, out var prop) && prop.CanWrite)
+		{
+			if (prop.PropertyType == typeof(bool))
+			{
+				bool b = value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+				prop.SetValue(Editor.Thing, b);
+			}
+			else if (prop.PropertyType == typeof(uint) && uint.TryParse(value, out var u))
+			{
+				prop.SetValue(Editor.Thing, u);
+			}
+			else if (prop.PropertyType == typeof(int) && int.TryParse(value, out var i))
+			{
+				prop.SetValue(Editor.Thing, i);
+			}
+			else if (prop.PropertyType == typeof(string))
+			{
+				prop.SetValue(Editor.Thing, value);
+			}
+			Editor.RequestApplyToCatalog();
+			return;
+		}
+
+		if (value == null)
+			Editor.Thing.ExtraProperties.Remove(Name);
+		else
+			Editor.Thing.ExtraProperties[Name] = value;
+		Editor.RequestApplyToCatalog();
+	}
+
+	public abstract void Refresh();
+}
+
+public partial class BoolFlagViewModel : CustomFlagViewModelBase
+{
+	public BoolFlagViewModel(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
+		: base(definition, editor) { }
+
+	public bool IsChecked
+	{
+		get
+		{
+			var raw = GetRawValue();
+			if (raw != null) return raw.Equals("true", StringComparison.OrdinalIgnoreCase);
+			return Definition.Default?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+		}
+		set
+		{
+			if (value)
+				SetRawValue("true");
+			else
+				Editor.Thing.ExtraProperties.Remove(Name);
+			OnPropertyChanged();
+			Editor.RequestApplyToCatalog();
+		}
+	}
+
+	public override void Refresh() => OnPropertyChanged(nameof(IsChecked));
+}
+
+public partial class IntFlagViewModel : CustomFlagViewModelBase
+{
+	public decimal MinValue { get; }
+	public decimal MaxValue { get; }
+
+	public IntFlagViewModel(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
+		: base(definition, editor)
+	{
+		MinValue = definition.Min ?? 0;
+		MaxValue = definition.Max ?? int.MaxValue;
+	}
+
+	public decimal? Value
+	{
+		get
+		{
+			var raw = GetRawValue();
+			if (raw != null && int.TryParse(raw, out var v)) return Math.Clamp(v, (int)MinValue, (int)MaxValue);
+			if (Definition.Default != null && int.TryParse(Definition.Default, out var d)) return Math.Clamp(d, (int)MinValue, (int)MaxValue);
+			return MinValue;
+		}
+		set
+		{
+			int clamped = Math.Clamp((int)(value ?? MinValue), (int)MinValue, (int)MaxValue);
+			SetRawValue(clamped.ToString());
+			OnPropertyChanged();
+		}
+	}
+
+	public override void Refresh() => OnPropertyChanged(nameof(Value));
+}
+
+public partial class StringFlagViewModel : CustomFlagViewModelBase
+{
+	public StringFlagViewModel(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
+		: base(definition, editor) { }
+
+	public string Value
+	{
+		get => GetRawValue() ?? Definition.Default ?? string.Empty;
+		set
+		{
+			if (string.IsNullOrEmpty(value))
+				SetRawValue(null);
+			else
+				SetRawValue(value);
+			OnPropertyChanged();
+		}
+	}
+
+	public override void Refresh() => OnPropertyChanged(nameof(Value));
+}
+
+public partial class EnumFlagViewModel : CustomFlagViewModelBase
+{
+	public List<string> Options { get; }
+	public bool IsRadio { get; }
+	public bool IsDropdown => !IsRadio;
+
+	public EnumFlagViewModel(CustomFlagDefinition definition, FloatingThingEditorViewModel editor)
+		: base(definition, editor)
+	{
+		Options = definition.Options ?? new List<string>();
+		IsRadio = string.Equals(definition.GroupType, "radio", StringComparison.OrdinalIgnoreCase);
+	}
+
+	public string? SelectedOption
+	{
+		get
+		{
+			var raw = GetRawValue();
+			if (raw != null && Options.Contains(raw)) return raw;
+			if (Definition.Default != null && Options.Contains(Definition.Default)) return Definition.Default;
+			return Options.Count > 0 ? Options[0] : null;
+		}
+		set
+		{
+			SetRawValue(value);
+			OnPropertyChanged();
+			OnPropertyChanged(nameof(SelectedIndex));
+		}
+	}
+
+	public int SelectedIndex
+	{
+		get
+		{
+			var sel = SelectedOption;
+			if (sel == null) return -1;
+			return Options.IndexOf(sel);
+		}
+		set
+		{
+			if (value >= 0 && value < Options.Count)
+				SelectedOption = Options[value];
+		}
+	}
+
+	public override void Refresh()
+	{
+		OnPropertyChanged(nameof(SelectedOption));
+		OnPropertyChanged(nameof(SelectedIndex));
+	}
+}
+
+public class FlagGroupViewModel : ViewModelBase
+{
+	public string GroupKey { get; }
+	public string Label { get; }
+	public int Order { get; }
+	public ObservableCollection<CustomFlagViewModelBase> Flags { get; } = new();
+
+	public FlagGroupViewModel(string key, string label, int order)
+	{
+		GroupKey = key;
+		Label = label;
+		Order = order;
+	}
+}
+
+public partial class AdHocFlagViewModel : ViewModelBase
+{
+	private readonly string _name;
+	private readonly FloatingThingEditorViewModel _editor;
+
+	public string Name => _name;
+
+	private int _typeIndex;
+	public int TypeIndex
+	{
+		get => _typeIndex;
+		set
+		{
+			if (SetProperty(ref _typeIndex, value))
+			{
+				OnPropertyChanged(nameof(IsBool));
+				OnPropertyChanged(nameof(IsInt));
+				OnPropertyChanged(nameof(IsString));
+			}
+		}
+	}
+
+	public bool IsBool => TypeIndex == 0;
+	public bool IsInt => TypeIndex == 1;
+	public bool IsString => TypeIndex == 2;
+
+	public bool BoolValue
+	{
+		get => _editor.Thing.ExtraProperties.TryGetValue(_name, out var val) && val.Equals("true", StringComparison.OrdinalIgnoreCase);
+		set
+		{
+			if (value) _editor.Thing.ExtraProperties[_name] = "true";
+			else _editor.Thing.ExtraProperties.Remove(_name);
+			OnPropertyChanged();
+			_editor.RequestApplyToCatalog();
+		}
+	}
+
+	public decimal? IntValue
+	{
+		get
+		{
+			if (_editor.Thing.ExtraProperties.TryGetValue(_name, out var val) && int.TryParse(val, out var v)) return v;
+			return 0;
+		}
+		set
+		{
+			_editor.Thing.ExtraProperties[_name] = ((int)(value ?? 0)).ToString();
+			OnPropertyChanged();
+			_editor.RequestApplyToCatalog();
+		}
+	}
+
+	public string StringValue
+	{
+		get => _editor.Thing.ExtraProperties.TryGetValue(_name, out var val) ? val : string.Empty;
+		set
+		{
+			if (string.IsNullOrEmpty(value)) _editor.Thing.ExtraProperties.Remove(_name);
+			else _editor.Thing.ExtraProperties[_name] = value;
+			OnPropertyChanged();
+			_editor.RequestApplyToCatalog();
+		}
+	}
+
+	public AdHocFlagViewModel(string name, FloatingThingEditorViewModel editor, int initialType = 0)
+	{
+		_name = name;
+		_editor = editor;
+		_typeIndex = initialType;
+
+		if (editor.Thing.ExtraProperties.TryGetValue(name, out var val))
+		{
+			if (val.Equals("true", StringComparison.OrdinalIgnoreCase) || val.Equals("false", StringComparison.OrdinalIgnoreCase))
+				_typeIndex = 0;
+			else if (int.TryParse(val, out _))
+				_typeIndex = 1;
+			else
+				_typeIndex = 2;
+		}
+	}
+
+	[RelayCommand]
+	private void Remove()
+	{
+		_editor.RemoveAdHocFlag(_name);
+	}
+}

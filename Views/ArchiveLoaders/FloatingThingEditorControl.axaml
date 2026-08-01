@@ -570,33 +570,123 @@
 								</StackPanel>
 							</Border>
 
-							<!-- JSON Custom Flags -->
-							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsJson}">
-								<StackPanel Spacing="8">
-									<TextBlock Text="JSON Custom Flags" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,6"/>
-									<!-- Add custom flag input -->
-									<Grid ColumnDefinitions="*, Auto" Margin="0,0,0,8">
-										<TextBox Grid.Column="0" Text="{Binding NewFlagName}" PlaceholderText="New flag name..." Height="28" Padding="6,4" FontSize="11" Background="#262626" BorderBrush="#3D3D3D"/>
-										<Button Grid.Column="1" Content="Add Flag" Command="{Binding AddCustomFlagCommand}" Margin="8,0,0,0" FontSize="11" Height="28" Padding="12,0" Background="#3A7BD5" Foreground="White"/>
-									</Grid>
+							<!-- JSON Schema-Defined Flags Header & Add Button -->
+							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsJson}" Margin="0,0,0,8">
+								<Grid ColumnDefinitions="*, Auto">
+									<StackPanel Grid.Column="0" VerticalAlignment="Center">
+										<TextBlock Text="Schema Flags" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
+										<TextBlock Text="Predefined typed &amp; grouped flags for JSON format" Foreground="#777" FontSize="10"/>
+									</StackPanel>
+									<Button Grid.Column="1" Content="+ Define New Flag Schema" Command="{Binding OpenFlagCreatorCommand}" FontSize="11" Height="28" Padding="12,0" Background="#3A7BD5" Foreground="White"/>
+								</Grid>
+							</Border>
 
-									<TextBlock Text="Possible Flags:" Foreground="#888" FontSize="11" Margin="0,4,0,2"/>
-									<Border Background="#262626" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Height="200">
-										<ScrollViewer>
-											<ItemsControl ItemsSource="{Binding CustomFlags}">
+							<ItemsControl ItemsSource="{Binding CustomFlagGroups}" IsVisible="{Binding IsJson}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:FlagGroupViewModel">
+									<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" Margin="0,0,0,8">
+										<StackPanel Spacing="6">
+											<TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,4"/>
+											<ItemsControl ItemsSource="{Binding Flags}">
 												<ItemsControl.ItemTemplate>
-													<DataTemplate x:DataType="vm:CustomFlagViewModel">
-														<Grid ColumnDefinitions="*, Auto" Margin="6,1">
-															<CheckBox Grid.Column="0" Content="{Binding Name}" IsChecked="{Binding IsChecked}" FontSize="11" VerticalAlignment="Center"/>
-															<Button Grid.Column="1" Content="Delete" Command="{Binding RemoveCommand}" FontSize="10" Background="#D9534F" Foreground="White" Padding="6,2" Height="20" VerticalAlignment="Center"/>
-														</Grid>
+													<DataTemplate x:DataType="vm:CustomFlagViewModelBase">
+														<ContentControl Content="{Binding}" Margin="0,2">
+															<ContentControl.DataTemplates>
+																<!-- Bool flag: ToggleSwitch -->
+																<DataTemplate DataType="vm:BoolFlagViewModel">
+																	<ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11"/>
+																</DataTemplate>
+																<!-- Int flag: label + NumericUpDown -->
+																<DataTemplate DataType="vm:IntFlagViewModel">
+																	<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+																		<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
+																		<NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/>
+																	</StackPanel>
+																</DataTemplate>
+																<!-- String flag: label + TextBox -->
+																<DataTemplate DataType="vm:StringFlagViewModel">
+																	<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+																		<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
+																		<TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/>
+																	</StackPanel>
+																</DataTemplate>
+																<!-- Enum flag: Dropdown or Radio Group -->
+																<DataTemplate DataType="vm:EnumFlagViewModel">
+																	<StackPanel Spacing="4">
+																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
+																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="120"/>
+																			<ComboBox ItemsSource="{Binding Options}" SelectedIndex="{Binding SelectedIndex}" Width="180" FontSize="11" Height="28"/>
+																		</StackPanel>
+																		<StackPanel Spacing="4" IsVisible="{Binding IsRadio}">
+																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="#AAA"/>
+																			<ItemsControl ItemsSource="{Binding Options}">
+																				<ItemsControl.ItemsPanel>
+																					<ItemsPanelTemplate>
+																						<WrapPanel Orientation="Horizontal"/>
+																					</ItemsPanelTemplate>
+																				</ItemsControl.ItemsPanel>
+																				<ItemsControl.ItemTemplate>
+																					<DataTemplate DataType="x:String">
+																						<RadioButton Content="{Binding}" GroupName="{Binding $parent[ItemsControl].DataContext.Name}" FontSize="11" Margin="0,0,12,4"/>
+																					</DataTemplate>
+																				</ItemsControl.ItemTemplate>
+																			</ItemsControl>
+																		</StackPanel>
+																	</StackPanel>
+																</DataTemplate>
+															</ContentControl.DataTemplates>
+														</ContentControl>
 													</DataTemplate>
 												</ItemsControl.ItemTemplate>
 											</ItemsControl>
-										</ScrollViewer>
+										</StackPanel>
 									</Border>
-								</StackPanel>
-							</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+
+						<!-- JSON Ad-hoc Flags -->
+						<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1" IsVisible="{Binding IsJson}">
+							<StackPanel Spacing="8">
+								<TextBlock Text="Ad-hoc Flags" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" Margin="0,0,0,6"/>
+								<!-- Add ad-hoc flag input with type selector -->
+								<Grid ColumnDefinitions="*, 110, Auto" Margin="0,0,0,8">
+									<TextBox Grid.Column="0" Text="{Binding NewFlagName}" PlaceholderText="New flag key..." Height="28" Padding="6,4" FontSize="11" Background="#262626" BorderBrush="#3D3D3D"/>
+									<ComboBox Grid.Column="1" SelectedIndex="{Binding NewFlagTypeIndex}" Margin="6,0,0,0" Height="28" FontSize="11" HorizontalAlignment="Stretch">
+										<ComboBoxItem Content="Boolean"/>
+										<ComboBoxItem Content="Integer"/>
+										<ComboBoxItem Content="String"/>
+									</ComboBox>
+									<Button Grid.Column="2" Content="Add Flag" Command="{Binding AddAdHocFlagCommand}" Margin="6,0,0,0" FontSize="11" Height="28" Padding="10,0" Background="#3A7BD5" Foreground="White"/>
+								</Grid>
+
+								<Border Background="#262626" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" MaxHeight="200" IsVisible="{Binding AdHocFlags.Count}">
+									<ScrollViewer>
+										<ItemsControl ItemsSource="{Binding AdHocFlags}">
+											<ItemsControl.ItemTemplate>
+												<DataTemplate x:DataType="vm:AdHocFlagViewModel">
+													<Grid ColumnDefinitions="*, Auto" Margin="6,3">
+														<!-- Bool -->
+														<CheckBox Grid.Column="0" Content="{Binding Name}" IsChecked="{Binding BoolValue}" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding IsBool}"/>
+														<!-- Int -->
+														<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsInt}">
+															<TextBlock Text="{Binding Name}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="110"/>
+															<NumericUpDown Value="{Binding IntValue}" Width="120" FontSize="11" Height="26"/>
+														</StackPanel>
+														<!-- String -->
+														<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsString}">
+															<TextBlock Text="{Binding Name}" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" Width="110"/>
+															<TextBox Text="{Binding StringValue}" Width="160" FontSize="11" Height="26" Padding="4,2" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+														</StackPanel>
+														<Button Grid.Column="1" Content="Delete" Command="{Binding RemoveCommand}" FontSize="10" Background="#D9534F" Foreground="White" Padding="6,2" Height="20" VerticalAlignment="Center"/>
+													</Grid>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+									</ScrollViewer>
+								</Border>
+							</StackPanel>
+						</Border>
 						</StackPanel>
 					</ScrollViewer>
 				</TabItem>
@@ -665,6 +755,75 @@
 						<Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
 							<Button Grid.Column="0" Content="Cancel" Command="{Binding CancelSetSpriteIdCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
 							<Button Grid.Column="1" Content="OK" Command="{Binding ConfirmSetSpriteIdCommand}" Background="#3A7BD5" Foreground="White" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,6"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+			</Border>
+
+			<!-- Flag Creator Modal Overlay -->
+			<Border Grid.RowSpan="3" Background="#C0000000" IsVisible="{Binding ShowFlagCreatorModal}" CornerRadius="8" ZIndex="200">
+				<Border Background="#252526" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="8" Padding="20" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 8 24 0 #9F000000">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Define New Flag Schema" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14" Margin="0,0,0,4"/>
+
+						<!-- Key -->
+						<StackPanel Spacing="4">
+							<TextBlock Text="Flag Key (ExtraProperties key):" FontSize="11" Foreground="#AAA"/>
+							<TextBox Text="{Binding CreatorKey}" PlaceholderText="e.g. max_level, article" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+						</StackPanel>
+
+						<!-- Label & Group in 2 cols -->
+						<Grid ColumnDefinitions="*, *">
+							<StackPanel Grid.Column="0" Spacing="4" Margin="0,0,6,0">
+								<TextBlock Text="Display Label:" FontSize="11" Foreground="#AAA"/>
+								<TextBox Text="{Binding CreatorLabel}" PlaceholderText="e.g. Maximum Level" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+							</StackPanel>
+							<StackPanel Grid.Column="1" Spacing="4" Margin="6,0,0,0">
+								<TextBlock Text="Group / Section:" FontSize="11" Foreground="#AAA"/>
+								<TextBox Text="{Binding CreatorGroup}" PlaceholderText="e.g. Text Properties" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+							</StackPanel>
+						</Grid>
+
+						<!-- Type Selector -->
+						<StackPanel Spacing="4">
+							<TextBlock Text="Flag Type:" FontSize="11" Foreground="#AAA"/>
+							<ComboBox SelectedIndex="{Binding CreatorTypeIndex}" HorizontalAlignment="Stretch" FontSize="11" Height="28">
+								<ComboBoxItem Content="Boolean (ToggleSwitch)"/>
+								<ComboBoxItem Content="Integer (NumericUpDown)"/>
+								<ComboBoxItem Content="String (TextBox)"/>
+								<ComboBoxItem Content="Enum (Dropdown)"/>
+								<ComboBoxItem Content="Enum (Radio Group)"/>
+							</ComboBox>
+						</StackPanel>
+
+						<!-- Default Value -->
+						<StackPanel Spacing="4">
+							<TextBlock Text="Default Value:" FontSize="11" Foreground="#AAA"/>
+							<TextBox Text="{Binding CreatorDefault}" PlaceholderText="e.g. true, 100, Fire" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+						</StackPanel>
+
+						<!-- Int specific bounds -->
+						<Grid ColumnDefinitions="*, *" IsVisible="{Binding IsCreatorTypeInt}">
+							<StackPanel Grid.Column="0" Spacing="4" Margin="0,0,6,0">
+								<TextBlock Text="Min Value:" FontSize="11" Foreground="#AAA"/>
+								<NumericUpDown Value="{Binding CreatorMin}" FontSize="11" Height="28"/>
+							</StackPanel>
+							<StackPanel Grid.Column="1" Spacing="4" Margin="6,0,0,0">
+								<TextBlock Text="Max Value:" FontSize="11" Foreground="#AAA"/>
+								<NumericUpDown Value="{Binding CreatorMax}" FontSize="11" Height="28"/>
+							</StackPanel>
+						</Grid>
+
+						<!-- Enum options list -->
+						<StackPanel Spacing="4" IsVisible="{Binding IsCreatorTypeEnum}">
+							<TextBlock Text="Enum Options (comma-separated):" FontSize="11" Foreground="#AAA"/>
+							<TextBox Text="{Binding CreatorOptionsRaw}" PlaceholderText="Fire, Ice, Energy, Earth" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+						</StackPanel>
+
+						<!-- Modal Buttons -->
+						<Grid ColumnDefinitions="*, *" Margin="0,12,0,0">
+							<Button Grid.Column="0" Content="Cancel" Command="{Binding CloseFlagCreatorCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,8" Background="#3D3D3D" Foreground="#E0E0E0"/>
+							<Button Grid.Column="1" Content="Save &amp; Define Flag" Command="{Binding SaveFlagDefinitionCommand}" Background="#3A7BD5" Foreground="White" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="0,8"/>
 						</Grid>
 					</StackPanel>
 				</Border>
