@@ -2191,17 +2191,17 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		void Check(ThingType t)
 		{
-			if (isProp && prop != null)
+			if (t.ExtraProperties.ContainsKey(flagName))
+			{
+				count++;
+			}
+			else if (isProp && prop != null)
 			{
 				var val = prop.GetValue(t);
 				if (val is bool b && b) count++;
 				else if (val is uint u && u > 0) count++;
 				else if (val is int i && i != 0) count++;
 				else if (val is string s && !string.IsNullOrEmpty(s)) count++;
-			}
-			else if (t.ExtraProperties.ContainsKey(flagName))
-			{
-				count++;
 			}
 		}
 
@@ -2216,6 +2216,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public void RemoveSchemaFlag(string flagName)
 	{
 		Thing.ExtraProperties.Remove(flagName);
+		if (PropertyMap.TryGetValue(flagName, out var prop) && prop.CanWrite)
+		{
+			if (prop.PropertyType == typeof(bool)) prop.SetValue(Thing, false);
+			else if (prop.PropertyType == typeof(uint)) prop.SetValue(Thing, 0u);
+			else if (prop.PropertyType == typeof(int)) prop.SetValue(Thing, 0);
+			else if (prop.PropertyType == typeof(string)) prop.SetValue(Thing, null);
+		}
 		ApplyToCatalog();
 		RefreshCustomFlags();
 	}

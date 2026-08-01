@@ -49,18 +49,54 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 		Editor = editor;
 	}
 
+	private static readonly Dictionary<string, System.Reflection.PropertyInfo> PropertyMap =
+		typeof(ThingType).GetProperties()
+			.ToDictionary(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..], p => p, StringComparer.Ordinal);
+
 	protected string? GetRawValue()
 	{
-		Editor.Thing.ExtraProperties.TryGetValue(Name, out var extraVal);
-		return extraVal;
+		if (Editor.Thing.ExtraProperties.TryGetValue(Name, out var extraVal))
+			return extraVal;
+
+		if (PropertyMap.TryGetValue(Name, out var prop))
+		{
+			var val = prop.GetValue(Editor.Thing);
+			if (val == null) return null;
+			if (val is bool b) return b ? "true" : "false";
+			return val.ToString();
+		}
+
+		return null;
 	}
 
 	protected void SetRawValue(string? value)
 	{
-		if (value == null)
-			Editor.Thing.ExtraProperties.Remove(Name);
-		else
+		Editor.Thing.ExtraProperties.Remove(Name);
+
+		if (PropertyMap.TryGetValue(Name, out var prop) && prop.CanWrite)
+		{
+			if (prop.PropertyType == typeof(bool))
+			{
+				bool b = value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+				prop.SetValue(Editor.Thing, b);
+			}
+			else if (prop.PropertyType == typeof(uint) && uint.TryParse(value, out var u))
+			{
+				prop.SetValue(Editor.Thing, u);
+			}
+			else if (prop.PropertyType == typeof(int) && int.TryParse(value, out var i))
+			{
+				prop.SetValue(Editor.Thing, i);
+			}
+			else if (prop.PropertyType == typeof(string))
+			{
+				prop.SetValue(Editor.Thing, value);
+			}
+		}
+
+		if (value != null)
 			Editor.Thing.ExtraProperties[Name] = value;
+
 		Editor.RequestApplyToCatalog();
 	}
 
