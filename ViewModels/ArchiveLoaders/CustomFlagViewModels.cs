@@ -16,7 +16,7 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 	protected readonly CustomFlagDefinition Definition;
 
 	public string Name => Definition.Name;
-	public string Label => Definition.Label;
+	public string Label => IsLowUsage ? $"{Definition.Label} 💀" : Definition.Label;
 	public string? Description => Definition.Description;
 	public string FlagType => Definition.Type;
 	public bool IsLocked => Definition.Locked;
@@ -26,7 +26,7 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 
 	public bool IsLowUsage => UsageCount >= 1 && UsageCount <= 10;
 	public string LowUsageWarning => IsLowUsage ? $"Flag may be redundant, it is not used in a lot of items (x{UsageCount})" : string.Empty;
-	public string LabelColor => IsLowUsage ? "#FFD54F" : "#AAA";
+	public string LabelColor => "#AAA";
 
 	public string DeleteTooltip
 	{
