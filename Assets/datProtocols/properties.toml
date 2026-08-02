@@ -1,0 +1,13 @@
+[properties]
+Light = { label = "Light", description = "Emits light with specified radius and color intensity." }
+Offset = { label = "Offset", description = "Visual rendering offset in X and Y pixels on screen." }
+Elevation = { label = "Elevation", description = "Height offset in pixels applied to items placed above ground." }
+Displacement = { label = "Displacement", description = "Custom drawing displacement coordinates (X, Y)." }
+LensHelp = { label = "Lens Help", description = "ID used for client-side help or inspect optical effects." }
+Market = { label = "Market Attributes", description = "Market category, trade status, required level, and vocation filters." }
+DefaultAction = { label = "Default Action", description = "Action triggered on double-click (e.g. use, open, look)." }
+GroundBorder = { label = "Ground Border", description = "Speed and alignment attributes for ground tiles." }
+Bottom = { label = "Bottom", description = "Topological draw order priority for bottom layer rendering." }
+Top = { label = "Top", description = "Topological draw order priority for top layer rendering." }
+MinimapColor = { label = "Minimap Color", description = "Color code displayed on automap/minimap." }
+Cloth = { label = "Equip Slot", description = "Equipment slot index where this item can be worn." }

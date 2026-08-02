@@ -1,17 +1,17 @@
 [flags]
-IsContainer = { id = 0x03, label = "Container" }
-ForceUse = { id = 0x06, label = "Force Use" }
-MultiUse = { id = 0x05, label = "Multi Use" }
-IsFluidContainer = { id = 0x09, label = "Fluid Container" }
-IsFluid = { id = 0x0A, label = "Fluid" }
-IsUnpassable = { id = 0x0B, label = "Unpassable" }
-IsUnmoveable = { id = 0x0C, label = "Unmoveable" }
-BlockMissile = { id = 0x0D, label = "Block Missile" }
-BlockPathfind = { id = 0x0E, label = "Block Pathfinder" }
-Pickupable = { id = 0x0F, label = "Pickupable" }
-Rotatable = { id = 0x17, label = "Rotatable" }
-IsLyingObject = { id = 0x18, label = "Lying Object" }
-IsFullGround = { id = 0x12, label = "Full Ground" }
-Wrappable = { id = 0x24, label = "Wrappable" }
-Unwrappable = { id = 0x25, label = "Unwrappable" }
-FloorChange = { id = 0x11, label = "Floor Change" }
+IsContainer = { id = 0x03, label = "Container", description = "Allows item to store other items inside inside container window." }
+ForceUse = { id = 0x06, label = "Force Use", description = "Forces use action even when right-clicking in non-usable context." }
+MultiUse = { id = 0x05, label = "Multi Use", description = "Requires target selection when used (e.g. rope, shovel, potion)." }
+IsFluidContainer = { id = 0x09, label = "Fluid Container", description = "Can hold liquid types such as water, wine, mana, or blood." }
+IsFluid = { id = 0x0A, label = "Fluid", description = "Represents pooled or splashable fluid on ground/containers." }
+IsUnpassable = { id = 0x0B, label = "Unpassable", description = "Blocks creatures and players from walking over tile/item." }
+IsUnmoveable = { id = 0x0C, label = "Unmoveable", description = "Prevents item from being moved or dragged by players." }
+BlockMissile = { id = 0x0D, label = "Block Missile", description = "Blocks distance attacks, arrows, and magic missiles." }
+BlockPathfind = { id = 0x0E, label = "Block Pathfinder", description = "Prevents map pathfinding algorithm from routing through tile." }
+Pickupable = { id = 0x0F, label = "Pickupable", description = "Can be moved into player inventory or container." }
+Rotatable = { id = 0x17, label = "Rotatable", description = "Can be rotated using context menu or rotate hotkey." }
+IsLyingObject = { id = 0x18, label = "Lying Object", description = "Renders object flat on the ground plane without height layer." }
+IsFullGround = { id = 0x12, label = "Full Ground", description = "Covers entire tile area as solid opaque ground surface." }
+Wrappable = { id = 0x24, label = "Wrappable", description = "Can be packaged or wrapped into a parcel/furniture kit." }
+Unwrappable = { id = 0x25, label = "Unwrappable", description = "Can be unwrapped from parcel or kit into placed object." }
+FloorChange = { id = 0x11, label = "Floor Change", description = "Triggers floor transition when walked on (stairs, hole, ladder)." }

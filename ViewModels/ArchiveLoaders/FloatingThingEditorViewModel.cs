@@ -93,6 +93,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	private Dictionary<string, string> _loadedFlags = new(StringComparer.Ordinal);
+	private Dictionary<string, string> _loadedFlagDescriptions = new(StringComparer.Ordinal);
+	private Dictionary<string, PropertyConfig> _loadedProperties = new(StringComparer.Ordinal);
 
 	public class FlagVisibilityMap
 	{
@@ -113,13 +115,45 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		public string this[string key] => _vm._loadedFlags.TryGetValue(key, out var label) ? label : (_defaults.TryGetValue(key, out var def) ? def : key);
 	}
 
+	public class FlagTooltipMap
+	{
+		private readonly FloatingThingEditorViewModel _vm;
+		public FlagTooltipMap(FloatingThingEditorViewModel vm) => _vm = vm;
+		public string? this[string key]
+		{
+			get
+			{
+				if (_vm._loadedFlagDescriptions.TryGetValue(key, out var desc) && !string.IsNullOrWhiteSpace(desc))
+					return desc;
+				if (_vm._loadedProperties.TryGetValue(key, out var p) && !string.IsNullOrWhiteSpace(p.description))
+					return p.description;
+				if (_defaultFlagDescriptions.TryGetValue(key, out var defDesc))
+					return defDesc;
+				return null;
+			}
+		}
+	}
+
 	public FlagVisibilityMap FlagVisibility => new(this);
 	public FlagLabelMap FlagLabel => new(this, _defaultLabels);
+	public FlagTooltipMap FlagTooltip => new(this);
 
 	public class FlagConfig
 	{
 		public byte id { get; set; }
 		public string? label { get; set; }
+		public string? description { get; set; }
+	}
+
+	public class PropertyConfig
+	{
+		public string? label { get; set; }
+		public string? description { get; set; }
+	}
+
+	public class PropertiesTomlModel
+	{
+		public Dictionary<string, PropertyConfig>? properties { get; set; }
 	}
 
 	public class FlagsTomlModel
@@ -198,6 +232,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_promptTcs?.SetResult(PromptResult.Cancel);
 	}
 
+	public bool ShowInformationBoxes => SettingsViewModel.ShowInformationBoxes;
+
 	public FloatingThingEditorViewModel(FloatingThingsLoaderViewModel source, ThingType thing, bool useDetachedThing = false)
 	{
 		SourcePanel = source;
@@ -206,13 +242,20 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			StopAnimationPreview(restoreFrame: false);
 			SettingsViewModel.ThingEditorAppearanceSettingsChanged -= OnAppearanceSettingsChanged;
+			SettingsViewModel.ShowInformationBoxesChanged -= OnShowInformationBoxesChanged;
 		};
 		SettingsViewModel.ThingEditorAppearanceSettingsChanged += OnAppearanceSettingsChanged;
+		SettingsViewModel.ShowInformationBoxesChanged += OnShowInformationBoxesChanged;
 		LoadThing(thing);
 		PanelWidth = 540;
 		ContentHeight = 680;
 		PositionX = source.PositionX + 40;
 		PositionY = source.PositionY + 40;
+	}
+
+	private void OnShowInformationBoxesChanged()
+	{
+		OnPropertyChanged(nameof(ShowInformationBoxes));
 	}
 
 	public void RefreshPatternBindings() => SyncPatternFieldsFromGroup();
@@ -2845,17 +2888,24 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		string versionDirName = DatVersion.ToString().ToLowerInvariant();
 		string relativePath = System.IO.Path.Combine("Assets", "datProtocols", versionDirName, fileName);
+		string rootRelativePath = System.IO.Path.Combine("Assets", "datProtocols", fileName);
 
 		// 1. Next to executable
 		string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+		if (System.IO.File.Exists(path)) return path;
+		path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, rootRelativePath);
 		if (System.IO.File.Exists(path)) return path;
 
 		// 2. Working directory (project root in development)
 		path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), relativePath);
 		if (System.IO.File.Exists(path)) return path;
+		path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), rootRelativePath);
+		if (System.IO.File.Exists(path)) return path;
 
 		// 3. Up from output directory
 		path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", relativePath);
+		if (System.IO.File.Exists(path)) return path;
+		path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", rootRelativePath);
 		if (System.IO.File.Exists(path)) return path;
 
 		return null;
@@ -2903,9 +2953,81 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				if (model != null && model.flags != null && model.flags.Count > 0)
 				{
 					_loadedFlags = model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.label ?? pair.Key, StringComparer.Ordinal);
-					OnPropertyChanged(nameof(FlagVisibility));
-					OnPropertyChanged(nameof(FlagLabel));
-					return;
+					_loadedFlagDescriptions = model.flags
+						.Where(pair => !string.IsNullOrWhiteSpace(pair.Value.description))
+						.ToDictionary(pair => pair.Key, pair => pair.Value.description!, StringComparer.Ordinal);
+				}
+			}
+			catch
+			{
+			}
+		}
+		else
+		{
+			_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
+		}
+
+		LoadProtocolProperties();
+
+		OnPropertyChanged(nameof(FlagVisibility));
+		OnPropertyChanged(nameof(FlagLabel));
+		OnPropertyChanged(nameof(FlagTooltip));
+	}
+
+	private static readonly Dictionary<string, string> _defaultFlagDescriptions = new(StringComparer.Ordinal)
+	{
+		["IsContainer"] = "Allows item to store other items inside container window.",
+		["Stackable"] = "Allows items of the same type to stack together.",
+		["ForceUse"] = "Forces use action even when right-clicking in non-usable context.",
+		["MultiUse"] = "Requires target selection when used (e.g. rope, shovel, potion).",
+		["IsFluidContainer"] = "Can hold liquid types such as water, wine, mana, or blood.",
+		["IsFluid"] = "Represents pooled or splashable fluid on ground/containers.",
+		["IsUnpassable"] = "Blocks creatures and players from walking over tile/item.",
+		["IsUnmoveable"] = "Prevents item from being moved or dragged by players.",
+		["BlockMissile"] = "Blocks distance attacks, arrows, and magic missiles.",
+		["BlockPathfind"] = "Prevents map pathfinding algorithm from routing through tile.",
+		["Pickupable"] = "Can be moved into player inventory or container.",
+		["Rotatable"] = "Can be rotated using context menu or rotate hotkey.",
+		["IsLyingObject"] = "Renders object flat on the ground plane without height layer.",
+		["IsFullGround"] = "Covers entire tile area as solid opaque ground surface.",
+		["NoMoveAnimation"] = "Suppresses movement interpolation frame animation when moved.",
+		["Hangable"] = "Can be hung on wall surfaces.",
+		["IsHorizontal"] = "Snaps to east-facing wall hook surface.",
+		["IsVertical"] = "Snaps to south-facing wall hook surface.",
+		["DontHide"] = "Prevents creature/item occlusion fading when behind objects.",
+		["IsTranslucent"] = "Renders with alpha transparency / semi-translucent effect.",
+		["IgnoreLook"] = "Prevents inspection or look action when targeted.",
+		["Usable"] = "Directly usable item without requiring target selection.",
+		["Wrappable"] = "Can be packaged or wrapped into a parcel/furniture kit.",
+		["Unwrappable"] = "Can be unwrapped from parcel or kit into placed object.",
+		["FloorChange"] = "Triggers floor transition when walked on (stairs, hole, ladder).",
+		["BottomEffect"] = "Renders effect texture over top layer rather than ground.",
+		["AnimateAlways"] = "Continuously animates even when static or off-screen.",
+		["DontCenterOutfit"] = "Disables default centering logic for outfit sprites.",
+		["Light"] = "Emits light with specified radius and color intensity.",
+		["Offset"] = "Visual rendering offset in X and Y pixels on screen.",
+		["Elevation"] = "Height offset in pixels applied to items placed above ground.",
+		["MinimapColor"] = "Color code displayed on automap/minimap.",
+		["Market"] = "Market category, trade status, required level, and vocation filters.",
+	};
+
+	private void LoadProtocolProperties()
+	{
+		string propTomlText = "";
+		string? propPath = FindTomlFile("properties.toml");
+		if (propPath != null)
+		{
+			try { propTomlText = System.IO.File.ReadAllText(propPath); } catch { }
+		}
+
+		if (string.IsNullOrEmpty(propTomlText))
+		{
+			try
+			{
+				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://NyxAssetsEditor/Assets/datProtocols/properties.toml")))
+				using (var reader = new System.IO.StreamReader(stream))
+				{
+					propTomlText = reader.ReadToEnd();
 				}
 			}
 			catch
@@ -2913,9 +3035,20 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			}
 		}
 
-		_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
-		OnPropertyChanged(nameof(FlagVisibility));
-		OnPropertyChanged(nameof(FlagLabel));
+		if (!string.IsNullOrEmpty(propTomlText))
+		{
+			try
+			{
+				var model = Tomlyn.TomlSerializer.Deserialize<PropertiesTomlModel>(propTomlText);
+				if (model?.properties != null)
+				{
+					_loadedProperties = model.properties;
+				}
+			}
+			catch
+			{
+			}
+		}
 	}
 
 	public static Dictionary<string, byte>? GetCustomFlagWriteMap(uint clientVersion)

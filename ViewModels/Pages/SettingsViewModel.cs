@@ -72,6 +72,23 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		public static event Action? ShowInformationBoxesChanged;
+
+		private static bool _showInformationBoxes = true;
+		public static bool ShowInformationBoxes
+		{
+			get => _showInformationBoxes;
+			set
+			{
+				if (_showInformationBoxes != value)
+				{
+					_showInformationBoxes = value;
+					ShowInformationBoxesChanged?.Invoke();
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		private static string _customAccentColor = "";
 		public static string CustomAccentColor
 		{
@@ -414,6 +431,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		public bool ShowInformationBoxesSetting
+		{
+			get => ShowInformationBoxes;
+			set
+			{
+				if (ShowInformationBoxes != value)
+				{
+					ShowInformationBoxes = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -443,7 +473,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int looktypeMountedRiderOffsetX = 0,
 			int looktypeMountedRiderOffsetY = 0,
 			bool compileLinkedPairTogether = true,
-			string? customAccentColor = null)
+			string? customAccentColor = null,
+			bool showInformationBoxes = true)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -453,6 +484,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_preloadGraphicalAssets = preloadGraphicalAssets;
 			_allowUnknownSignatures = allowUnknownSignatures;
 			_compileLinkedPairTogether = compileLinkedPairTogether;
+			_showInformationBoxes = showInformationBoxes;
 			_customAccentColor = customAccentColor ?? "";
 			ApplyAccentColor(_customAccentColor);
 			_assetDisplaySize = assetDisplaySize;

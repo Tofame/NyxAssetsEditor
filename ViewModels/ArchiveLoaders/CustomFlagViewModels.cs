@@ -44,6 +44,19 @@ public abstract partial class CustomFlagViewModelBase : ViewModelBase
 	public string LowUsageWarning => IsLowUsage ? $"Flag may be redundant, it is not used in a lot of items (x{UsageCount})" : string.Empty;
 	public string LabelColor => "#AAA";
 
+	public string FullTooltip
+	{
+		get
+		{
+			string desc = !string.IsNullOrWhiteSpace(Description) ? Description : string.Empty;
+			if (IsLowUsage)
+			{
+				return string.IsNullOrEmpty(desc) ? LowUsageWarning : $"{desc}\n({LowUsageWarning})";
+			}
+			return desc;
+		}
+	}
+
 	public string DeleteTooltip
 	{
 		get

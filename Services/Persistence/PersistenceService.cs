@@ -59,6 +59,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int UndoLimit { get; set; } = 10;
 			public bool AllowUnknownSignatures { get; set; } = true;
 			public bool CompileLinkedPairTogether { get; set; } = true;
+			public bool ShowInformationBoxes { get; set; } = true;
 			public string CustomAccentColor { get; set; } = "";
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
@@ -186,7 +187,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.LooktypeMountedRiderOffsetX,
 							model.LooktypeMountedRiderOffsetY,
 							model.CompileLinkedPairTogether,
-							model.CustomAccentColor);
+							model.CustomAccentColor,
+							model.ShowInformationBoxes);
 					}
 				}
 			}
@@ -226,6 +228,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					UndoLimit = SettingsViewModel.UndoLimit,
 					AllowUnknownSignatures = SettingsViewModel.AllowUnknownSignatures,
 					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether,
+					ShowInformationBoxes = SettingsViewModel.ShowInformationBoxes,
 					CustomAccentColor = SettingsViewModel.CustomAccentColor,
 					Slicer = _slicerState
 				};

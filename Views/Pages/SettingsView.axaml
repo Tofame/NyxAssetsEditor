@@ -132,6 +132,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="320"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Display Information Boxes:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<CheckBox IsChecked="{Binding ShowInformationBoxesSetting}"/>
+						<TextBlock Text="Show rounded 'i' info badges with tooltips next to flags and properties in Thing Editor."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 

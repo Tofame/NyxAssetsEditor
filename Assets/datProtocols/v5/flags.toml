@@ -1,20 +1,20 @@
 [flags]
-IsContainer = { id = 0x04, label = "Container" }
-ForceUse = { id = 0x06, label = "Force Use" }
-MultiUse = { id = 0x07, label = "Multi Use" }
-IsFluidContainer = { id = 0x0A, label = "Fluid Container" }
-IsFluid = { id = 0x0B, label = "Fluid" }
-IsUnpassable = { id = 0x0C, label = "Unpassable" }
-IsUnmoveable = { id = 0x0D, label = "Unmoveable" }
-BlockMissile = { id = 0x0E, label = "Block Missile" }
-BlockPathfind = { id = 0x0F, label = "Block Pathfinder" }
-Pickupable = { id = 0x10, label = "Pickupable" }
-Rotatable = { id = 0x14, label = "Rotatable" }
-IsLyingObject = { id = 0x1A, label = "Lying Object" }
-IsFullGround = { id = 0x1E, label = "Full Ground" }
-Hangable = { id = 0x11, label = "Hangable" }
-IsHorizontal = { id = 0x13, label = "Hook East" }
-IsVertical = { id = 0x12, label = "Hook South" }
-DontHide = { id = 0x16, label = "Don't Hide" }
-IsTranslucent = { id = 0x17, label = "Translucent" }
-IgnoreLook = { id = 0x1F, label = "Ignore Look" }
+IsContainer = { id = 0x04, label = "Container", description = "Allows item to store other items inside container window." }
+ForceUse = { id = 0x06, label = "Force Use", description = "Forces use action even when right-clicking in non-usable context." }
+MultiUse = { id = 0x07, label = "Multi Use", description = "Requires target selection when used (e.g. rope, shovel, potion)." }
+IsFluidContainer = { id = 0x0A, label = "Fluid Container", description = "Can hold liquid types such as water, wine, mana, or blood." }
+IsFluid = { id = 0x0B, label = "Fluid", description = "Represents pooled or splashable fluid on ground/containers." }
+IsUnpassable = { id = 0x0C, label = "Unpassable", description = "Blocks creatures and players from walking over tile/item." }
+IsUnmoveable = { id = 0x0D, label = "Unmoveable", description = "Prevents item from being moved or dragged by players." }
+BlockMissile = { id = 0x0E, label = "Block Missile", description = "Blocks distance attacks, arrows, and magic missiles." }
+BlockPathfind = { id = 0x0F, label = "Block Pathfinder", description = "Prevents map pathfinding algorithm from routing through tile." }
+Pickupable = { id = 0x10, label = "Pickupable", description = "Can be moved into player inventory or container." }
+Rotatable = { id = 0x14, label = "Rotatable", description = "Can be rotated using context menu or rotate hotkey." }
+IsLyingObject = { id = 0x1A, label = "Lying Object", description = "Renders object flat on the ground plane without height layer." }
+IsFullGround = { id = 0x1E, label = "Full Ground", description = "Covers entire tile area as solid opaque ground surface." }
+Hangable = { id = 0x11, label = "Hangable", description = "Can be hung on wall surfaces." }
+IsHorizontal = { id = 0x13, label = "Hook East", description = "Snaps to east-facing wall hook surface." }
+IsVertical = { id = 0x12, label = "Hook South", description = "Snaps to south-facing wall hook surface." }
+DontHide = { id = 0x16, label = "Don't Hide", description = "Prevents creature/item occlusion fading when behind objects." }
+IsTranslucent = { id = 0x17, label = "Translucent", description = "Renders with alpha transparency / semi-translucent effect." }
+IgnoreLook = { id = 0x1F, label = "Ignore Look", description = "Prevents inspection or look action when targeted." }
