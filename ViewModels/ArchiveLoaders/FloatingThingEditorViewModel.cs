@@ -985,6 +985,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	public bool CanGenerateMissileOrthogonalDirections => GetMissileOrthogonalSourceDirection() != null;
 	public bool CanGenerateMissileDiagonalDirections => GetMissileDiagonalSourceDirection() != null;
+	public bool CanGenerateMissileAllDirections => GetMissileOrthogonalSourceDirection() != null;
 
 	private bool DirectionHasSprites(ThingFrameGroup fg, uint px, uint py)
 	{
@@ -1050,6 +1051,14 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		GenerateMissileRotations(sourceDir.Value, isOrthogonal: false);
 	}
 
+	[RelayCommand(CanExecute = nameof(CanGenerateMissileAllDirections))]
+	private void GenerateMissileAllDirections()
+	{
+		var sourceDir = GetMissileOrthogonalSourceDirection();
+		if (sourceDir == null) return;
+		GenerateMissileAllRotations(sourceDir.Value);
+	}
+
 	private void GenerateMissileRotations(Direction8 sourceDir, bool isOrthogonal)
 	{
 		var loader = SourcePanel.GetActiveSpriteLoader();
@@ -1100,6 +1109,277 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		linkedPanel.HasSavedChanges = true;
 		ApplyToCatalog();
 		RefreshAppearance();
+	}
+
+	private void GenerateMissileAllRotations(Direction8 sourceDir)
+	{
+		var loader = SourcePanel.GetActiveSpriteLoader();
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (loader == null || linkedPanel == null) return;
+
+		var fg = CurrentFrameGroup;
+		var (srcPx, srcPy) = MissileDirectionPatterns.GetPattern(sourceDir);
+
+		for (uint frame = 0; frame < fg.Frames; frame++)
+		{
+			var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
+			if (srcSpriteId < 1) continue;
+
+			byte[] srcRgba;
+			try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
+			catch { continue; }
+			if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) continue;
+
+			// Normalize cardinal source to North
+			byte[] northRgba = sourceDir switch
+			{
+				Direction8.East => RotateRgba90(srcRgba, 3),  // 270° CW = 90° CCW
+				Direction8.South => RotateRgba90(srcRgba, 2), // 180°
+				Direction8.West => RotateRgba90(srcRgba, 1),  // 90° CW
+				_ => (byte[])srcRgba.Clone(),                 // North
+			};
+
+			// Generate 8-way rotations using pixel art rotation (RotSprite / RotGodTier + symmetrical flips)
+			byte[] neRgba = RotGodTier(northRgba, 45.0);
+			byte[] eRgba = RotateRgba90(northRgba, 1);
+			byte[] seRgba = RotGodTier(northRgba, 135.0);
+			byte[] sRgba = FlipVertical(northRgba);
+			byte[] swRgba = FlipHorizontal(seRgba);
+			byte[] wRgba = FlipHorizontal(eRgba);
+			byte[] nwRgba = FlipHorizontal(neRgba);
+
+			var generated = new (Direction8 Dir, byte[] Rgba)[]
+			{
+				(Direction8.North, northRgba),
+				(Direction8.NorthEast, neRgba),
+				(Direction8.East, eRgba),
+				(Direction8.SouthEast, seRgba),
+				(Direction8.South, sRgba),
+				(Direction8.SouthWest, swRgba),
+				(Direction8.West, wRgba),
+				(Direction8.NorthWest, nwRgba),
+			};
+
+			foreach (var (targetDir, rgba) in generated)
+			{
+				var newId = linkedPanel.Loader.AddNewSprite();
+				linkedPanel.Loader.SetSpritePixels(newId, rgba);
+
+				var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
+				var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, frame);
+				if (index < fg.SpriteIds.Length)
+				{
+					fg.SpriteIds[index] = newId;
+				}
+			}
+		}
+
+		linkedPanel.NotifyExternalArchiveMutation();
+		linkedPanel.HasSavedChanges = true;
+		ApplyToCatalog();
+		RefreshAppearance();
+	}
+
+	private static byte[] RotGodTier(byte[] srcRgba, double angleDegrees)
+	{
+		int edge = SpritePixelCodec.SpriteEdgeLength;
+		int totalPixels = edge * edge;
+
+		// 1. Extract Palette from original sprite (unique RGB where Alpha >= 128)
+		var paletteList = new List<(byte R, byte G, byte B)>();
+		for (int i = 0; i < totalPixels; i++)
+		{
+			int idx = i * 4;
+			if (srcRgba[idx + 3] >= 128)
+			{
+				var color = (srcRgba[idx], srcRgba[idx + 1], srcRgba[idx + 2]);
+				if (!paletteList.Contains(color))
+					paletteList.Add(color);
+			}
+		}
+
+		if (paletteList.Count == 0)
+			return (byte[])srcRgba.Clone();
+
+		// 2. 8x High-Density Super Sampling
+		int scale = 8;
+		int hiEdge = edge * scale;
+		byte[] hiRes = new byte[hiEdge * hiEdge * 4];
+
+		for (int hy = 0; hy < hiEdge; hy++)
+		{
+			int srcY = hy / scale;
+			for (int hx = 0; hx < hiEdge; hx++)
+			{
+				int srcX = hx / scale;
+				int srcIdx = (srcY * edge + srcX) * 4;
+				int hiIdx = (hy * hiEdge + hx) * 4;
+				Buffer.BlockCopy(srcRgba, srcIdx, hiRes, hiIdx, 4);
+			}
+		}
+
+		// 3. Subpixel Rotation around Center Pivot
+		double cx = (hiEdge - 1) / 2.0;
+		double cy = (hiEdge - 1) / 2.0;
+		double rad = -angleDegrees * Math.PI / 180.0;
+		double cos = Math.Cos(rad);
+		double sin = Math.Sin(rad);
+
+		byte[] rotatedHiRes = new byte[hiEdge * hiEdge * 4];
+
+		for (int dy = 0; dy < hiEdge; dy++)
+		{
+			double y0 = dy - cy;
+			for (int dx = 0; dx < hiEdge; dx++)
+			{
+				double x0 = dx - cx;
+				double srcHx = cx + (x0 * cos - y0 * sin);
+				double srcHy = cy + (x0 * sin + y0 * cos);
+
+				int ix = (int)Math.Round(srcHx);
+				int iy = (int)Math.Round(srcHy);
+
+				int destIdx = (dy * hiEdge + dx) * 4;
+				if (ix >= 0 && ix < hiEdge && iy >= 0 && iy < hiEdge)
+				{
+					int srcIdx = (iy * hiEdge + ix) * 4;
+					Buffer.BlockCopy(hiRes, srcIdx, rotatedHiRes, destIdx, 4);
+				}
+			}
+		}
+
+		// 4. Area Downscaling (BOX majority filter) + Palette Enforcement + Alpha Thresholding
+		byte[] result = new byte[srcRgba.Length];
+
+		for (int y = 0; y < edge; y++)
+		{
+			for (int x = 0; x < edge; x++)
+			{
+				int sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+				for (int subY = 0; subY < scale; subY++)
+				{
+					int hy = y * scale + subY;
+					for (int subX = 0; subX < scale; subX++)
+					{
+						int hx = x * scale + subX;
+						int hiIdx = (hy * hiEdge + hx) * 4;
+						sumR += rotatedHiRes[hiIdx];
+						sumG += rotatedHiRes[hiIdx + 1];
+						sumB += rotatedHiRes[hiIdx + 2];
+						sumA += rotatedHiRes[hiIdx + 3];
+					}
+				}
+
+				int samples = scale * scale; // 64
+				int avgA = sumA / samples;
+				int destIdx = (y * edge + x) * 4;
+
+				if (avgA < 128)
+				{
+					result[destIdx] = 0;
+					result[destIdx + 1] = 0;
+					result[destIdx + 2] = 0;
+					result[destIdx + 3] = 0;
+				}
+				else
+				{
+					int avgR = sumR / samples;
+					int avgG = sumG / samples;
+					int avgB = sumB / samples;
+
+					int bestDist = int.MaxValue;
+					(byte R, byte G, byte B) bestMatch = paletteList[0];
+
+					foreach (var color in paletteList)
+					{
+						int dr = avgR - color.R;
+						int dg = avgG - color.G;
+						int db = avgB - color.B;
+						int dist = dr * dr + dg * dg + db * db;
+						if (dist < bestDist)
+						{
+							bestDist = dist;
+							bestMatch = color;
+						}
+					}
+
+					result[destIdx] = bestMatch.R;
+					result[destIdx + 1] = bestMatch.G;
+					result[destIdx + 2] = bestMatch.B;
+					result[destIdx + 3] = 255;
+				}
+			}
+		}
+
+		// 5. Clean orphan pixels (floating pixels with <= 1 neighbor)
+		return CleanOrphans(result);
+	}
+
+	private static byte[] CleanOrphans(byte[] imgRgba)
+	{
+		int edge = SpritePixelCodec.SpriteEdgeLength;
+		byte[] cleaned = (byte[])imgRgba.Clone();
+
+		for (int y = 1; y < edge - 1; y++)
+		{
+			for (int x = 1; x < edge - 1; x++)
+			{
+				int idx = (y * edge + x) * 4;
+				if (imgRgba[idx + 3] == 0) continue;
+
+				int neighborCount = 0;
+				for (int ny = y - 1; ny <= y + 1; ny++)
+				{
+					for (int nx = x - 1; nx <= x + 1; nx++)
+					{
+						if (ny == y && nx == x) continue;
+						if (imgRgba[(ny * edge + nx) * 4 + 3] > 0)
+						{
+							neighborCount++;
+						}
+					}
+				}
+
+				if (neighborCount <= 1)
+				{
+					cleaned[idx] = 0;
+					cleaned[idx + 1] = 0;
+					cleaned[idx + 2] = 0;
+					cleaned[idx + 3] = 0;
+				}
+			}
+		}
+
+		return cleaned;
+	}
+
+	private static byte[] FlipVertical(byte[] src)
+	{
+		int edge = SpritePixelCodec.SpriteEdgeLength;
+		byte[] dest = new byte[src.Length];
+		for (int y = 0; y < edge; y++)
+		{
+			int srcRow = y * edge * 4;
+			int destRow = (edge - 1 - y) * edge * 4;
+			Buffer.BlockCopy(src, srcRow, dest, destRow, edge * 4);
+		}
+		return dest;
+	}
+
+	private static byte[] FlipHorizontal(byte[] src)
+	{
+		int edge = SpritePixelCodec.SpriteEdgeLength;
+		byte[] dest = new byte[src.Length];
+		for (int y = 0; y < edge; y++)
+		{
+			for (int x = 0; x < edge; x++)
+			{
+				int srcIdx = (y * edge + x) * 4;
+				int destIdx = (y * edge + (edge - 1 - x)) * 4;
+				Buffer.BlockCopy(src, srcIdx, dest, destIdx, 4);
+			}
+		}
+		return dest;
 	}
 
 	private static byte[] RotateRgba90(byte[] src, int steps)
@@ -1553,8 +1833,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(AppearancePixelHeight));
 		OnPropertyChanged(nameof(CanGenerateMissileOrthogonalDirections));
 		OnPropertyChanged(nameof(CanGenerateMissileDiagonalDirections));
+		OnPropertyChanged(nameof(CanGenerateMissileAllDirections));
 		GenerateMissileOrthogonalDirectionsCommand.NotifyCanExecuteChanged();
 		GenerateMissileDiagonalDirectionsCommand.NotifyCanExecuteChanged();
+		GenerateMissileAllDirectionsCommand.NotifyCanExecuteChanged();
 		AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
 	}
 
