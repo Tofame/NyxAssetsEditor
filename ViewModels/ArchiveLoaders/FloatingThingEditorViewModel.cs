@@ -2387,6 +2387,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		set => SetProperty(ref _creatorDefault, value);
 	}
 
+	private string _creatorDescription = string.Empty;
+	public string CreatorDescription
+	{
+		get => _creatorDescription;
+		set => SetProperty(ref _creatorDescription, value);
+	}
+
 	private int _creatorMin;
 	public int CreatorMin
 	{
@@ -2416,6 +2423,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		CreatorTypeIndex = 0;
 		CreatorGroup = "Custom Flags";
 		CreatorDefault = string.Empty;
+		CreatorDescription = string.Empty;
 		CreatorMin = 0;
 		CreatorMax = 100;
 		CreatorOptionsRaw = string.Empty;
@@ -2454,6 +2462,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			Name = key,
 			Label = string.IsNullOrWhiteSpace(CreatorLabel) ? key : CreatorLabel.Trim(),
+			Description = string.IsNullOrWhiteSpace(CreatorDescription) ? null : CreatorDescription.Trim(),
 			Type = flagType,
 			Group = groupKey,
 			GroupType = groupType,

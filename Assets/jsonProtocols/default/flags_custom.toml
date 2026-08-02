@@ -5,30 +5,35 @@
 # --- Text & Metadata ---
 [flag.name]
 label = "Name"
+description = "Item or creature display name shown on look and inventory."
 type = "string"
 group = "metadata"
 locked = true
 
 [flag.article]
 label = "Article"
+description = "Indefinite article prefix (a, an) used before item name."
 type = "string"
 group = "metadata"
 locked = true
 
 [flag.description]
 label = "Description"
+description = "Detailed text description shown when inspecting the item."
 type = "string"
 group = "metadata"
 locked = true
 
 [flag.plural]
 label = "Plural Name"
+description = "Plural form of the item name when stacked or counted."
 type = "string"
 group = "metadata"
 locked = true
 
 [flag.runespellname]
 label = "Rune Spell Name"
+description = "Name of the spell invoked when using this rune."
 type = "string"
 group = "metadata"
 locked = true
@@ -40,24 +45,28 @@ order = 1
 # --- Classification & Equipment Types ---
 [flag.isContainer]
 label = "Container"
+description = "Allows item to store other items inside container window."
 type = "bool"
 group = "classification"
 locked = true
 
 [flag.isFluidContainer]
 label = "Fluid Container"
+description = "Can hold liquid types such as water, wine, mana, or blood."
 type = "bool"
 group = "classification"
 locked = true
 
 [flag.isFluid]
 label = "Fluid"
+description = "Represents pooled or splashable fluid on ground/containers."
 type = "bool"
 group = "classification"
 locked = true
 
 [flag.type]
 label = "Item Type"
+description = "Engine functional category classification (key, door, rune, bed, etc.)."
 type = "enum"
 options = ["key", "magicfield", "container", "depot", "mailbox", "trashholder", "teleport", "door", "bed", "rune"]
 group = "classification"
@@ -65,6 +74,7 @@ locked = true
 
 [flag.fluidsource]
 label = "Fluid Source"
+description = "Liquid type produced when filling containers from this object."
 type = "enum"
 options = ["water", "blood", "beer", "slime", "lemonade", "milk", "mana", "life", "oil", "urine", "coconut", "wine", "mud", "fruitjuice", "lava", "rum", "swamp", "tea", "mead"]
 group = "classification"
@@ -72,6 +82,7 @@ locked = true
 
 [flag.corpsetype]
 label = "Corpse Type"
+description = "Decay fluid/blood pool effect produced on creature death."
 type = "enum"
 options = ["venom", "blood", "undead", "fire", "energy"]
 group = "classification"
@@ -79,6 +90,7 @@ locked = true
 
 [flag.weapontype]
 label = "Weapon Type"
+description = "Combat category determining skill used (sword, axe, distance, wand, etc.)."
 type = "enum"
 options = ["sword", "club", "axe", "shield", "distance", "wand", "ammunition"]
 group = "classification"
@@ -86,6 +98,7 @@ locked = true
 
 [flag.slottype]
 label = "Slot Type"
+description = "Body equipment slot where item can be equipped."
 type = "enum"
 options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "two-handed", "legs", "feet", "ring", "ammo"]
 group = "classification"
@@ -93,6 +106,7 @@ locked = true
 
 [flag.slot]
 label = "Slot Type"
+description = "Body equipment slot where item can be equipped."
 type = "enum"
 options = ["head", "necklace", "backpack", "armor", "right-hand", "left-hand", "two-handed", "legs", "feet", "ring", "ammo"]
 group = "classification"
@@ -100,18 +114,21 @@ locked = true
 
 [flag.ammotype]
 label = "Ammo Type"
+description = "Ammunition classification matching distance weapons (arrow, bolt, spear)."
 type = "string"
 group = "classification"
 locked = true
 
 [flag.shoottype]
 label = "Shoot / Distance Effect"
+description = "Projectile animation effect displayed when fired."
 type = "string"
 group = "classification"
 locked = true
 
 [flag.effect]
 label = "Magic Effect"
+description = "Visual magic impact effect played on hit or cast."
 type = "string"
 group = "classification"
 locked = true
@@ -119,6 +136,7 @@ locked = true
 # Magic Field Properties (Special Sub-Window)
 [flag."field.value"]
 label = "Field Value / Type"
+description = "Hazard element type applied by this magic field (fire, poison, energy, drown)."
 type = "enum"
 options = ["fire", "poison", "energy", "drown"]
 group = "field_properties"
@@ -126,30 +144,35 @@ locked = true
 
 [flag."field.count"]
 label = "Field Damage Count"
+description = "Total number of damage pulses before field shrinks or expires."
 type = "int"
 group = "field_properties"
 locked = true
 
 [flag."field.damage"]
 label = "Field Periodic Damage"
+description = "Periodic damage dealt per tick to creatures stepping into the field."
 type = "int"
 group = "field_properties"
 locked = true
 
 [flag."field.initdamage"]
 label = "Field Initial Damage"
+description = "Initial instant damage inflicted upon stepping into the field."
 type = "int"
 group = "field_properties"
 locked = true
 
 [flag."field.start"]
 label = "Field Start Ticks"
+description = "Initial delay in ticks before field begins dealing damage."
 type = "int"
 group = "field_properties"
 locked = true
 
 [flag."field.ticks"]
 label = "Field Tick Interval (ms)"
+description = "Time interval between periodic damage pulses in milliseconds."
 type = "int"
 group = "field_properties"
 locked = true
@@ -161,66 +184,77 @@ order = 2
 # --- Combat & Stats (items.xml) ---
 [flag.armor]
 label = "Armor"
+description = "Armor defense value reducing incoming physical damage."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.defense]
 label = "Defense"
+description = "Weapon or shield defense rating blocking physical melee attacks."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.extradef]
 label = "Extra Defense"
+description = "Bonus defense value applied on top of equipped weapon defense."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.attack]
 label = "Attack"
+description = "Base physical damage dealt per melee attack."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.attackspeed]
 label = "Attack Speed (ms)"
+description = "Attack interval in milliseconds override for weapons."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.weight]
 label = "Weight (cap)"
+description = "Item weight in capacity points (100 cap = 1.00 oz)."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.worth]
 label = "Worth (value)"
+description = "Base gold currency value used by shopkeepers and NPCs."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.range]
 label = "Range"
+description = "Maximum distance in map tiles for distance weapons or wands."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.hitchance]
 label = "Hit Chance (%)"
+description = "Accuracy percentage modifier for distance attacks."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.maxhitchance]
 label = "Max Hit Chance (%)"
+description = "Upper cap limit for distance attack accuracy percentage."
 type = "int"
 group = "stats"
 locked = true
 
 [flag.speed]
 label = "Speed Modifier"
+description = "Movement speed modifier added to creature speed when equipped."
 type = "int"
 group = "stats"
 locked = true
@@ -228,30 +262,35 @@ locked = true
 # Health & Mana (Special Sub-Window)
 [flag.healthgain]
 label = "Health Gain"
+description = "Amount of HP restored per regeneration tick."
 type = "int"
 group = "health_mana"
 locked = true
 
 [flag.healthticks]
 label = "Health Ticks (ms)"
+description = "Regeneration interval in milliseconds between HP heals."
 type = "int"
 group = "health_mana"
 locked = true
 
 [flag.managain]
 label = "Mana Gain"
+description = "Amount of Mana restored per regeneration tick."
 type = "int"
 group = "health_mana"
 locked = true
 
 [flag.manaticks]
 label = "Mana Ticks (ms)"
+description = "Regeneration interval in milliseconds between Mana restores."
 type = "int"
 group = "health_mana"
 locked = true
 
 [flag.manashield]
 label = "Mana Shield (Utamo)"
+description = "Grants continuous Magic Shield (damage drains Mana instead of Health)."
 type = "bool"
 group = "health_mana"
 locked = true
@@ -259,36 +298,42 @@ locked = true
 # Critical & Leech (Special Sub-Window)
 [flag.criticalhitchance]
 label = "Critical Hit Chance (%)"
+description = "Probability percentage to trigger a critical strike."
 type = "int"
 group = "special_leech"
 locked = true
 
 [flag.criticalhitamount]
 label = "Critical Hit Amount (%)"
+description = "Bonus extra damage percentage dealt on critical hits."
 type = "int"
 group = "special_leech"
 locked = true
 
 [flag.lifeleechchance]
 label = "Life Leech Chance (%)"
+description = "Probability percentage to absorb health on hit."
 type = "int"
 group = "special_leech"
 locked = true
 
 [flag.lifeleechamount]
 label = "Life Leech Amount (%)"
+description = "Percentage of dealt damage converted into Health."
 type = "int"
 group = "special_leech"
 locked = true
 
 [flag.manaleechchance]
 label = "Mana Leech Chance (%)"
+description = "Probability percentage to absorb mana on hit."
 type = "int"
 group = "special_leech"
 locked = true
 
 [flag.manaleechamount]
 label = "Mana Leech Amount (%)"
+description = "Percentage of dealt damage converted into Mana."
 type = "int"
 group = "special_leech"
 locked = true
@@ -296,60 +341,70 @@ locked = true
 # Skill Boosts (Special Sub-Window)
 [flag.skillsword]
 label = "Skill Sword"
+description = "Bonus skill points added to Sword Fighting."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skillaxe]
 label = "Skill Axe"
+description = "Bonus skill points added to Axe Fighting."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skillclub]
 label = "Skill Club"
+description = "Bonus skill points added to Club Fighting."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skilldist]
 label = "Skill Distance"
+description = "Bonus skill points added to Distance Fighting."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skillshield]
 label = "Skill Shield"
+description = "Bonus skill points added to Shielding."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skillfish]
 label = "Skill Fishing"
+description = "Bonus skill points added to Fishing."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.skillfist]
 label = "Skill Fist"
+description = "Bonus skill points added to Fist Fighting."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.magicpoints]
 label = "Magic Level Boost"
+description = "Bonus skill points added to Magic Level."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.maxhitpoints]
 label = "Max HP Boost"
+description = "Flat bonus added to maximum Health Points."
 type = "int"
 group = "skills_boost"
 locked = true
 
 [flag.maxmanapoints]
 label = "Max Mana Boost"
+description = "Flat bonus added to maximum Mana Points."
 type = "int"
 group = "skills_boost"
 locked = true
@@ -357,36 +412,42 @@ locked = true
 # Element Damage (Special Sub-Window)
 [flag.elementfire]
 label = "Element Fire Damage"
+description = "Bonus elemental Fire damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
 
 [flag.elementice]
 label = "Element Ice Damage"
+description = "Bonus elemental Ice damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
 
 [flag.elementearth]
 label = "Element Earth Damage"
+description = "Bonus elemental Earth damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
 
 [flag.elementenergy]
 label = "Element Energy Damage"
+description = "Bonus elemental Energy damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
 
 [flag.elementdeath]
 label = "Element Death Damage"
+description = "Bonus elemental Death damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
 
 [flag.elementholy]
 label = "Element Holy Damage"
+description = "Bonus elemental Holy damage dealt on hit."
 type = "int"
 group = "elements_damage"
 locked = true
@@ -394,96 +455,112 @@ locked = true
 # Protections & Absorbs (Special Sub-Window)
 [flag.absorbpercentall]
 label = "Absorb All Elements (%)"
+description = "Percentage reduction against all incoming damage types."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentallelements]
 label = "Absorb All Elements (%)"
+description = "Percentage reduction against elemental magic damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentelements]
 label = "Absorb Elements (%)"
+description = "Percentage reduction against elemental magic damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentphysical]
 label = "Absorb Physical (%)"
+description = "Percentage reduction against physical damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentfire]
 label = "Absorb Fire (%)"
+description = "Percentage reduction against Fire damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentenergy]
 label = "Absorb Energy (%)"
+description = "Percentage reduction against Energy damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentice]
 label = "Absorb Ice (%)"
+description = "Percentage reduction against Ice damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentpoison]
 label = "Absorb Poison (%)"
+description = "Percentage reduction against Earth/Poison damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentearth]
 label = "Absorb Earth (%)"
+description = "Percentage reduction against Earth damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentdeath]
 label = "Absorb Death (%)"
+description = "Percentage reduction against Death damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentholy]
 label = "Absorb Holy (%)"
+description = "Percentage reduction against Holy damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentmagic]
 label = "Absorb Magic (%)"
+description = "Percentage reduction against magic spell damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentlifedrain]
 label = "Absorb Life Drain (%)"
+description = "Percentage reduction against Life Drain damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentmanadrain]
 label = "Absorb Mana Drain (%)"
+description = "Percentage reduction against Mana Drain damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercentdrown]
 label = "Absorb Drown (%)"
+description = "Percentage reduction against underwater Drown damage."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.absorbpercenthealing]
 label = "Absorb Healing (%)"
+description = "Percentage modifier affecting received healing amounts."
 type = "int"
 group = "absorbs_protection"
 locked = true
@@ -491,24 +568,28 @@ locked = true
 # Field Absorbs
 [flag.fieldabsorbpercentenergy]
 label = "Field Absorb Energy (%)"
+description = "Percentage damage reduction specifically standing inside Energy fields."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.fieldabsorbpercentfire]
 label = "Field Absorb Fire (%)"
+description = "Percentage damage reduction specifically standing inside Fire fields."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.fieldabsorbpercentpoison]
 label = "Field Absorb Poison (%)"
+description = "Percentage damage reduction specifically standing inside Poison fields."
 type = "int"
 group = "absorbs_protection"
 locked = true
 
 [flag.fieldabsorbpercentearth]
 label = "Field Absorb Earth (%)"
+description = "Percentage damage reduction specifically standing inside Earth fields."
 type = "int"
 group = "absorbs_protection"
 locked = true
@@ -516,54 +597,63 @@ locked = true
 # Condition Suppressions (Special Sub-Window)
 [flag.suppressdrunk]
 label = "Suppress Drunk (%)"
+description = "Resistance percentage to prevent Drunkenness status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressenergy]
 label = "Suppress Energy (%)"
+description = "Resistance percentage to prevent Electrocuted status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressfire]
 label = "Suppress Fire (%)"
+description = "Resistance percentage to prevent Burning status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppresspoison]
 label = "Suppress Poison (%)"
+description = "Resistance percentage to prevent Poisoned status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressdrown]
 label = "Suppress Drown (%)"
+description = "Resistance percentage to prevent Drowning status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressphysical]
 label = "Suppress Physical (%)"
+description = "Resistance percentage to prevent Bleeding status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressfreeze]
 label = "Suppress Freeze (%)"
+description = "Resistance percentage to prevent Freezing status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppressdazzle]
 label = "Suppress Dazzle (%)"
+description = "Resistance percentage to prevent Dazzled status."
 type = "int"
 group = "suppressions_condition"
 locked = true
 
 [flag.suppresscurse]
 label = "Suppress Curse (%)"
+description = "Resistance percentage to prevent Cursed status."
 type = "int"
 group = "suppressions_condition"
 locked = true
@@ -575,54 +665,63 @@ order = 3
 # --- Item Usage & Movement ---
 [flag.pickupable]
 label = "Pickupable"
+description = "Can be moved into player inventory or container."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.usable]
 label = "Usable"
+description = "Directly usable item without requiring target selection."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.forceUse]
 label = "Force Use"
+description = "Forces use action even when right-clicking in non-usable context."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.multiUse]
 label = "Multi Use"
+description = "Requires target selection when used (e.g. rope, shovel, potion)."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.rotatable]
 label = "Rotatable"
+description = "Can be rotated using context menu or rotate hotkey."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.hangable]
 label = "Hangable"
+description = "Can be hung on wall surfaces."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.wrappable]
 label = "Wrappable"
+description = "Can be packaged or wrapped into a parcel/furniture kit."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.unwrappable]
 label = "Unwrappable"
+description = "Can be unwrapped from parcel or kit into placed object."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.containersize]
 label = "Container Size"
+description = "Number of inventory slots inside the container."
 type = "int"
 parent = "isContainer"
 group = "interaction"
@@ -630,6 +729,7 @@ locked = true
 
 [flag.max-slots]
 label = "Max Slots"
+description = "Maximum slot capacity limit for container."
 type = "int"
 parent = "isContainer"
 group = "interaction"
@@ -637,132 +737,154 @@ locked = true
 
 [flag.decayto]
 label = "Decay To (Item ID)"
+description = "Item ID this object transforms into after duration expires."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.duration]
 label = "Duration (sec)"
+description = "Active timer duration in seconds before item decays or expires."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.stopduration]
 label = "Stop Duration On Move"
+description = "Pauses active decay timer when item is moved or picked up."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.showduration]
 label = "Show Duration"
+description = "Displays remaining duration time on item inspect."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.charges]
 label = "Charges"
+description = "Number of remaining uses before item disappears or decays."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.showcharges]
 label = "Show Charges"
+description = "Displays remaining charge count on item inspect."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.showattributes]
 label = "Show Attributes"
+description = "Displays weapon/armor stat attributes when inspected."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.showcount]
 label = "Show Count"
+description = "Displays stack count integer overlay on tile sprite."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.forceserialize]
 label = "Force Save/Serialize"
+description = "Forces item state to serialize to database even if default item."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.writeable]
 label = "Writeable"
+description = "Text can be written onto item using pen/ink."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.readable]
 label = "Readable"
+description = "Text content can be read by opening book/scroll."
 type = "bool"
 group = "interaction"
 locked = true
 
 [flag.maxtextlen]
 label = "Max Text Length"
+description = "Maximum character count limit for text written onto item."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.writeonceitemid]
 label = "Write Once Item ID"
+description = "Item ID this object transforms into after text is committed."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.transformto]
 label = "Transform To (Item ID)"
+description = "Target Item ID produced on use or toggle interaction."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.destroyto]
 label = "Destroy To (Item ID)"
+description = "Item ID produced when object is destroyed or broken."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.transformequipto]
 label = "Transform Equip To"
+description = "Item ID transformed into when equipped onto character."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.transformdeequipto]
 label = "Transform De-equip To"
+description = "Item ID transformed into when removed from body slot."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.maletransformto]
 label = "Male Transform To"
+description = "Item ID transformed into when equipped by male character."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.femaletransformto]
 label = "Female Transform To"
+description = "Item ID transformed into when equipped by female character."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.rotateto]
 label = "Rotate To (Item ID)"
+description = "Target Item ID produced when item is rotated."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.leveldoor]
 label = "Level Door Min Level"
+description = "Minimum character level required to open level door."
 type = "int"
 group = "interaction"
 locked = true
 
 [flag.storeitem]
 label = "Store Item"
+description = "Item purchased via Store and bound to account/character."
 type = "bool"
 group = "interaction"
 locked = true
@@ -774,36 +896,42 @@ order = 4
 # --- Physics & Collision ---
 [flag.isUnpassable]
 label = "Unpassable"
+description = "Blocks creatures and players from walking over tile/item."
 type = "bool"
 group = "physics"
 locked = true
 
 [flag.isUnmoveable]
 label = "Unmoveable"
+description = "Prevents item from being moved or dragged by players."
 type = "bool"
 group = "physics"
 locked = true
 
 [flag.blockMissile]
 label = "Block Missile"
+description = "Blocks distance attacks, arrows, and magic missiles."
 type = "bool"
 group = "physics"
 locked = true
 
 [flag.blockPathfind]
 label = "Block Pathfinder"
+description = "Prevents map pathfinding algorithm from routing through tile."
 type = "bool"
 group = "physics"
 locked = true
 
 [flag.blocking]
 label = "Blocking"
+description = "Solid obstacle blocking movement and tile placement."
 type = "bool"
 group = "physics"
 locked = true
 
 [flag.floorchange]
 label = "Floor Change"
+description = "Direction transition triggered when walking on tile (stairs, hole)."
 type = "enum"
 options = ["down", "north", "south", "southalt", "west", "east", "eastalt"]
 group = "physics"
@@ -816,54 +944,63 @@ order = 5
 # --- Rendering & Visual Hooks ---
 [flag.isHorizontal]
 label = "Hook East"
+description = "Snaps to east-facing wall hook surface."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.isVertical]
 label = "Hook South"
+description = "Snaps to south-facing wall hook surface."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.dontHide]
 label = "Don't Hide"
+description = "Prevents creature/item occlusion fading when behind objects."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.isTranslucent]
 label = "Translucent"
+description = "Renders with alpha transparency / semi-translucent effect."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.isLyingObject]
 label = "Lying Object"
+description = "Renders object flat on the ground plane without height layer."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.isFullGround]
 label = "Full Ground"
+description = "Covers entire tile area as solid opaque ground surface."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.noMoveAnimation]
 label = "No Move Animation"
+description = "Suppresses movement interpolation frame animation when moved."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.ignoreLook]
 label = "Ignore Look"
+description = "Prevents inspection or look action when targeted."
 type = "bool"
 group = "rendering"
 locked = true
 
 [flag.bottomEffect]
 label = "Top Effect"
+description = "Renders effect texture over top layer rather than ground."
 type = "bool"
 group = "rendering"
 locked = true

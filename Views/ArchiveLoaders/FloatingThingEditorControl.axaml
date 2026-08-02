@@ -791,6 +791,7 @@
 																	<DataTemplate DataType="vm:BoolFlagViewModel">
 																		<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
 																			<ToggleSwitch Content="{Binding Label}" IsChecked="{Binding IsChecked}" OnContent="" OffContent="" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}"/>
+																			<Border Classes="info-badge" ToolTip.Tip="{Binding FullTooltip}"><TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#5E94FF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/></Border>
 																			
 																			<!-- Open Child Flags Modal Button (O) when checked -->
 																			<Button Content="O" Command="{Binding $parent[UserControl].DataContext.OpenChildModalCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasChildFlags}" IsEnabled="{Binding IsChecked}" FontSize="11" FontWeight="Bold" Width="22" Height="22" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#3A7BD5" Foreground="White" ToolTip.Tip="Configure nested properties"/>
@@ -798,27 +799,39 @@
 																	</DataTemplate>
 																	<!-- Int flag: label + NumericUpDown -->
 																	<DataTemplate DataType="vm:IntFlagViewModel">
-																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" Width="120"/>
-																			<NumericUpDown Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/>
-																		</StackPanel>
+																		<Grid ColumnDefinitions="150, Auto" VerticalAlignment="Center" Margin="0,2">
+																			<DockPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+																				<Border Classes="info-badge" DockPanel.Dock="Right" Margin="4,0,0,0" ToolTip.Tip="{Binding FullTooltip}"><TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#5E94FF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/></Border>
+																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+																			</DockPanel>
+																			<NumericUpDown Grid.Column="1" Value="{Binding Value}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Width="120" FontSize="11" Height="28"/>
+																		</Grid>
 																	</DataTemplate>
 																	<!-- String flag: label + TextBox -->
 																	<DataTemplate DataType="vm:StringFlagViewModel">
-																		<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-																			<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" Width="120"/>
-																			<TextBox Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/>
-																		</StackPanel>
+																		<Grid ColumnDefinitions="150, Auto" VerticalAlignment="Center" Margin="0,2">
+																			<DockPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+																				<Border Classes="info-badge" DockPanel.Dock="Right" Margin="4,0,0,0" ToolTip.Tip="{Binding FullTooltip}"><TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#5E94FF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/></Border>
+																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+																			</DockPanel>
+																			<TextBox Grid.Column="1" Text="{Binding Value}" Width="180" FontSize="11" Height="28" Padding="6,4" Background="#262626" BorderBrush="#3D3D3D"/>
+																		</Grid>
 																	</DataTemplate>
 																	<!-- Enum flag: Dropdown or Radio Group -->
 																	<DataTemplate DataType="vm:EnumFlagViewModel">
 																		<StackPanel Spacing="4">
-																			<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
-																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" Width="120"/>
-																				<ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" PlaceholderText="(None)" Width="180" FontSize="11" Height="28"/>
-																			</StackPanel>
+																			<Grid ColumnDefinitions="150, Auto" VerticalAlignment="Center" IsVisible="{Binding IsDropdown}">
+																				<DockPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+																					<Border Classes="info-badge" DockPanel.Dock="Right" Margin="4,0,0,0" ToolTip.Tip="{Binding FullTooltip}"><TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#5E94FF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/></Border>
+																					<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+																				</DockPanel>
+																				<ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" PlaceholderText="(None)" Width="180" FontSize="11" Height="28"/>
+																			</Grid>
 																			<StackPanel Spacing="4" IsVisible="{Binding IsRadio}">
-																				<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}"/>
+																				<StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+																					<TextBlock Text="{Binding Label}" FontSize="11" Foreground="{Binding LabelColor}" ToolTip.Tip="{Binding FullTooltip}"/>
+																					<Border Classes="info-badge" ToolTip.Tip="{Binding FullTooltip}"><TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#5E94FF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/></Border>
+																				</StackPanel>
 																				<ItemsControl ItemsSource="{Binding Options}">
 																					<ItemsControl.ItemsPanel>
 																						<ItemsPanelTemplate>
@@ -1014,6 +1027,12 @@
 						<StackPanel Spacing="4">
 							<TextBlock Text="Default Value:" FontSize="11" Foreground="#AAA"/>
 							<TextBox Text="{Binding CreatorDefault}" PlaceholderText="e.g. true, 100, Fire" FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
+						</StackPanel>
+
+						<!-- Description (Optional) -->
+						<StackPanel Spacing="4">
+							<TextBlock Text="Description (optional tooltip text):" FontSize="11" Foreground="#AAA"/>
+							<TextBox Text="{Binding CreatorDescription}" PlaceholderText="Explain what this custom flag does..." FontSize="11" Height="28" Padding="6,4" Background="#1E1E1E" BorderBrush="#3D3D3D"/>
 						</StackPanel>
 
 						<!-- Int specific bounds -->
