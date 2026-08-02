@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Sprites;
 using NyxAssets.Things;
 using NyxAssets.Things.Frames;
+using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Exchange;
 using NyxAssetsEditor.Services.Things;
 using NyxAssetsEditor.Services.Rendering;
@@ -991,8 +992,14 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		for (uint f = 0; f < fg.Frames; f++)
 		{
-			if (fg.GetSpriteId(0, 0, (uint)SelectedLayer, px, py, _viewPatternZ, f) > 0)
-				return true;
+			for (uint innerW = 0; innerW < fg.Width; innerW++)
+			{
+				for (uint innerH = 0; innerH < fg.Height; innerH++)
+				{
+					if (fg.GetSpriteId(innerW, innerH, (uint)SelectedLayer, px, py, _viewPatternZ, f) > 0)
+						return true;
+				}
+			}
 		}
 		return false;
 	}
@@ -1059,6 +1066,73 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		GenerateMissileAllRotations(sourceDir.Value);
 	}
 
+	private static byte[] LoadCellRgba(ThingFrameGroup fg, SpriteLoader loader, int layer, uint px, uint py, uint pz, uint frame)
+	{
+		int tileEdge = SpritePixelCodec.SpriteEdgeLength; // 32
+		int cellW = (int)(fg.Width * tileEdge);
+		int cellH = (int)(fg.Height * tileEdge);
+		byte[] cellRgba = new byte[cellW * cellH * 4];
+
+		for (uint innerW = 0; innerW < fg.Width; innerW++)
+		{
+			for (uint innerH = 0; innerH < fg.Height; innerH++)
+			{
+				var spriteId = fg.GetSpriteId(innerW, innerH, (uint)layer, px, py, pz, frame);
+				if (spriteId < 1) continue;
+
+				byte[] spritePixels;
+				try { spritePixels = loader.LoadSpritePixels(spriteId); }
+				catch { continue; }
+				if (spritePixels == null || spritePixels.Length != SpritePixelCodec.RgbaBufferLength) continue;
+
+				int tileX = (int)((fg.Width - 1 - innerW) * tileEdge);
+				int tileY = (int)((fg.Height - 1 - innerH) * tileEdge);
+
+				for (int sy = 0; sy < tileEdge; sy++)
+				{
+					int srcOffset = (sy * tileEdge) * 4;
+					int dstOffset = ((tileY + sy) * cellW + tileX) * 4;
+					Buffer.BlockCopy(spritePixels, srcOffset, cellRgba, dstOffset, tileEdge * 4);
+				}
+			}
+		}
+
+		return cellRgba;
+	}
+
+	private static void SaveCellRgba(ThingFrameGroup fg, FloatingSpriteLoaderViewModel linkedPanel, int layer, uint px, uint py, uint pz, uint frame, byte[] cellRgba)
+	{
+		int tileEdge = SpritePixelCodec.SpriteEdgeLength; // 32
+		int cellW = (int)(fg.Width * tileEdge);
+		int cellH = (int)(fg.Height * tileEdge);
+
+		for (uint innerW = 0; innerW < fg.Width; innerW++)
+		{
+			for (uint innerH = 0; innerH < fg.Height; innerH++)
+			{
+				int tileX = (int)((fg.Width - 1 - innerW) * tileEdge);
+				int tileY = (int)((fg.Height - 1 - innerH) * tileEdge);
+
+				byte[] tilePixels = new byte[SpritePixelCodec.RgbaBufferLength];
+				for (int sy = 0; sy < tileEdge; sy++)
+				{
+					int srcOffset = ((tileY + sy) * cellW + tileX) * 4;
+					int dstOffset = (sy * tileEdge) * 4;
+					Buffer.BlockCopy(cellRgba, srcOffset, tilePixels, dstOffset, tileEdge * 4);
+				}
+
+				var newId = linkedPanel.Loader.AddNewSprite();
+				linkedPanel.Loader.SetSpritePixels(newId, tilePixels);
+
+				var index = fg.GetSpriteIndex(innerW, innerH, (uint)layer, px, py, pz, frame);
+				if (index < fg.SpriteIds.Length)
+				{
+					fg.SpriteIds[index] = newId;
+				}
+			}
+		}
+	}
+
 	private void GenerateMissileRotations(Direction8 sourceDir, bool isOrthogonal)
 	{
 		var loader = SourcePanel.GetActiveSpriteLoader();
@@ -1067,6 +1141,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		var fg = CurrentFrameGroup;
 		var (srcPx, srcPy) = MissileDirectionPatterns.GetPattern(sourceDir);
+
+		int tileEdge = SpritePixelCodec.SpriteEdgeLength;
+		int cellW = (int)(fg.Width * tileEdge);
+		int cellH = (int)(fg.Height * tileEdge);
 
 		Direction8[] targets = isOrthogonal
 			? new[] { Direction8.North, Direction8.East, Direction8.South, Direction8.West }
@@ -1077,31 +1155,25 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		for (uint frame = 0; frame < fg.Frames; frame++)
 		{
-			var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
-			if (srcSpriteId < 1) continue;
+			byte[] srcCellRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
 
-			byte[] srcRgba;
-			try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
-			catch { continue; }
-			if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) continue;
+			bool hasContent = false;
+			for (int i = 3; i < srcCellRgba.Length; i += 4)
+			{
+				if (srcCellRgba[i] > 0) { hasContent = true; break; }
+			}
+			if (!hasContent) continue;
 
 			for (int i = 0; i < targets.Length; i++)
 			{
 				if (i == sourceIdx) continue;
 
 				int rotSteps = (i - sourceIdx + 4) % 4;
-				byte[] rotatedRgba = RotateRgba90(srcRgba, rotSteps);
-
-				var newId = linkedPanel.Loader.AddNewSprite();
-				linkedPanel.Loader.SetSpritePixels(newId, rotatedRgba);
+				byte[] rotatedRgba = RotateRgba90(srcCellRgba, cellW, cellH, rotSteps);
 
 				var targetDir = targets[i];
 				var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
-				var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, frame);
-				if (index < fg.SpriteIds.Length)
-				{
-					fg.SpriteIds[index] = newId;
-				}
+				SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, targetPy, _viewPatternZ, frame, rotatedRgba);
 			}
 		}
 
@@ -1120,33 +1192,38 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		var fg = CurrentFrameGroup;
 		var (srcPx, srcPy) = MissileDirectionPatterns.GetPattern(sourceDir);
 
+		int tileEdge = SpritePixelCodec.SpriteEdgeLength;
+		int cellW = (int)(fg.Width * tileEdge);
+		int cellH = (int)(fg.Height * tileEdge);
+
 		for (uint frame = 0; frame < fg.Frames; frame++)
 		{
-			var srcSpriteId = fg.GetSpriteId(0, 0, (uint)SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
-			if (srcSpriteId < 1) continue;
+			byte[] srcCellRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, srcPy, _viewPatternZ, frame);
 
-			byte[] srcRgba;
-			try { srcRgba = loader.LoadSpritePixels(srcSpriteId); }
-			catch { continue; }
-			if (srcRgba == null || srcRgba.Length != SpritePixelCodec.RgbaBufferLength) continue;
+			bool hasContent = false;
+			for (int i = 3; i < srcCellRgba.Length; i += 4)
+			{
+				if (srcCellRgba[i] > 0) { hasContent = true; break; }
+			}
+			if (!hasContent) continue;
 
 			// Normalize cardinal source to North
 			byte[] northRgba = sourceDir switch
 			{
-				Direction8.East => RotateRgba90(srcRgba, 3),  // 270° CW = 90° CCW
-				Direction8.South => RotateRgba90(srcRgba, 2), // 180°
-				Direction8.West => RotateRgba90(srcRgba, 1),  // 90° CW
-				_ => (byte[])srcRgba.Clone(),                 // North
+				Direction8.East => RotateRgba90(srcCellRgba, cellW, cellH, 3),  // 270° CW = 90° CCW
+				Direction8.South => RotateRgba90(srcCellRgba, cellW, cellH, 2), // 180°
+				Direction8.West => RotateRgba90(srcCellRgba, cellW, cellH, 1),  // 90° CW
+				_ => (byte[])srcCellRgba.Clone(),                               // North
 			};
 
-			// Generate 8-way rotations using pixel art rotation (RotSprite + symmetrical flips)
-			byte[] neRgba = RotSpriteAlgorithm(northRgba, 45.0);
-			byte[] eRgba = RotateRgba90(northRgba, 1);
-			byte[] seRgba = RotSpriteAlgorithm(northRgba, 135.0);
-			byte[] sRgba = FlipVertical(northRgba);
-			byte[] swRgba = FlipHorizontal(seRgba);
-			byte[] wRgba = FlipHorizontal(eRgba);
-			byte[] nwRgba = FlipHorizontal(neRgba);
+			// Generate 8-way rotations using RotSprite + symmetrical flips
+			byte[] neRgba = RotSpriteAlgorithm(northRgba, cellW, cellH, 45.0);
+			byte[] eRgba = RotateRgba90(northRgba, cellW, cellH, 1);
+			byte[] seRgba = RotSpriteAlgorithm(northRgba, cellW, cellH, 135.0);
+			byte[] sRgba = FlipVertical(northRgba, cellW, cellH);
+			byte[] swRgba = FlipHorizontal(seRgba, cellW, cellH);
+			byte[] wRgba = FlipHorizontal(eRgba, cellW, cellH);
+			byte[] nwRgba = FlipHorizontal(neRgba, cellW, cellH);
 
 			var generated = new (Direction8 Dir, byte[] Rgba)[]
 			{
@@ -1162,15 +1239,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 			foreach (var (targetDir, rgba) in generated)
 			{
-				var newId = linkedPanel.Loader.AddNewSprite();
-				linkedPanel.Loader.SetSpritePixels(newId, rgba);
-
 				var (targetPx, targetPy) = MissileDirectionPatterns.GetPattern(targetDir);
-				var index = fg.GetSpriteIndex(0, 0, (uint)SelectedLayer, targetPx, targetPy, _viewPatternZ, frame);
-				if (index < fg.SpriteIds.Length)
-				{
-					fg.SpriteIds[index] = newId;
-				}
+				SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, targetPy, _viewPatternZ, frame, rgba);
 			}
 		}
 
@@ -1184,86 +1254,75 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	/// RotSprite pixel art rotation — the gold standard for rotating pixel art.
 	/// Pipeline: Modified Scale2x ×3 (8x upscale) → NN rotation → NN downsample → detail restoration → orphan cleanup.
 	/// </summary>
-	private static byte[] RotSpriteAlgorithm(byte[] srcRgba, double angleDegrees)
+	private static byte[] RotSpriteAlgorithm(byte[] srcRgba, int w, int h, double angleDegrees)
 	{
-		int edge = SpritePixelCodec.SpriteEdgeLength;
-
 		// Bail on empty sprites
 		bool hasContent = false;
-		for (int i = 0; i < srcRgba.Length; i += 4)
+		for (int i = 3; i < srcRgba.Length; i += 4)
 		{
-			if (srcRgba[i + 3] > 0) { hasContent = true; break; }
+			if (srcRgba[i] > 0) { hasContent = true; break; }
 		}
 		if (!hasContent)
 			return (byte[])srcRgba.Clone();
 
 		// === Stage 1: 8x upscale via modified Scale2x applied 3 times (2^3 = 8) ===
-		int curEdge = edge;
+		int curW = w;
+		int curH = h;
 		byte[] current = srcRgba;
 
 		for (int pass = 0; pass < 3; pass++)
 		{
-			int newEdge = curEdge * 2;
-			byte[] scaled = new byte[newEdge * newEdge * 4];
+			int newW = curW * 2;
+			int newH = curH * 2;
+			byte[] scaled = new byte[newW * newH * 4];
 
-			for (int y = 0; y < curEdge; y++)
+			for (int y = 0; y < curH; y++)
 			{
-				for (int x = 0; x < curEdge; x++)
+				for (int x = 0; x < curW; x++)
 				{
-					// 3x3 neighborhood around (x,y) — clamp at edges
 					int xm1 = Math.Max(x - 1, 0);
-					int xp1 = Math.Min(x + 1, curEdge - 1);
+					int xp1 = Math.Min(x + 1, curW - 1);
 					int ym1 = Math.Max(y - 1, 0);
-					int yp1 = Math.Min(y + 1, curEdge - 1);
+					int yp1 = Math.Min(y + 1, curH - 1);
 
-					//  A B C
-					//  D E F
-					//  G H I
-					int idxA = (ym1 * curEdge + xm1) * 4;
-					int idxB = (ym1 * curEdge + x) * 4;
-					int idxC = (ym1 * curEdge + xp1) * 4;
-					int idxD = (y * curEdge + xm1) * 4;
-					int idxE = (y * curEdge + x) * 4;
-					int idxF = (y * curEdge + xp1) * 4;
-					int idxG = (yp1 * curEdge + xm1) * 4;
-					int idxH = (yp1 * curEdge + x) * 4;
-					int idxI = (yp1 * curEdge + xp1) * 4;
+					int idxA = (ym1 * curW + xm1) * 4;
+					int idxB = (ym1 * curW + x) * 4;
+					int idxC = (ym1 * curW + xp1) * 4;
+					int idxD = (y * curW + xm1) * 4;
+					int idxE = (y * curW + x) * 4;
+					int idxF = (y * curW + xp1) * 4;
+					int idxG = (yp1 * curW + xm1) * 4;
+					int idxH = (yp1 * curW + x) * 4;
+					int idxI = (yp1 * curW + xp1) * 4;
 
-					// Modified Scale2x with similarity threshold (RotSprite variant)
-					// P1 P2
-					// P3 P4
 					int ox = x * 2;
 					int oy = y * 2;
 
-					int p1Idx = (oy * newEdge + ox) * 4;
-					int p2Idx = (oy * newEdge + ox + 1) * 4;
-					int p3Idx = ((oy + 1) * newEdge + ox) * 4;
-					int p4Idx = ((oy + 1) * newEdge + ox + 1) * 4;
+					int p1Idx = (oy * newW + ox) * 4;
+					int p2Idx = (oy * newW + ox + 1) * 4;
+					int p3Idx = ((oy + 1) * newW + ox) * 4;
+					int p4Idx = ((oy + 1) * newW + ox + 1) * 4;
 
 					bool bSimD = PixelsSimilar(current, idxB, current, idxD);
 					bool bSimF = PixelsSimilar(current, idxB, current, idxF);
 					bool dSimH = PixelsSimilar(current, idxD, current, idxH);
 					bool fSimH = PixelsSimilar(current, idxF, current, idxH);
 
-					// P1: if B~D and B!~F and D!~H → D, else E
 					if (bSimD && !bSimF && !dSimH)
 						CopyPixel(current, idxD, scaled, p1Idx);
 					else
 						CopyPixel(current, idxE, scaled, p1Idx);
 
-					// P2: if B~F and B!~D and F!~H → F, else E
 					if (bSimF && !bSimD && !fSimH)
 						CopyPixel(current, idxF, scaled, p2Idx);
 					else
 						CopyPixel(current, idxE, scaled, p2Idx);
 
-					// P3: if D~H and B!~D and F!~H → D, else E
 					if (dSimH && !bSimD && !fSimH)
 						CopyPixel(current, idxD, scaled, p3Idx);
 					else
 						CopyPixel(current, idxE, scaled, p3Idx);
 
-					// P4: if F~H and B!~F and D!~H → F, else E
 					if (fSimH && !bSimF && !dSimH)
 						CopyPixel(current, idxF, scaled, p4Idx);
 					else
@@ -1272,64 +1331,63 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			}
 
 			current = scaled;
-			curEdge = newEdge;
+			curW = newW;
+			curH = newH;
 		}
 
-		// curEdge is now edge * 8
-		int hiEdge = curEdge;
+		int hiW = curW;
+		int hiH = curH;
 		byte[] hiRes = current;
 
 		// === Stage 2: Nearest-neighbor rotation at 8x resolution ===
-		double cx = (hiEdge - 1) / 2.0;
-		double cy = (hiEdge - 1) / 2.0;
+		double cx = (hiW - 1) / 2.0;
+		double cy = (hiH - 1) / 2.0;
 		double rad = -angleDegrees * Math.PI / 180.0;
 		double cosA = Math.Cos(rad);
 		double sinA = Math.Sin(rad);
 
-		byte[] rotated8x = new byte[hiEdge * hiEdge * 4];
+		byte[] rotated8x = new byte[hiW * hiH * 4];
 
-		for (int dy = 0; dy < hiEdge; dy++)
+		for (int dy = 0; dy < hiH; dy++)
 		{
 			double y0 = dy - cy;
-			for (int dx = 0; dx < hiEdge; dx++)
+			for (int dx = 0; dx < hiW; dx++)
 			{
 				double x0 = dx - cx;
 				int srcX = (int)Math.Round(cx + x0 * cosA - y0 * sinA);
 				int srcY = (int)Math.Round(cy + x0 * sinA + y0 * cosA);
 
-				int destIdx = (dy * hiEdge + dx) * 4;
-				if (srcX >= 0 && srcX < hiEdge && srcY >= 0 && srcY < hiEdge)
+				int destIdx = (dy * hiW + dx) * 4;
+				if (srcX >= 0 && srcX < hiW && srcY >= 0 && srcY < hiH)
 				{
-					int srcIdx = (srcY * hiEdge + srcX) * 4;
+					int srcIdx = (srcY * hiW + srcX) * 4;
 					Buffer.BlockCopy(hiRes, srcIdx, rotated8x, destIdx, 4);
 				}
 			}
 		}
 
 		// === Stage 3: Nearest-neighbor downsample 8x → 1x ===
-		// Sample the center pixel of each 8x8 block (offset 4,4) for best alignment
-		byte[] result = new byte[edge * edge * 4];
+		byte[] result = new byte[w * h * 4];
 		int scale = 8;
 		int halfScale = scale / 2;
 
-		for (int y = 0; y < edge; y++)
+		for (int y = 0; y < h; y++)
 		{
-			for (int x = 0; x < edge; x++)
+			for (int x = 0; x < w; x++)
 			{
 				int sampleX = x * scale + halfScale;
 				int sampleY = y * scale + halfScale;
 
-				// Clamp just in case
-				sampleX = Math.Min(sampleX, hiEdge - 1);
-				sampleY = Math.Min(sampleY, hiEdge - 1);
+				sampleX = Math.Min(sampleX, hiW - 1);
+				sampleY = Math.Min(sampleY, hiH - 1);
 
-				int srcIdx = (sampleY * hiEdge + sampleX) * 4;
-				int dstIdx = (y * edge + x) * 4;
+				int srcIdx = (sampleY * hiW + sampleX) * 4;
+				int dstIdx = (y * w + x) * 4;
 				Buffer.BlockCopy(rotated8x, srcIdx, result, dstIdx, 4);
 			}
 		}
 
-		// === Stage 4: Strict binary alpha (no semi-transparency for pixel art) ===
+		// === Stage 4: Strict binary alpha ===
 		for (int i = 0; i < result.Length; i += 4)
 		{
 			if (result[i + 3] < 128)
@@ -1346,57 +1404,46 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		}
 
 		// === Stage 5: RotSprite detail restoration ===
-		// If a pixel in the result differs from what the source would have at that position,
-		// but has 3+ identical cardinal neighbors in the result, restore the source pixel.
-		// This preserves single-pixel details that get lost during downscaling.
-		result = RestoreDetails(result, srcRgba, angleDegrees, edge);
+		result = RestoreDetails(result, srcRgba, w, h, angleDegrees);
 
 		// === Stage 6: Orphan cleanup ===
-		return CleanOrphans(result);
+		return CleanOrphans(result, w, h);
 	}
 
-	/// <summary>
-	/// RotSprite detail restoration pass. Checks rotated output against source image;
-	/// if a pixel has 3+ identical neighbors but differs from source, restore it.
-	/// </summary>
-	private static byte[] RestoreDetails(byte[] result, byte[] srcRgba, double angleDegrees, int edge)
+	private static byte[] RestoreDetails(byte[] result, byte[] srcRgba, int w, int h, double angleDegrees)
 	{
 		byte[] restored = (byte[])result.Clone();
 
-		double cx = (edge - 1) / 2.0;
-		double cy = (edge - 1) / 2.0;
-		// Inverse rotation to map output coords back to source coords
+		double cx = (w - 1) / 2.0;
+		double cy = (h - 1) / 2.0;
 		double rad = angleDegrees * Math.PI / 180.0;
 		double cosA = Math.Cos(rad);
 		double sinA = Math.Sin(rad);
 
-		for (int y = 1; y < edge - 1; y++)
+		for (int y = 1; y < h - 1; y++)
 		{
-			for (int x = 1; x < edge - 1; x++)
+			for (int x = 1; x < w - 1; x++)
 			{
-				int idx = (y * edge + x) * 4;
+				int idx = (y * w + x) * 4;
 				if (result[idx + 3] == 0) continue;
 
-				// Map (x,y) in output back to source coordinates
 				double x0 = x - cx;
 				double y0 = y - cy;
 				int srcX = (int)Math.Round(cx + x0 * cosA - y0 * sinA);
 				int srcY = (int)Math.Round(cy + x0 * sinA + y0 * cosA);
 
-				if (srcX < 0 || srcX >= edge || srcY < 0 || srcY >= edge)
+				if (srcX < 0 || srcX >= w || srcY < 0 || srcY >= h)
 					continue;
 
-				int srcIdx = (srcY * edge + srcX) * 4;
+				int srcIdx = (srcY * w + srcX) * 4;
 				if (srcRgba[srcIdx + 3] == 0)
 					continue;
 
-				// If result pixel already matches source, no restoration needed
 				if (result[idx] == srcRgba[srcIdx] &&
 					result[idx + 1] == srcRgba[srcIdx + 1] &&
 					result[idx + 2] == srcRgba[srcIdx + 2])
 					continue;
 
-				// Count how many cardinal neighbors have the same color as this pixel
 				int sameCount = 0;
 				int totalVisible = 0;
 				ReadOnlySpan<(int dx, int dy)> cardinals = stackalloc (int, int)[]
@@ -1406,7 +1453,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 				foreach (var (ddx, ddy) in cardinals)
 				{
-					int nIdx = ((y + ddy) * edge + (x + ddx)) * 4;
+					int nIdx = ((y + ddy) * w + (x + ddx)) * 4;
 					if (result[nIdx + 3] == 0) continue;
 					totalVisible++;
 					if (result[nIdx] == result[idx] &&
@@ -1415,8 +1462,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 						sameCount++;
 				}
 
-				// If 3+ cardinal neighbors are identical to this pixel,
-				// this pixel is part of a flat area that may have overwritten a detail — restore source
 				if (sameCount >= 3 && totalVisible >= 3)
 				{
 					restored[idx] = srcRgba[srcIdx];
@@ -1430,27 +1475,18 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		return restored;
 	}
 
-	/// <summary>
-	/// Modified Scale2x color similarity check for RotSprite.
-	/// Uses weighted Euclidean distance with alpha awareness.
-	/// </summary>
 	private static bool PixelsSimilar(byte[] buf, int idx1, byte[] buf2, int idx2)
 	{
 		byte a1 = buf[idx1 + 3], a2 = buf2[idx2 + 3];
 
-		// Both transparent → similar
 		if (a1 == 0 && a2 == 0) return true;
-		// One transparent, other not → not similar
 		if (a1 == 0 || a2 == 0) return false;
 
 		int dr = buf[idx1] - buf2[idx2];
 		int dg = buf[idx1 + 1] - buf2[idx2 + 1];
 		int db = buf[idx1 + 2] - buf2[idx2 + 2];
 
-		// Perceptual color distance (weighted: green channel more sensitive)
 		int dist = dr * dr + 2 * dg * dg + db * db;
-		// Threshold: ~48 per channel max difference treated as similar
-		// This value (48² + 2*48² + 48² = 9216) balances between too-blocky and too-loose
 		return dist < 9216;
 	}
 
@@ -1462,16 +1498,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		dst[dstIdx + 3] = src[srcIdx + 3];
 	}
 
-	private static byte[] CleanOrphans(byte[] imgRgba)
+	private static byte[] CleanOrphans(byte[] imgRgba, int w, int h)
 	{
-		int edge = SpritePixelCodec.SpriteEdgeLength;
 		byte[] cleaned = (byte[])imgRgba.Clone();
 
-		for (int y = 1; y < edge - 1; y++)
+		for (int y = 1; y < h - 1; y++)
 		{
-			for (int x = 1; x < edge - 1; x++)
+			for (int x = 1; x < w - 1; x++)
 			{
-				int idx = (y * edge + x) * 4;
+				int idx = (y * w + x) * 4;
 				if (imgRgba[idx + 3] == 0) continue;
 
 				int neighborCount = 0;
@@ -1480,7 +1515,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 					for (int nx = x - 1; nx <= x + 1; nx++)
 					{
 						if (ny == y && nx == x) continue;
-						if (imgRgba[(ny * edge + nx) * 4 + 3] > 0)
+						if (imgRgba[(ny * w + nx) * 4 + 3] > 0)
 						{
 							neighborCount++;
 						}
@@ -1500,68 +1535,67 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		return cleaned;
 	}
 
-	private static byte[] FlipVertical(byte[] src)
+	private static byte[] FlipVertical(byte[] src, int w, int h)
 	{
-		int edge = SpritePixelCodec.SpriteEdgeLength;
 		byte[] dest = new byte[src.Length];
-		for (int y = 0; y < edge; y++)
+		for (int y = 0; y < h; y++)
 		{
-			int srcRow = y * edge * 4;
-			int destRow = (edge - 1 - y) * edge * 4;
-			Buffer.BlockCopy(src, srcRow, dest, destRow, edge * 4);
+			int srcRow = y * w * 4;
+			int destRow = (h - 1 - y) * w * 4;
+			Buffer.BlockCopy(src, srcRow, dest, destRow, w * 4);
 		}
 		return dest;
 	}
 
-	private static byte[] FlipHorizontal(byte[] src)
+	private static byte[] FlipHorizontal(byte[] src, int w, int h)
 	{
-		int edge = SpritePixelCodec.SpriteEdgeLength;
 		byte[] dest = new byte[src.Length];
-		for (int y = 0; y < edge; y++)
+		for (int y = 0; y < h; y++)
 		{
-			for (int x = 0; x < edge; x++)
+			for (int x = 0; x < w; x++)
 			{
-				int srcIdx = (y * edge + x) * 4;
-				int destIdx = (y * edge + (edge - 1 - x)) * 4;
+				int srcIdx = (y * w + x) * 4;
+				int destIdx = (y * w + (w - 1 - x)) * 4;
 				Buffer.BlockCopy(src, srcIdx, dest, destIdx, 4);
 			}
 		}
 		return dest;
 	}
 
-	private static byte[] RotateRgba90(byte[] src, int steps)
+	private static byte[] RotateRgba90(byte[] src, int w, int h, int steps)
 	{
 		steps = (steps % 4 + 4) % 4;
 		if (steps == 0) return (byte[])src.Clone();
 
-		int edge = SpritePixelCodec.SpriteEdgeLength;
-		byte[] dest = new byte[src.Length];
+		int newW = (steps % 2 == 1) ? h : w;
+		int newH = (steps % 2 == 1) ? w : h;
+		byte[] dest = new byte[newW * newH * 4];
 
-		for (int y = 0; y < edge; y++)
+		for (int y = 0; y < h; y++)
 		{
-			for (int x = 0; x < edge; x++)
+			for (int x = 0; x < w; x++)
 			{
-				int srcIdx = (y * edge + x) * 4;
+				int srcIdx = (y * w + x) * 4;
 				int newX = x;
 				int newY = y;
 
 				switch (steps)
 				{
 					case 1: // 90° clockwise
-						newX = edge - 1 - y;
+						newX = h - 1 - y;
 						newY = x;
 						break;
 					case 2: // 180°
-						newX = edge - 1 - x;
-						newY = edge - 1 - y;
+						newX = w - 1 - x;
+						newY = h - 1 - y;
 						break;
 					case 3: // 270° clockwise (90° counter-clockwise)
 						newX = y;
-						newY = edge - 1 - x;
+						newY = w - 1 - x;
 						break;
 				}
 
-				int destIdx = (newY * edge + newX) * 4;
+				int destIdx = (newY * newW + newX) * 4;
 				Buffer.BlockCopy(src, srcIdx, dest, destIdx, 4);
 			}
 		}
