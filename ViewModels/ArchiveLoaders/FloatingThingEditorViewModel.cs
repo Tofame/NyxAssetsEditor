@@ -1251,8 +1251,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	/// <summary>
-	/// RotSprite pixel art rotation — the gold standard for rotating pixel art.
-	/// Pipeline: Modified Scale2x ×3 (8x upscale) → NN rotation → NN downsample → detail restoration → orphan cleanup.
+	/// RotSprite pixel art rotation with auto-nudging to prevent canvas edge cutoff.
+	/// Pipeline: Modified Scale2x ×3 (8x upscale) → Padded NN rotation → NN downsample → Bounding Box Auto-Nudge → detail restoration → orphan cleanup.
 	/// </summary>
 	private static byte[] RotSpriteAlgorithm(byte[] srcRgba, int w, int h, double angleDegrees)
 	{
@@ -1339,55 +1339,117 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		int hiH = curH;
 		byte[] hiRes = current;
 
-		// === Stage 2: Nearest-neighbor rotation at 8x resolution ===
-		double cx = (hiW - 1) / 2.0;
-		double cy = (hiH - 1) / 2.0;
+		// === Stage 2: Padded NN Rotation at 8x resolution (double dimensions to avoid clipping during rotation) ===
+		int padHiW = hiW * 2;
+		int padHiH = hiH * 2;
+		double srcCx = (hiW - 1) / 2.0;
+		double srcCy = (hiH - 1) / 2.0;
+		double dstCx = (padHiW - 1) / 2.0;
+		double dstCy = (padHiH - 1) / 2.0;
+
 		double rad = -angleDegrees * Math.PI / 180.0;
 		double cosA = Math.Cos(rad);
 		double sinA = Math.Sin(rad);
 
-		byte[] rotated8x = new byte[hiW * hiH * 4];
+		byte[] rotatedPad8x = new byte[padHiW * padHiH * 4];
 
-		for (int dy = 0; dy < hiH; dy++)
+		for (int dy = 0; dy < padHiH; dy++)
 		{
-			double y0 = dy - cy;
-			for (int dx = 0; dx < hiW; dx++)
+			double y0 = dy - dstCy;
+			for (int dx = 0; dx < padHiW; dx++)
 			{
-				double x0 = dx - cx;
-				int srcX = (int)Math.Round(cx + x0 * cosA - y0 * sinA);
-				int srcY = (int)Math.Round(cy + x0 * sinA + y0 * cosA);
+				double x0 = dx - dstCx;
+				int srcX = (int)Math.Round(srcCx + x0 * cosA - y0 * sinA);
+				int srcY = (int)Math.Round(srcCy + x0 * sinA + y0 * cosA);
 
-				int destIdx = (dy * hiW + dx) * 4;
+				int destIdx = (dy * padHiW + dx) * 4;
 				if (srcX >= 0 && srcX < hiW && srcY >= 0 && srcY < hiH)
 				{
 					int srcIdx = (srcY * hiW + srcX) * 4;
-					Buffer.BlockCopy(hiRes, srcIdx, rotated8x, destIdx, 4);
+					Buffer.BlockCopy(hiRes, srcIdx, rotatedPad8x, destIdx, 4);
 				}
 			}
 		}
 
-		// === Stage 3: Nearest-neighbor downsample 8x → 1x ===
-		byte[] result = new byte[w * h * 4];
+		// === Stage 3: NN Downsample 8x → 1x onto padded 1x canvas ===
+		int padW = w * 2;
+		int padH = h * 2;
+		byte[] padResult = new byte[padW * padH * 4];
 		int scale = 8;
 		int halfScale = scale / 2;
 
-		for (int y = 0; y < h; y++)
+		for (int y = 0; y < padH; y++)
 		{
-			for (int x = 0; x < w; x++)
+			for (int x = 0; x < padW; x++)
 			{
 				int sampleX = x * scale + halfScale;
 				int sampleY = y * scale + halfScale;
 
-				sampleX = Math.Min(sampleX, hiW - 1);
-				sampleY = Math.Min(sampleY, hiH - 1);
+				sampleX = Math.Min(sampleX, padHiW - 1);
+				sampleY = Math.Min(sampleY, padHiH - 1);
 
-				int srcIdx = (sampleY * hiW + sampleX) * 4;
-				int dstIdx = (y * w + x) * 4;
-				Buffer.BlockCopy(rotated8x, srcIdx, result, dstIdx, 4);
+				int srcIdx = (sampleY * padHiW + sampleX) * 4;
+				int dstIdx = (y * padW + x) * 4;
+				Buffer.BlockCopy(rotatedPad8x, srcIdx, padResult, dstIdx, 4);
 			}
 		}
 
-		// === Stage 4: Strict binary alpha ===
+		// === Stage 4: Find bounding box of visible rotated pixels on padded canvas ===
+		int minX = int.MaxValue, maxX = int.MinValue;
+		int minY = int.MaxValue, maxY = int.MinValue;
+
+		for (int y = 0; y < padH; y++)
+		{
+			for (int x = 0; x < padW; x++)
+			{
+				if (padResult[(y * padW + x) * 4 + 3] >= 128)
+				{
+					if (x < minX) minX = x;
+					if (x > maxX) maxX = x;
+					if (y < minY) minY = y;
+					if (y > maxY) maxY = y;
+				}
+			}
+		}
+
+		// If no visible pixels, return empty
+		if (minX > maxX || minY > maxY)
+			return new byte[w * h * 4];
+
+		int rotW = maxX - minX + 1;
+		int rotH = maxY - minY + 1;
+
+		// === Stage 5: Detect cutoff & shift towards transparent space on opposite edge ===
+		int startX = (padW - w) / 2;
+		int startY = (padH - h) / 2;
+
+		int newStartX = (rotW <= w)
+			? Math.Clamp(startX, maxX - w + 1, minX)
+			: Math.Min(startX, minX);
+
+		int newStartY = (rotH <= h)
+			? Math.Clamp(startY, maxY - h + 1, minY)
+			: Math.Min(startY, minY);
+
+		// === Stage 6: Copy cropped/shifted region into final w × h canvas ===
+		byte[] result = new byte[w * h * 4];
+		for (int y = 0; y < h; y++)
+		{
+			int srcY = newStartY + y;
+			if (srcY < 0 || srcY >= padH) continue;
+
+			for (int x = 0; x < w; x++)
+			{
+				int srcX = newStartX + x;
+				if (srcX < 0 || srcX >= padW) continue;
+
+				int srcIdx = (srcY * padW + srcX) * 4;
+				int dstIdx = (y * w + x) * 4;
+				CopyPixel(padResult, srcIdx, result, dstIdx);
+			}
+		}
+
+		// === Stage 7: Strict binary alpha ===
 		for (int i = 0; i < result.Length; i += 4)
 		{
 			if (result[i + 3] < 128)
@@ -1403,10 +1465,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			}
 		}
 
-		// === Stage 5: RotSprite detail restoration ===
+		// === Stage 8: RotSprite detail restoration & orphan cleanup ===
 		result = RestoreDetails(result, srcRgba, w, h, angleDegrees);
-
-		// === Stage 6: Orphan cleanup ===
 		return CleanOrphans(result, w, h);
 	}
 
