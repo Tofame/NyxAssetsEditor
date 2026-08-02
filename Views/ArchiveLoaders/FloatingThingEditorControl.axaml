@@ -101,7 +101,7 @@
 			<Setter Property="VerticalAlignment" Value="Center"/>
 			<Setter Property="HorizontalAlignment" Value="Center"/>
 			<Setter Property="Cursor" Value="Help"/>
-			<Setter Property="IsVisible" Value="{Binding ShowInformationBoxes}"/>
+			<Setter Property="IsVisible" Value="{Binding $parent[local:FloatingThingEditorControl].((vm:FloatingThingEditorViewModel)DataContext).ShowInformationBoxes}"/>
 		</Style>
 	</UserControl.Styles>
 
