@@ -1139,10 +1139,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				_ => (byte[])srcRgba.Clone(),                 // North
 			};
 
-			// Generate 8-way rotations using pixel art rotation (RotSprite / RotGodTier + symmetrical flips)
-			byte[] neRgba = RotGodTier(northRgba, 45.0);
+			// Generate 8-way rotations using pixel art rotation (RotSprite + symmetrical flips)
+			byte[] neRgba = RotSpriteAlgorithm(northRgba, 45.0);
 			byte[] eRgba = RotateRgba90(northRgba, 1);
-			byte[] seRgba = RotGodTier(northRgba, 135.0);
+			byte[] seRgba = RotSpriteAlgorithm(northRgba, 135.0);
 			byte[] sRgba = FlipVertical(northRgba);
 			byte[] swRgba = FlipHorizontal(seRgba);
 			byte[] wRgba = FlipHorizontal(eRgba);
@@ -1180,52 +1180,113 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		RefreshAppearance();
 	}
 
-	private static byte[] RotGodTier(byte[] srcRgba, double angleDegrees)
+	/// <summary>
+	/// RotSprite pixel art rotation — the gold standard for rotating pixel art.
+	/// Pipeline: Modified Scale2x ×3 (8x upscale) → NN rotation → NN downsample → detail restoration → orphan cleanup.
+	/// </summary>
+	private static byte[] RotSpriteAlgorithm(byte[] srcRgba, double angleDegrees)
 	{
 		int edge = SpritePixelCodec.SpriteEdgeLength;
-		int totalPixels = edge * edge;
 
-		// 1. Extract Palette from original sprite (unique RGB where Alpha >= 128)
-		var paletteList = new List<(byte R, byte G, byte B)>();
-		for (int i = 0; i < totalPixels; i++)
+		// Bail on empty sprites
+		bool hasContent = false;
+		for (int i = 0; i < srcRgba.Length; i += 4)
 		{
-			int idx = i * 4;
-			if (srcRgba[idx + 3] >= 128)
-			{
-				var color = (srcRgba[idx], srcRgba[idx + 1], srcRgba[idx + 2]);
-				if (!paletteList.Contains(color))
-					paletteList.Add(color);
-			}
+			if (srcRgba[i + 3] > 0) { hasContent = true; break; }
 		}
-
-		if (paletteList.Count == 0)
+		if (!hasContent)
 			return (byte[])srcRgba.Clone();
 
-		// 2. 8x High-Density Super Sampling
-		int scale = 8;
-		int hiEdge = edge * scale;
-		byte[] hiRes = new byte[hiEdge * hiEdge * 4];
+		// === Stage 1: 8x upscale via modified Scale2x applied 3 times (2^3 = 8) ===
+		int curEdge = edge;
+		byte[] current = srcRgba;
 
-		for (int hy = 0; hy < hiEdge; hy++)
+		for (int pass = 0; pass < 3; pass++)
 		{
-			int srcY = hy / scale;
-			for (int hx = 0; hx < hiEdge; hx++)
+			int newEdge = curEdge * 2;
+			byte[] scaled = new byte[newEdge * newEdge * 4];
+
+			for (int y = 0; y < curEdge; y++)
 			{
-				int srcX = hx / scale;
-				int srcIdx = (srcY * edge + srcX) * 4;
-				int hiIdx = (hy * hiEdge + hx) * 4;
-				Buffer.BlockCopy(srcRgba, srcIdx, hiRes, hiIdx, 4);
+				for (int x = 0; x < curEdge; x++)
+				{
+					// 3x3 neighborhood around (x,y) — clamp at edges
+					int xm1 = Math.Max(x - 1, 0);
+					int xp1 = Math.Min(x + 1, curEdge - 1);
+					int ym1 = Math.Max(y - 1, 0);
+					int yp1 = Math.Min(y + 1, curEdge - 1);
+
+					//  A B C
+					//  D E F
+					//  G H I
+					int idxA = (ym1 * curEdge + xm1) * 4;
+					int idxB = (ym1 * curEdge + x) * 4;
+					int idxC = (ym1 * curEdge + xp1) * 4;
+					int idxD = (y * curEdge + xm1) * 4;
+					int idxE = (y * curEdge + x) * 4;
+					int idxF = (y * curEdge + xp1) * 4;
+					int idxG = (yp1 * curEdge + xm1) * 4;
+					int idxH = (yp1 * curEdge + x) * 4;
+					int idxI = (yp1 * curEdge + xp1) * 4;
+
+					// Modified Scale2x with similarity threshold (RotSprite variant)
+					// P1 P2
+					// P3 P4
+					int ox = x * 2;
+					int oy = y * 2;
+
+					int p1Idx = (oy * newEdge + ox) * 4;
+					int p2Idx = (oy * newEdge + ox + 1) * 4;
+					int p3Idx = ((oy + 1) * newEdge + ox) * 4;
+					int p4Idx = ((oy + 1) * newEdge + ox + 1) * 4;
+
+					bool bSimD = PixelsSimilar(current, idxB, current, idxD);
+					bool bSimF = PixelsSimilar(current, idxB, current, idxF);
+					bool dSimH = PixelsSimilar(current, idxD, current, idxH);
+					bool fSimH = PixelsSimilar(current, idxF, current, idxH);
+
+					// P1: if B~D and B!~F and D!~H → D, else E
+					if (bSimD && !bSimF && !dSimH)
+						CopyPixel(current, idxD, scaled, p1Idx);
+					else
+						CopyPixel(current, idxE, scaled, p1Idx);
+
+					// P2: if B~F and B!~D and F!~H → F, else E
+					if (bSimF && !bSimD && !fSimH)
+						CopyPixel(current, idxF, scaled, p2Idx);
+					else
+						CopyPixel(current, idxE, scaled, p2Idx);
+
+					// P3: if D~H and B!~D and F!~H → D, else E
+					if (dSimH && !bSimD && !fSimH)
+						CopyPixel(current, idxD, scaled, p3Idx);
+					else
+						CopyPixel(current, idxE, scaled, p3Idx);
+
+					// P4: if F~H and B!~F and D!~H → F, else E
+					if (fSimH && !bSimF && !dSimH)
+						CopyPixel(current, idxF, scaled, p4Idx);
+					else
+						CopyPixel(current, idxE, scaled, p4Idx);
+				}
 			}
+
+			current = scaled;
+			curEdge = newEdge;
 		}
 
-		// 3. Subpixel Rotation around Center Pivot
+		// curEdge is now edge * 8
+		int hiEdge = curEdge;
+		byte[] hiRes = current;
+
+		// === Stage 2: Nearest-neighbor rotation at 8x resolution ===
 		double cx = (hiEdge - 1) / 2.0;
 		double cy = (hiEdge - 1) / 2.0;
 		double rad = -angleDegrees * Math.PI / 180.0;
-		double cos = Math.Cos(rad);
-		double sin = Math.Sin(rad);
+		double cosA = Math.Cos(rad);
+		double sinA = Math.Sin(rad);
 
-		byte[] rotatedHiRes = new byte[hiEdge * hiEdge * 4];
+		byte[] rotated8x = new byte[hiEdge * hiEdge * 4];
 
 		for (int dy = 0; dy < hiEdge; dy++)
 		{
@@ -1233,86 +1294,172 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			for (int dx = 0; dx < hiEdge; dx++)
 			{
 				double x0 = dx - cx;
-				double srcHx = cx + (x0 * cos - y0 * sin);
-				double srcHy = cy + (x0 * sin + y0 * cos);
-
-				int ix = (int)Math.Round(srcHx);
-				int iy = (int)Math.Round(srcHy);
+				int srcX = (int)Math.Round(cx + x0 * cosA - y0 * sinA);
+				int srcY = (int)Math.Round(cy + x0 * sinA + y0 * cosA);
 
 				int destIdx = (dy * hiEdge + dx) * 4;
-				if (ix >= 0 && ix < hiEdge && iy >= 0 && iy < hiEdge)
+				if (srcX >= 0 && srcX < hiEdge && srcY >= 0 && srcY < hiEdge)
 				{
-					int srcIdx = (iy * hiEdge + ix) * 4;
-					Buffer.BlockCopy(hiRes, srcIdx, rotatedHiRes, destIdx, 4);
+					int srcIdx = (srcY * hiEdge + srcX) * 4;
+					Buffer.BlockCopy(hiRes, srcIdx, rotated8x, destIdx, 4);
 				}
 			}
 		}
 
-		// 4. Area Downscaling (BOX majority filter) + Palette Enforcement + Alpha Thresholding
-		byte[] result = new byte[srcRgba.Length];
+		// === Stage 3: Nearest-neighbor downsample 8x → 1x ===
+		// Sample the center pixel of each 8x8 block (offset 4,4) for best alignment
+		byte[] result = new byte[edge * edge * 4];
+		int scale = 8;
+		int halfScale = scale / 2;
 
 		for (int y = 0; y < edge; y++)
 		{
 			for (int x = 0; x < edge; x++)
 			{
-				int sumR = 0, sumG = 0, sumB = 0, sumA = 0;
-				for (int subY = 0; subY < scale; subY++)
+				int sampleX = x * scale + halfScale;
+				int sampleY = y * scale + halfScale;
+
+				// Clamp just in case
+				sampleX = Math.Min(sampleX, hiEdge - 1);
+				sampleY = Math.Min(sampleY, hiEdge - 1);
+
+				int srcIdx = (sampleY * hiEdge + sampleX) * 4;
+				int dstIdx = (y * edge + x) * 4;
+				Buffer.BlockCopy(rotated8x, srcIdx, result, dstIdx, 4);
+			}
+		}
+
+		// === Stage 4: Strict binary alpha (no semi-transparency for pixel art) ===
+		for (int i = 0; i < result.Length; i += 4)
+		{
+			if (result[i + 3] < 128)
+			{
+				result[i] = 0;
+				result[i + 1] = 0;
+				result[i + 2] = 0;
+				result[i + 3] = 0;
+			}
+			else
+			{
+				result[i + 3] = 255;
+			}
+		}
+
+		// === Stage 5: RotSprite detail restoration ===
+		// If a pixel in the result differs from what the source would have at that position,
+		// but has 3+ identical cardinal neighbors in the result, restore the source pixel.
+		// This preserves single-pixel details that get lost during downscaling.
+		result = RestoreDetails(result, srcRgba, angleDegrees, edge);
+
+		// === Stage 6: Orphan cleanup ===
+		return CleanOrphans(result);
+	}
+
+	/// <summary>
+	/// RotSprite detail restoration pass. Checks rotated output against source image;
+	/// if a pixel has 3+ identical neighbors but differs from source, restore it.
+	/// </summary>
+	private static byte[] RestoreDetails(byte[] result, byte[] srcRgba, double angleDegrees, int edge)
+	{
+		byte[] restored = (byte[])result.Clone();
+
+		double cx = (edge - 1) / 2.0;
+		double cy = (edge - 1) / 2.0;
+		// Inverse rotation to map output coords back to source coords
+		double rad = angleDegrees * Math.PI / 180.0;
+		double cosA = Math.Cos(rad);
+		double sinA = Math.Sin(rad);
+
+		for (int y = 1; y < edge - 1; y++)
+		{
+			for (int x = 1; x < edge - 1; x++)
+			{
+				int idx = (y * edge + x) * 4;
+				if (result[idx + 3] == 0) continue;
+
+				// Map (x,y) in output back to source coordinates
+				double x0 = x - cx;
+				double y0 = y - cy;
+				int srcX = (int)Math.Round(cx + x0 * cosA - y0 * sinA);
+				int srcY = (int)Math.Round(cy + x0 * sinA + y0 * cosA);
+
+				if (srcX < 0 || srcX >= edge || srcY < 0 || srcY >= edge)
+					continue;
+
+				int srcIdx = (srcY * edge + srcX) * 4;
+				if (srcRgba[srcIdx + 3] == 0)
+					continue;
+
+				// If result pixel already matches source, no restoration needed
+				if (result[idx] == srcRgba[srcIdx] &&
+					result[idx + 1] == srcRgba[srcIdx + 1] &&
+					result[idx + 2] == srcRgba[srcIdx + 2])
+					continue;
+
+				// Count how many cardinal neighbors have the same color as this pixel
+				int sameCount = 0;
+				int totalVisible = 0;
+				ReadOnlySpan<(int dx, int dy)> cardinals = stackalloc (int, int)[]
 				{
-					int hy = y * scale + subY;
-					for (int subX = 0; subX < scale; subX++)
-					{
-						int hx = x * scale + subX;
-						int hiIdx = (hy * hiEdge + hx) * 4;
-						sumR += rotatedHiRes[hiIdx];
-						sumG += rotatedHiRes[hiIdx + 1];
-						sumB += rotatedHiRes[hiIdx + 2];
-						sumA += rotatedHiRes[hiIdx + 3];
-					}
+					(0, -1), (0, 1), (-1, 0), (1, 0)
+				};
+
+				foreach (var (ddx, ddy) in cardinals)
+				{
+					int nIdx = ((y + ddy) * edge + (x + ddx)) * 4;
+					if (result[nIdx + 3] == 0) continue;
+					totalVisible++;
+					if (result[nIdx] == result[idx] &&
+						result[nIdx + 1] == result[idx + 1] &&
+						result[nIdx + 2] == result[idx + 2])
+						sameCount++;
 				}
 
-				int samples = scale * scale; // 64
-				int avgA = sumA / samples;
-				int destIdx = (y * edge + x) * 4;
-
-				if (avgA < 128)
+				// If 3+ cardinal neighbors are identical to this pixel,
+				// this pixel is part of a flat area that may have overwritten a detail — restore source
+				if (sameCount >= 3 && totalVisible >= 3)
 				{
-					result[destIdx] = 0;
-					result[destIdx + 1] = 0;
-					result[destIdx + 2] = 0;
-					result[destIdx + 3] = 0;
-				}
-				else
-				{
-					int avgR = sumR / samples;
-					int avgG = sumG / samples;
-					int avgB = sumB / samples;
-
-					int bestDist = int.MaxValue;
-					(byte R, byte G, byte B) bestMatch = paletteList[0];
-
-					foreach (var color in paletteList)
-					{
-						int dr = avgR - color.R;
-						int dg = avgG - color.G;
-						int db = avgB - color.B;
-						int dist = dr * dr + dg * dg + db * db;
-						if (dist < bestDist)
-						{
-							bestDist = dist;
-							bestMatch = color;
-						}
-					}
-
-					result[destIdx] = bestMatch.R;
-					result[destIdx + 1] = bestMatch.G;
-					result[destIdx + 2] = bestMatch.B;
-					result[destIdx + 3] = 255;
+					restored[idx] = srcRgba[srcIdx];
+					restored[idx + 1] = srcRgba[srcIdx + 1];
+					restored[idx + 2] = srcRgba[srcIdx + 2];
+					restored[idx + 3] = 255;
 				}
 			}
 		}
 
-		// 5. Clean orphan pixels (floating pixels with <= 1 neighbor)
-		return CleanOrphans(result);
+		return restored;
+	}
+
+	/// <summary>
+	/// Modified Scale2x color similarity check for RotSprite.
+	/// Uses weighted Euclidean distance with alpha awareness.
+	/// </summary>
+	private static bool PixelsSimilar(byte[] buf, int idx1, byte[] buf2, int idx2)
+	{
+		byte a1 = buf[idx1 + 3], a2 = buf2[idx2 + 3];
+
+		// Both transparent → similar
+		if (a1 == 0 && a2 == 0) return true;
+		// One transparent, other not → not similar
+		if (a1 == 0 || a2 == 0) return false;
+
+		int dr = buf[idx1] - buf2[idx2];
+		int dg = buf[idx1 + 1] - buf2[idx2 + 1];
+		int db = buf[idx1 + 2] - buf2[idx2 + 2];
+
+		// Perceptual color distance (weighted: green channel more sensitive)
+		int dist = dr * dr + 2 * dg * dg + db * db;
+		// Threshold: ~48 per channel max difference treated as similar
+		// This value (48² + 2*48² + 48² = 9216) balances between too-blocky and too-loose
+		return dist < 9216;
+	}
+
+	private static void CopyPixel(byte[] src, int srcIdx, byte[] dst, int dstIdx)
+	{
+		dst[dstIdx] = src[srcIdx];
+		dst[dstIdx + 1] = src[srcIdx + 1];
+		dst[dstIdx + 2] = src[srcIdx + 2];
+		dst[dstIdx + 3] = src[srcIdx + 3];
 	}
 
 	private static byte[] CleanOrphans(byte[] imgRgba)
