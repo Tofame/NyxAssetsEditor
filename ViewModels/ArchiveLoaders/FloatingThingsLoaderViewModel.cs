@@ -822,6 +822,61 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool CanCompile => IsArchiveLoaded && LinkedSpritePanel != null && HasSavedChanges;
 
+		public event EventHandler<string>? RequestShowInfo;
+
+		[RelayCommand]
+		private void ShowInfo()
+		{
+			if (!IsArchiveLoaded) return;
+			RequestShowInfo?.Invoke(this, BuildArchiveInfoText());
+		}
+
+		public string BuildArchiveInfoText()
+		{
+			var path = string.IsNullOrWhiteSpace(FilePath) || FilePath == "No things loaded"
+				? "(unsaved / no path)"
+				: FilePath;
+			var format = ArchiveFormat switch
+			{
+				ArchiveFormat.Dat => ".dat",
+				ArchiveFormat.Things => ".json",
+				_ => ArchiveFormat.ToString()
+			};
+			var settingsMode = PreferOtfiSettings
+				? "Prefer OTFI"
+				: GuessSettingsFromSignature
+					? "Guess from signature"
+					: "Manual";
+
+			var itemCount = _catalog?.ItemCount ?? 0;
+			var outfitCount = _catalog?.OutfitCount ?? 0;
+			var effectCount = _catalog?.EffectCount ?? 0;
+			var missileCount = _catalog?.MissileCount ?? 0;
+
+			var lines = new List<string>
+			{
+				$"Path: {path}",
+				$"Format: {format}",
+				$"Total things: {itemCount + outfitCount + effectCount + missileCount}",
+				$"  Items: {itemCount}",
+				$"  Outfits: {outfitCount}",
+				$"  Effects: {effectCount}",
+				$"  Missiles: {missileCount}",
+			};
+
+			if (ArchiveFormat == ArchiveFormat.Dat)
+			{
+				lines.Add($"DAT signature: 0x{_catalog?.DatSignature ?? 0:X8}");
+				lines.Add($"Client version: {_clientVersion}");
+				lines.Add($"Extended sprite IDs: {(UseExtendedThingIds ? "Yes" : "No")}");
+				lines.Add($"Frame animations: {(UseFrameAnimations ? "Yes" : "No")}");
+				lines.Add($"Frame groups: {(UseFrameGroups ? "Yes" : "No")}");
+				lines.Add($"Settings mode: {settingsMode}");
+			}
+
+			return string.Join(Environment.NewLine, lines);
+		}
+
 		[RelayCommand(CanExecute = nameof(CanCompile))]
 		private async System.Threading.Tasks.Task Compile()
 		{

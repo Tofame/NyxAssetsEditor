@@ -77,6 +77,8 @@
 						<Button.Flyout>
 							<MenuFlyout Placement="BottomEdgeAlignedRight">
 								<MenuItem Header="Compile Archive" Command="{Binding CompileCommand}" IsEnabled="{Binding CanCompile}"/>
+								<Separator/>
+								<MenuItem Header="Info" Command="{Binding ShowInfoCommand}"/>
 							</MenuFlyout>
 						</Button.Flyout>
 					</Button>

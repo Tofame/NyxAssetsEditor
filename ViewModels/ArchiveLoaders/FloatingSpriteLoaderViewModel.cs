@@ -1071,6 +1071,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		}
 
 		public event EventHandler? RequestSpritesOptimizer;
+		public event EventHandler<string>? RequestShowInfo;
 
 		[RelayCommand]
 		private void OpenSpritesOptimizer()
@@ -1080,6 +1081,48 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		[RelayCommand]
 		private void OpenSpritesheetSlicer() => ParentViewModel?.OpenSlicer(this);
+
+		[RelayCommand]
+		private void ShowInfo()
+		{
+			if (!IsArchiveLoaded) return;
+			RequestShowInfo?.Invoke(this, BuildArchiveInfoText());
+		}
+
+		public string BuildArchiveInfoText()
+		{
+			var path = string.IsNullOrWhiteSpace(FilePath) || FilePath == "No archive loaded"
+				? "(unsaved / no path)"
+				: FilePath;
+			var format = ArchiveFormat switch
+			{
+				ArchiveFormat.Spr => ".spr",
+				ArchiveFormat.Assets => ".assets",
+				_ => ArchiveFormat.ToString()
+			};
+			var settingsMode = PreferOtfiSettings
+				? "Prefer OTFI"
+				: GuessSettingsFromSignature
+					? "Guess from signature"
+					: "Manual";
+
+			var lines = new List<string>
+			{
+				$"Path: {path}",
+				$"Format: {format}",
+				$"Total sprites: {TotalSprites}",
+			};
+
+			if (ArchiveFormat == ArchiveFormat.Spr)
+			{
+				lines.Add($"Signature: 0x{Loader.SprSignature:X8}");
+				lines.Add($"Extended sprite IDs: {(UseExtendedSpriteIds ? "Yes" : "No")}");
+				lines.Add($"Transparent pixels: {(UseTransparentPixels ? "Yes" : "No")}");
+				lines.Add($"Settings mode: {settingsMode}");
+			}
+
+			return string.Join(Environment.NewLine, lines);
+		}
 
 		public FloatingThingsLoaderViewModel? GetLinkedThingsPanel()
 		{

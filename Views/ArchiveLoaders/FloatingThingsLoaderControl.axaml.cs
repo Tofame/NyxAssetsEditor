@@ -20,6 +20,7 @@ using NyxAssetsEditor.ViewModels.Things;
 using NyxAssets.Things;
 using NyxAssets.Things.Exchange;
 using NyxAssets.Utils;
+using NyxAssetsEditor.Views.Shell;
 
 namespace NyxAssetsEditor.Views.ArchiveLoaders
 {
@@ -52,6 +53,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					_viewModel.RequestThingFileDialog -= OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
+					_viewModel.RequestShowInfo -= OnShowInfoRequested;
 				}
 
 				_viewModel = DataContext as FloatingThingsLoaderViewModel;
@@ -59,8 +61,16 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					_viewModel.RequestThingFileDialog += OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
+					_viewModel.RequestShowInfo += OnShowInfoRequested;
 				}
 			};
+		}
+
+		private async void OnShowInfoRequested(object? sender, string message)
+		{
+			var window = TopLevel.GetTopLevel(this) as Window ?? this.VisualRoot as Window;
+			if (window == null) return;
+			await new InfoDialog("Things Archive Info", message).ShowDialog(window);
 		}
 
 		private void RegisterResizeHandle(FloatingPanelInteraction interaction, string name, int direction)

@@ -15,6 +15,7 @@ using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Sprites;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Views.Pages;
+using NyxAssetsEditor.Views.Shell;
 
 namespace NyxAssetsEditor.Views.ArchiveLoaders
 {
@@ -57,6 +58,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSpriteFileDialog -= OnSpriteFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
 					_viewModel.RequestSpritesOptimizer -= OnSpritesOptimizerRequested;
+					_viewModel.RequestShowInfo -= OnShowInfoRequested;
 				}
 				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
 				if (_viewModel != null)
@@ -65,6 +67,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSpriteFileDialog += OnSpriteFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
 					_viewModel.RequestSpritesOptimizer += OnSpritesOptimizerRequested;
+					_viewModel.RequestShowInfo += OnShowInfoRequested;
 				}
 			};
 		}
@@ -82,6 +85,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			var dialog = new SpritesOptimizerDialog(_viewModel);
 			await dialog.ShowDialog(window);
+		}
+
+		private async void OnShowInfoRequested(object? sender, string message)
+		{
+			var window = TopLevel.GetTopLevel(this) as Window ?? this.VisualRoot as Window;
+			if (window == null) return;
+			await new InfoDialog("Sprite Archive Info", message).ShowDialog(window);
 		}
 
 		private void RegisterResizeHandle(FloatingPanelInteraction interaction, string name, int direction)
