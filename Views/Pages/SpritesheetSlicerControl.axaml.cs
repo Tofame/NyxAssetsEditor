@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using NyxAssetsEditor.Services.ImportExport;
+using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Views.ArchiveLoaders;
 
@@ -59,10 +60,7 @@ public partial class SpritesheetSlicerControl : UserControl
 			Title = "Open spritesheet",
 			AllowMultiple = false,
 			SuggestedStartLocation = start,
-			FileTypeFilter = new[]
-			{
-				new FilePickerFileType("Image files") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp", "*.tga" } }
-			}
+			FileTypeFilter = FilePickerFilters.OpenImages
 		});
 		if (files.Count > 0) ViewModel.LoadImage(files[0].Path.LocalPath);
 	}

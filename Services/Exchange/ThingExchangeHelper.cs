@@ -5,6 +5,7 @@ using NyxAssets.Things;
 using NyxAssets.Things.Exchange;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Rendering;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.Services.Exchange;
 
@@ -12,7 +13,7 @@ public static class ThingExchangeHelper
 {
 	public static ThingDocument LoadFromPath(string path, ClientDataReadOptions options)
 	{
-		if (path.EndsWith(".obd", StringComparison.OrdinalIgnoreCase))
+		if (SupportedFileFormats.HasExtension(path, SupportedFileFormats.ExtObd))
 			return ObdThingCodec.Read(path, options);
 
 		return ThingDocumentJsonCodec.Read(path);

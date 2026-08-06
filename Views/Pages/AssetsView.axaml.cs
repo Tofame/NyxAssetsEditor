@@ -24,6 +24,7 @@ namespace NyxAssetsEditor.Views.Pages
 				_viewModel.CompileAsHandler = null;
 				_viewModel.PositionWebExportHandler = null;
 				_viewModel.PositionLooktypeGeneratorHandler = null;
+				_viewModel.PositionReplacerHandler = null;
 				_viewModel.PositionSlicerHandler = null;
 			}
 
@@ -33,6 +34,7 @@ namespace NyxAssetsEditor.Views.Pages
 				_viewModel.CompileAsHandler = ShowCompileAsDialogAsync;
 				_viewModel.PositionWebExportHandler = PositionAndOpenWebExport;
 				_viewModel.PositionLooktypeGeneratorHandler = PositionAndOpenLooktypeGenerator;
+				_viewModel.PositionReplacerHandler = PositionAndOpenReplacer;
 				_viewModel.PositionSlicerHandler = PositionAndOpenSlicer;
 			}
 		}
@@ -51,39 +53,29 @@ namespace NyxAssetsEditor.Views.Pages
 				var spriteFormat = pair.SpritePanel.ArchiveFormat;
 				var thingsFormat = pair.ThingsPanel.ArchiveFormat;
 
+				var spriteExt = spriteFormat == ArchiveFormat.Spr
+					? SupportedFileFormats.ExtSpr
+					: SupportedFileFormats.ExtAssets;
 				var spriteFile = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
 				{
 					Title = "Compile Sprite Archive As",
-					DefaultExtension = spriteFormat == ArchiveFormat.Spr ? ".spr" : ".assets",
+					DefaultExtension = spriteExt,
 					SuggestedFileName = pair.SpritePanel.FileName,
-					FileTypeChoices = spriteFormat == ArchiveFormat.Spr
-						? new[]
-						{
-							new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } }
-						}
-						: new[]
-						{
-							new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } }
-						}
+					FileTypeChoices = FilePickerFilters.ForArchiveExtension(spriteExt)
 				});
 
 				if (spriteFile == null)
 					return;
 
+				var thingsExt = thingsFormat == ArchiveFormat.Dat
+					? SupportedFileFormats.ExtDat
+					: SupportedFileFormats.ExtJson;
 				var thingsFile = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
 				{
 					Title = "Compile Things Archive As",
-					DefaultExtension = thingsFormat == ArchiveFormat.Dat ? ".dat" : ".json",
+					DefaultExtension = thingsExt,
 					SuggestedFileName = pair.ThingsPanel.FileName,
-					FileTypeChoices = thingsFormat == ArchiveFormat.Dat
-						? new[]
-						{
-							new FilePickerFileType("Nyx Dat Archive") { Patterns = new[] { "*.dat" } }
-						}
-						: new[]
-						{
-							new FilePickerFileType("Nyx Things JSON") { Patterns = new[] { "*.json" } }
-						}
+					FileTypeChoices = FilePickerFilters.ForArchiveExtension(thingsExt)
 				});
 
 				if (thingsFile == null)
@@ -162,6 +154,34 @@ namespace NyxAssetsEditor.Views.Pages
 			};
 
 			_viewModel.AddPanelFromView(panel);
+		}
+
+		private void PositionAndOpenReplacer(double panelW, double panelH)
+		{
+			if (_viewModel == null) return;
+
+			double posX = 60;
+			double posY = 60;
+			var centerGrid = this.FindControl<Grid>("CenterDockColumn");
+			if (centerGrid != null)
+			{
+				var bounds = centerGrid.Bounds;
+				if (bounds.Width > 0 && bounds.Height > 0)
+				{
+					posX = bounds.X + (bounds.Width - panelW) / 2;
+					posY = bounds.Y + (bounds.Height - panelH) / 2;
+				}
+			}
+
+			_viewModel.AddPanelFromView(new NyxAssetsEditor.ViewModels.ArchiveLoaders.FloatingReplacerViewModel(_viewModel)
+			{
+				DockState = "Floating",
+				PanelWidth = panelW,
+				ContentHeight = panelH,
+				PositionX = Math.Max(0, posX),
+				PositionY = Math.Max(0, posY),
+				IsVisible = true,
+			});
 		}
 
 		private void PositionAndOpenSlicer(double panelW, double panelH, NyxAssetsEditor.ViewModels.ArchiveLoaders.FloatingSpriteLoaderViewModel? origin)

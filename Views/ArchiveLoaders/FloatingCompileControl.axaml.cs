@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.Views.ArchiveLoaders;
 
@@ -38,14 +39,7 @@ public partial class FloatingCompileControl : UserControl
 			Title = $"Select Output Path for {extension}",
 			DefaultExtension = extension,
 			SuggestedFileName = suggestedFileName,
-			FileTypeChoices = extension switch
-			{
-				".spr" => [new FilePickerFileType("Nyx Sprite Archive") { Patterns = ["*.spr"] }],
-				".assets" => [new FilePickerFileType("Nyx Asset Archive") { Patterns = ["*.assets"] }],
-				".dat" => [new FilePickerFileType("Nyx Dat Archive") { Patterns = ["*.dat"] }],
-				".json" => [new FilePickerFileType("Nyx Things JSON") { Patterns = ["*.json"] }],
-				_ => []
-			}
+			FileTypeChoices = FilePickerFilters.ForArchiveExtension(extension)
 		});
 
 		return file?.Path.LocalPath;

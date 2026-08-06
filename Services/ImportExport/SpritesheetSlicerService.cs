@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NyxAssetsEditor.ViewModels.Common;
 using SkiaSharp;
 
 namespace NyxAssetsEditor.Services.ImportExport;
@@ -394,7 +395,7 @@ public static class SpritesheetSlicerService
 		for (var suffix = 1; ; suffix++)
 		{
 			var suffixText = suffix == 1 ? "" : $"_{suffix}";
-			var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}{suffixText}.png");
+			var candidate = Path.Combine(directory, $"{safeBase}_{index:0000}{suffixText}{SupportedFileFormats.ExtPng}");
 			FileStream stream;
 			try
 			{

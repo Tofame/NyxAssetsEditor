@@ -44,6 +44,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public Func<System.Threading.Tasks.Task>? CompileAsHandler { get; set; }
 		public Action<double, double>? PositionWebExportHandler { get; set; }
 		public Action<double, double>? PositionLooktypeGeneratorHandler { get; set; }
+		public Action<double, double>? PositionReplacerHandler { get; set; }
 		public Action<double, double, FloatingSpriteLoaderViewModel?>? PositionSlicerHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 		public bool CanCompileAs => GetCompilePairs().Any();
@@ -180,6 +181,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				generator.RefreshArchivePairs();
 			foreach (var export in ActivePanels.OfType<FloatingWebExportViewModel>())
 				export.RefreshArchivePairs();
+			foreach (var replacer in ActivePanels.OfType<FloatingReplacerViewModel>())
+				replacer.RefreshArchivePairs();
 			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
 				slicer.RefreshTargets();
 		}
@@ -594,6 +597,79 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				PositionY = 120,
 				IsVisible = true,
 			});
+		}
+
+		[RelayCommand]
+		private void OpenReplacer()
+		{
+			if (TryShowExistingReplacer() != null)
+				return;
+
+			if (PositionReplacerHandler != null)
+			{
+				PositionReplacerHandler(FloatingReplacerViewModel.DefaultPanelWidth, FloatingReplacerViewModel.DefaultContentHeight);
+				return;
+			}
+
+			AddPanel(new FloatingReplacerViewModel(this)
+			{
+				DockState = "Floating",
+				PanelWidth = FloatingReplacerViewModel.DefaultPanelWidth,
+				ContentHeight = FloatingReplacerViewModel.DefaultContentHeight,
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			});
+		}
+
+		public void OpenReplacerForThings(FloatingThingsLoaderViewModel target, NyxAssets.Things.ThingKind kind, uint fromId, uint toId)
+		{
+			var panel = GetOrCreateReplacer();
+			panel.ConfigureForThings(target, kind, fromId, toId);
+		}
+
+		public void OpenReplacerForSprites(FloatingSpriteLoaderViewModel target, uint fromId, uint toId)
+		{
+			var panel = GetOrCreateReplacer();
+			panel.ConfigureForSprites(target, fromId, toId);
+		}
+
+		private FloatingReplacerViewModel GetOrCreateReplacer()
+		{
+			var existing = TryShowExistingReplacer();
+			if (existing != null)
+				return existing;
+			if (PositionReplacerHandler != null)
+			{
+				PositionReplacerHandler(FloatingReplacerViewModel.DefaultPanelWidth, FloatingReplacerViewModel.DefaultContentHeight);
+				existing = ActivePanels.OfType<FloatingReplacerViewModel>().FirstOrDefault();
+				if (existing != null)
+					return existing;
+			}
+
+			var panel = new FloatingReplacerViewModel(this)
+			{
+				DockState = "Floating",
+				PanelWidth = FloatingReplacerViewModel.DefaultPanelWidth,
+				ContentHeight = FloatingReplacerViewModel.DefaultContentHeight,
+				PositionX = 60,
+				PositionY = 60,
+				IsVisible = true,
+			};
+			AddPanel(panel);
+			return panel;
+		}
+
+		private FloatingReplacerViewModel? TryShowExistingReplacer()
+		{
+			var existing = ActivePanels.OfType<FloatingReplacerViewModel>().FirstOrDefault();
+			if (existing == null)
+				return null;
+			existing.IsVisible = true;
+			existing.IsMinimized = false;
+			existing.RefreshArchivePairs();
+			BringPanelToFront(existing);
+			return existing;
 		}
 
 		[RelayCommand]

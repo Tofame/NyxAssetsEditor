@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using NyxAssets.Sprites;
+using NyxAssetsEditor.ViewModels.Common;
 using SkiaSharp;
 
 namespace NyxAssetsEditor.Services.ImportExport;
@@ -26,9 +26,5 @@ public static class SpriteImageImporter
 		return rgba;
 	}
 
-	public static bool IsSupportedImage(string path)
-	{
-		var ext = Path.GetExtension(path).ToLowerInvariant();
-		return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".webp" or ".tga";
-	}
+	public static bool IsSupportedImage(string path) => SupportedFileFormats.IsSupportedImagePath(path);
 }

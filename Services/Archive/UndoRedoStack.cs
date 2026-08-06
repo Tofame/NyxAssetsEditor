@@ -18,6 +18,12 @@ namespace NyxAssetsEditor.Services.Archive
 		public int UndoCount => _undoList.Count;
 		public int RedoCount => _redoList.Count;
 
+		internal bool IsLatestUndo(T expected) =>
+			_undoList.Count > 0 && ReferenceEquals(_undoList[^1], expected);
+
+		internal bool IsLatestRedo(T expected) =>
+			_redoList.Count > 0 && ReferenceEquals(_redoList[^1], expected);
+
 		public void Push(T state)
 		{
 			_undoList.Add(state);

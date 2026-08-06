@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using NyxAssetsEditor.ViewModels.Core;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.ViewModels.Pages
 {
@@ -61,36 +62,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			ThingsUseFrameAnimations = thingsAnimations;
 			ThingsUseFrameGroups = thingsGroups;
 
-			string sprName = string.IsNullOrEmpty(spritePath) ? "" : Path.GetFileName(spritePath);
-			string datName = string.IsNullOrEmpty(thingsPath) ? "" : Path.GetFileName(thingsPath);
-
-			string dir = "";
-			if (!string.IsNullOrEmpty(sprName) && !string.IsNullOrEmpty(datName))
-			{
-				DisplayName = $"{datName} + {sprName}";
-				dir = Path.GetDirectoryName(thingsPath) ?? "";
-				ToolTipText = $"DAT: {thingsPath}\nSPR: {spritePath}";
-			}
-			else if (!string.IsNullOrEmpty(datName))
-			{
-				DisplayName = datName;
-				dir = Path.GetDirectoryName(thingsPath) ?? "";
-				ToolTipText = $"DAT: {thingsPath}";
-			}
-			else if (!string.IsNullOrEmpty(sprName))
-			{
-				DisplayName = sprName;
-				dir = Path.GetDirectoryName(spritePath) ?? "";
-				ToolTipText = $"SPR: {spritePath}";
-			}
-			else
-			{
-				DisplayName = "Unknown Archive";
-				ToolTipText = "";
-			}
-
-			DetailsText = CompactPath(dir);
-			ProjectName = InferProjectName(dir);
+			var presentation = ArchivePairPathPresentation.Create(spritePath, thingsPath);
+			DisplayName = presentation.DisplayName;
+			DetailsText = presentation.DetailsText;
+			ToolTipText = presentation.ToolTipText;
+			ProjectName = InferProjectName(presentation.DirectoryPath);
 		}
 
 		private string InferProjectName(string dirPath)
@@ -151,33 +127,6 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 
 			return "";
-		}
-
-		private static string CompactPath(string path, int maxLength = 35)
-		{
-			if (string.IsNullOrEmpty(path))
-				return "";
-
-			if (path.Length <= maxLength)
-				return path;
-
-			var separator = Path.DirectorySeparatorChar;
-			var parts = path.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, System.StringSplitOptions.RemoveEmptyEntries);
-			if (parts.Length == 0)
-				return path;
-
-			string result = parts[parts.Length - 1];
-			for (int i = parts.Length - 2; i >= 0; i--)
-			{
-				string candidate = parts[i] + separator + result;
-				if (($"...{separator}{candidate}").Length > maxLength)
-				{
-					break;
-				}
-				result = candidate;
-			}
-
-			return $"...{separator}{result}";
 		}
 
 		[RelayCommand]

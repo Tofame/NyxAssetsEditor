@@ -21,10 +21,10 @@ namespace NyxAssetsEditor.ViewModels.Common
 
 			return Path.GetExtension(path).ToLowerInvariant() switch
 			{
-				".spr" => ArchiveFormat.Spr,
-				".assets" => ArchiveFormat.Assets,
-				".dat" => ArchiveFormat.Dat,
-				".json" => ArchiveFormat.Things,
+				SupportedFileFormats.ExtSpr => ArchiveFormat.Spr,
+				SupportedFileFormats.ExtAssets => ArchiveFormat.Assets,
+				SupportedFileFormats.ExtDat => ArchiveFormat.Dat,
+				SupportedFileFormats.ExtJson => ArchiveFormat.Things,
 				_ => ArchiveFormat.Unknown
 			};
 		}

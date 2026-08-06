@@ -86,7 +86,22 @@ The **Looktype Generator** (opened from the Assets toolbar) allows creators to a
 
 ---
 
-## 🌐 6. Web Export & OxiPNG Optimization
+## 🔄 6. Replacer
+
+Open **Replacer** from the Assets toolbar to copy an inclusive Thing or Sprite ID range between two loaded archive pairs. Thing replacement copies definitions into the same Thing IDs and maps source sprite pixels onto each existing target Thing's corresponding sprite slots. Raw Sprite replacement remains same-ID.
+
+- Choose different source and target pairs, the Things/Sprites mode, and the From/To IDs.
+- Thing mode also selects Items, Outfits, Effects, or Missiles.
+- Unavailable IDs are skipped automatically and reported without changing their targets.
+- Enable **Create missing target IDs** to append missing Things without gaps. Additional source sprites are deduplicated across the whole batch, appended contiguously at the end of the target Sprite archive, and remapped into the copied Thing definitions. Missing or invalid IDs that cannot be created are still skipped and reported.
+- Cross-version replacement keeps each panel's own client-format settings. Empty sprite slots (`0`) remain empty, improved animation timing is converted for legacy targets, and modern outfit frame groups are collapsed when the target format cannot store them.
+- When frame amounts differ, the Replacer reports a warning per Thing. Higher-frame sources retain their frames and may append sprites; lower-frame sources reduce the copied definition while surplus target sprites remain untouched and may become unreferenced.
+- Use the Replacer title-bar Undo/Redo buttons, or `Ctrl+Z` / `Ctrl+Y`, to reverse or reapply a complete replacement across its affected target viewers.
+- A viewer's Replace button opens a drag-and-drop dialog for one selection or preconfigures Replacer from the minimum and maximum IDs of a multi-selection.
+
+---
+
+## 🌐 7. Web Export & OxiPNG Optimization
 
 Export archive contents for web applications via **Assets → Web Export**:
 

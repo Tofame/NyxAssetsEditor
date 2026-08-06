@@ -324,6 +324,11 @@
 									<Image Source="/Assets/Icons/action_duplicate.png" Width="14" Height="14"/>
 								</Button>
 							</Border>
+							<Border Background="Transparent" ToolTip.Tip="Replace">
+								<Button Command="{Binding ReplaceSelectedThingsCommand}" Padding="8,4">
+									<Image Source="/Assets/Icons/action_replace.png" Width="14" Height="14"/>
+								</Button>
+							</Border>
 						</StackPanel>
 
 						<!-- Right: Remove and selection count -->

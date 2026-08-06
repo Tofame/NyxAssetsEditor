@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingReplacerControl"
+			 x:DataType="vm:FloatingReplacerViewModel"
+			 x:CompileBindings="False"
+			 Width="{Binding DisplayWidth}">
+	<UserControl.KeyBindings>
+		<KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}"/>
+		<KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}"/>
+	</UserControl.KeyBindings>
+	<UserControl.Styles>
+		<Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#999"/><Setter Property="FontSize" Value="11"/></Style>
+		<Style Selector="Button.mode.selected"><Setter Property="Background" Value="#335E94FF"/><Setter Property="BorderBrush" Value="#5E94FF"/></Style>
+	</UserControl.Styles>
+	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
+		<Grid RowDefinitions="Auto,*">
+			<Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Undock" Command="{Binding UndockCommand}" IsVisible="{Binding !IsFloating}"/>
+						<MenuItem Header="Dock Left" Command="{Binding SetDockStateCommand}" CommandParameter="Left" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Center" Command="{Binding SetDockStateCommand}" CommandParameter="Center" IsVisible="{Binding IsFloating}"/>
+						<MenuItem Header="Dock Right" Command="{Binding SetDockStateCommand}" CommandParameter="Right" IsVisible="{Binding IsFloating}"/>
+						<Separator/><MenuItem Header="Close" Command="{Binding ClosePanelCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
+				<Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+					<TextBlock Text="{Binding Title}" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					<Button Grid.Column="1" Command="{Binding UndoCommand}" Width="28" Height="26" Padding="0"
+						Background="Transparent" BorderThickness="0" ToolTip.Tip="Undo replacement (Ctrl+Z)">
+						<Image Source="/Assets/Icons/action_undo.png" Width="14" Height="14"/>
+					</Button>
+					<Button Grid.Column="2" Command="{Binding RedoCommand}" Width="28" Height="26" Padding="0"
+						Background="Transparent" BorderThickness="0" ToolTip.Tip="Redo replacement (Ctrl+Y)">
+						<Image Source="/Assets/Icons/action_redo.png" Width="14" Height="14"/>
+					</Button>
+					<Button Grid.Column="3" Content="—" Command="{Binding ToggleMinimizeCommand}" Width="26" Height="26" Padding="0" Background="Transparent" Foreground="#CCC"/>
+					<Button Grid.Column="4" Content="&#x00D7;" Command="{Binding ClosePanelCommand}" Width="26" Height="26" Padding="0" Background="Transparent" Foreground="#CCC"/>
+				</Grid>
+			</Border>
+
+			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+				<StackPanel Spacing="14" Margin="16">
+					<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+						<StackPanel Spacing="4">
+							<StackPanel Orientation="Horizontal" Spacing="5">
+								<TextBlock Text="Source pair" Classes="label" VerticalAlignment="Center"/>
+								<Border Width="14" Height="14" CornerRadius="7" Background="#333" BorderBrush="#666"
+									BorderThickness="1" VerticalAlignment="Center" Cursor="Help">
+									<ToolTip.Tip>
+										<TextBlock MaxWidth="300" TextWrapping="Wrap"
+											Text="Read-only input for this replace. Replacer copies Things or Sprites from this pair's ID range — the source archive itself is never modified."/>
+									</ToolTip.Tip>
+									<TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#AAA"
+										HorizontalAlignment="Center" VerticalAlignment="Center"/>
+								</Border>
+							</StackPanel>
+							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedSourcePair}" PlaceholderText="No source pair">
+								<ComboBox.ItemTemplate>
+									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
+										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
+											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
+										</StackPanel>
+									</DataTemplate>
+								</ComboBox.ItemTemplate>
+							</ComboBox>
+						</StackPanel>
+						<StackPanel Grid.Column="1" Spacing="4">
+							<StackPanel Orientation="Horizontal" Spacing="5">
+								<TextBlock Text="Target pair" Classes="label" VerticalAlignment="Center"/>
+								<Border Width="14" Height="14" CornerRadius="7" Background="#333" BorderBrush="#666"
+									BorderThickness="1" VerticalAlignment="Center" Cursor="Help">
+									<ToolTip.Tip>
+										<TextBlock MaxWidth="300" TextWrapping="Wrap"
+											Text="The archive that will be changed. Matching IDs are overwritten with the source definition and sprite pixels. With Create missing target IDs enabled, new Thing/sprite IDs may also be appended here. Undo/Redo applies to this pair."/>
+									</ToolTip.Tip>
+									<TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#AAA"
+										HorizontalAlignment="Center" VerticalAlignment="Center"/>
+								</Border>
+							</StackPanel>
+							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedTargetPair}" PlaceholderText="No target pair">
+								<ComboBox.ItemTemplate>
+									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
+										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
+											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
+										</StackPanel>
+									</DataTemplate>
+								</ComboBox.ItemTemplate>
+							</ComboBox>
+						</StackPanel>
+					</Grid>
+
+					<Separator/>
+					<Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+						<StackPanel Spacing="4">
+							<TextBlock Text="Replace" Classes="label"/>
+							<StackPanel Orientation="Horizontal" Spacing="6">
+								<Button Classes="mode" Classes.selected="{Binding IsThingsMode}" Content="Things" Command="{Binding SetModeCommand}" CommandParameter="Things" Padding="14,6"/>
+								<Button Classes="mode" Classes.selected="{Binding IsSpritesMode}" Content="Sprites" Command="{Binding SetModeCommand}" CommandParameter="Sprites" Padding="14,6"/>
+							</StackPanel>
+						</StackPanel>
+						<StackPanel Grid.Column="1" Spacing="4" IsVisible="{Binding IsThingsMode}">
+							<TextBlock Text="Thing category" Classes="label"/>
+							<ComboBox ItemsSource="{Binding ThingKinds}" SelectedItem="{Binding SelectedThingKind}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Grid>
+
+					<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+						<StackPanel Spacing="4">
+							<TextBlock Text="From ID" Classes="label"/>
+							<NumericUpDown Value="{Binding FromId}" Minimum="1" Maximum="4294967295" Increment="1" FormatString="0" ParsingNumberStyle="Integer"/>
+						</StackPanel>
+						<StackPanel Grid.Column="1" Spacing="4">
+							<TextBlock Text="To ID (inclusive)" Classes="label"/>
+							<NumericUpDown Value="{Binding ToId}" Minimum="1" Maximum="4294967295" Increment="1" FormatString="0" ParsingNumberStyle="Integer"/>
+						</StackPanel>
+					</Grid>
+
+					<CheckBox IsChecked="{Binding AddMissingTargetIds}" Content="Create missing target IDs"
+						ToolTip.Tip="Create target Thing IDs and append only unique additional sprites in one contiguous block at the end of the target archive. Thing IDs must append without gaps; all other unavailable IDs are skipped and reported."/>
+
+					<Border IsVisible="{Binding IsThingsMode}" Background="#332A1600" BorderBrush="#8A6A2A" BorderThickness="1" CornerRadius="4" Padding="9">
+						<TextBlock Foreground="#E6C36A" FontSize="11" TextWrapping="Wrap"
+							Text="Frame conversion warning: when Create missing target IDs is enabled, unique extra source sprites are appended and remapped; without it, any Thing requiring extra sprite slots is skipped. If the source has fewer frames, surplus target sprites are kept and may become unreferenced; Replacer never deletes them automatically."/>
+					</Border>
+
+					<Border Background="#1B1B1B" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="4" Padding="10" MinHeight="70">
+						<ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto">
+							<Grid>
+								<TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="#C8C8C8" FontSize="11" IsVisible="{Binding !HasError}"/>
+								<TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="#FF8888" FontSize="11" IsVisible="{Binding HasError}"/>
+							</Grid>
+						</ScrollViewer>
+					</Border>
+
+					<Button Content="Replace" Command="{Binding ReplaceCommand}" IsEnabled="{Binding CanReplace}"
+						HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,8"
+						Background="#3A1A1A" BorderBrush="#6A3A3A" Foreground="#FF9A9A" FontWeight="SemiBold"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<Border Name="ResizeLeft" Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeRight" Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
+			<Border Name="ResizeBottom" Grid.RowSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeCorner" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomRightCorner"/>
+			<Border Name="ResizeBottomLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="BottomLeftCorner"/>
+			<Border Name="ResizeTop" Grid.RowSpan="2" Height="5" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeNorthSouth"/>
+			<Border Name="ResizeTopRight" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopRightCorner"/>
+			<Border Name="ResizeTopLeft" Grid.RowSpan="2" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="TopLeftCorner"/>
+		</Grid>
+	</Border>
+</UserControl>

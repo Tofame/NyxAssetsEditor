@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NyxAssets.Sprites;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.Services.Archive;
 
@@ -46,11 +47,11 @@ public class SpriteLoader : IDisposable
 
         var preload = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.PreloadGraphicalAssets;
 
-        if (extension == ".spr")
+        if (extension == SupportedFileFormats.ExtSpr)
         {
             _archive_spr = SpriteArchive.OpenReadOnlyFile(filePath, extendedSpriteIds, transparentPixels, preloadSprites: preload);
         }
-        else if (extension == ".assets")
+        else if (extension == SupportedFileFormats.ExtAssets)
         {
             _archive_assets = AssetArchive.OpenReadOnlyFile(filePath, preloadPages: preload);
         }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using NyxAssets.Client;
+using NyxAssetsEditor.ViewModels.Common;
 
 namespace NyxAssetsEditor.Services.Archive;
 
@@ -25,7 +26,7 @@ public static class OtfiSettingsReader
 			string? matchedPath = null;
 			var matchCount = 0;
 			var targetFileName = Path.GetFileName(archivePath);
-			var isSpr = archivePath.EndsWith(".spr", StringComparison.OrdinalIgnoreCase);
+			var isSpr = SupportedFileFormats.HasExtension(archivePath, SupportedFileFormats.ExtSpr);
 
 			foreach (var file in files)
 			{

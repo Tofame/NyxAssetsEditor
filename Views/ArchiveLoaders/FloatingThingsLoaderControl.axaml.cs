@@ -14,8 +14,10 @@ using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Exchange;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
+using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Views.Pages;
+using NyxAssetsEditor.Services.Replacement;
 using NyxAssetsEditor.ViewModels.Things;
 using NyxAssets.Things;
 using NyxAssets.Things.Exchange;
@@ -189,12 +191,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					Title = "Open Nyx Things or Dat Archive",
 					AllowMultiple = false,
-					FileTypeFilter = new[]
-					{
-						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.dat", "*.json" } },
-						new FilePickerFileType("Nyx Dat Archive") { Patterns = new[] { "*.dat" } },
-						new FilePickerFileType("Nyx Things JSON") { Patterns = new[] { "*.json" } }
-					}
+					FileTypeFilter = FilePickerFilters.OpenThingsArchives
 				});
 
 				if (files != null && files.Count > 0)
@@ -234,7 +231,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					await HandleThingImport(vm, window, replace: false, e.Things);
 					break;
 				case "replace":
-					await HandleThingImport(vm, window, replace: true, e.Things);
+					await HandleSingleThingReplacement(vm, window, e.Things);
 					break;
 				case "export_popup":
 					{
@@ -247,8 +244,9 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						}
 					}
 					break;
-				case "nyx-thing":
-				case "obd":
+				case SupportedFileFormats.FormatNyxThing:
+				case SupportedFileFormats.FormatJson:
+				case SupportedFileFormats.FormatObd:
 					await HandleThingPortableExport(vm, window, e.Things, format);
 					break;
 				default:
@@ -257,12 +255,42 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			}
 		}
 
-		private static readonly FilePickerFileType[] ThingExchangeFileTypes =
+		private static async Task HandleSingleThingReplacement(
+			FloatingThingsLoaderViewModel vm,
+			Window owner,
+			IReadOnlyList<ThingItemViewModel> targets)
 		{
-			new FilePickerFileType("All Supported") { Patterns = new[] { "*.json", "*.obd" } },
-			new FilePickerFileType("Nyx Thing JSON") { Patterns = new[] { "*.json" } },
-			new FilePickerFileType("Object Builder OBD") { Patterns = new[] { "*.obd" } },
-		};
+			if (targets.Count != 1 || vm.Catalog == null || vm.ParentViewModel == null)
+				return;
+			var target = targets[0];
+			var targetPair = vm.ParentViewModel.GetCompilePairs()
+				.FirstOrDefault(pair => ReferenceEquals(pair.ThingsPanel, vm));
+			if (targetPair == null)
+				return;
+
+			var dialog = new SingleAssetReplaceDialog(
+				$"Replace {vm.SectionLabel} #{target.Id}",
+				$"Drop a {SupportedFileFormats.ExtJson} or {SupportedFileFormats.ExtObd} file here",
+				FilePickerFilters.OpenThingExchange,
+				SupportedFileFormats.ThingExchangeExtensions,
+				path =>
+				{
+					try
+					{
+						var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
+						var batch = AssetReplacementService.PrepareSingleThing(document, targetPair, vm.SelectedSection, target.Id);
+						if (!batch.CanApply)
+							return batch.Error ?? "The replacement file could not be applied.";
+						var result = AssetReplacementService.Apply(batch);
+						return result.Succeeded ? null : result.Message;
+					}
+					catch (Exception ex)
+					{
+						return $"Failed to read the replacement file: {ex.Message}";
+					}
+				});
+			await dialog.ShowDialog<bool>(owner);
+		}
 
 		private static async Task HandleThingImport(
 			FloatingThingsLoaderViewModel vm,
@@ -280,7 +308,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			{
 				Title = replace ? "Replace Thing from File" : "Import Things from Files",
 				AllowMultiple = !replace,
-				FileTypeFilter = ThingExchangeFileTypes,
+				FileTypeFilter = FilePickerFilters.OpenThingExchange,
 			});
 
 			if (files == null || files.Count == 0)
@@ -333,8 +361,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				return;
 			}
 
-			var isObd = format == "obd";
-			var extension = isObd ? ".obd" : ".json";
+			var isObd = SupportedFileFormats.IsObdFormat(format);
+			var extension = isObd ? SupportedFileFormats.ExtObd : SupportedFileFormats.ExtJson;
 			var options = vm.GetWriteOptions();
 
 			if (things.Count == 1)
@@ -350,8 +378,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					DefaultExtension = extension,
 					SuggestedFileName = $"thing_{thingVm.DisplayedId}{extension}",
 					FileTypeChoices = isObd
-						? new[] { new FilePickerFileType("Object Builder OBD") { Patterns = new[] { "*.obd" } } }
-						: new[] { new FilePickerFileType("Nyx Thing JSON") { Patterns = new[] { "*.json" } } },
+						? FilePickerFilters.Only(FilePickerFilters.ThingObd)
+						: FilePickerFilters.Only(FilePickerFilters.ThingsJson),
 				});
 
 				if (saveFile == null)
@@ -420,7 +448,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				return;
 			}
 
-			var extension = format is "jpg" or "jpeg" ? ".jpg" : format == "bmp" ? ".bmp" : ".png";
+			var extension = SupportedFileFormats.NormalizeImageExportExtension(format);
 
 			if (e.Things.Count == 1 && e.Thing != null)
 			{
@@ -429,19 +457,12 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				if (thingType == null)
 					return;
 
-				var (fileTypeChoices, title) = format switch
-				{
-					"jpg" or "jpeg" => (new[] { new FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } } }, "Export Thing Spritesheet as JPEG"),
-					"bmp" => (new[] { new FilePickerFileType("BMP Image") { Patterns = new[] { "*.bmp" } } }, "Export Thing Spritesheet as BMP"),
-					_ => (new[] { new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } } }, "Export Thing Spritesheet as PNG"),
-				};
-
 				var saveFile = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
 				{
-					Title = title,
+					Title = FilePickerFilters.ImageExportTitle("Thing Spritesheet", format),
 					DefaultExtension = extension,
 					SuggestedFileName = $"thing_{thingVm.DisplayedId}{extension}",
-					FileTypeChoices = fileTypeChoices,
+					FileTypeChoices = FilePickerFilters.ForImageExport(format),
 				});
 
 				if (saveFile == null)
@@ -527,9 +548,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			var options = vm.GetWriteOptions();
 			var formatLower = format.ToLowerInvariant();
-			var isObd = formatLower == "obd";
-			var isJson = formatLower == "nyx-thing";
-			var extension = isObd ? ".obd" : isJson ? ".json" : formatLower is "jpg" or "jpeg" ? ".jpg" : formatLower == "bmp" ? ".bmp" : ".png";
+			var isObd = SupportedFileFormats.IsObdFormat(formatLower);
+			var isJson = SupportedFileFormats.IsJsonThingFormat(formatLower);
+			var extension = isObd
+				? SupportedFileFormats.ExtObd
+				: isJson
+					? SupportedFileFormats.ExtJson
+					: SupportedFileFormats.NormalizeImageExportExtension(formatLower);
 
 			try
 			{

@@ -76,7 +76,7 @@ namespace NyxAssetsEditor.ViewModels.Sprites
 		{
 			var selected = _panel.GetSelectedSprites();
 			if (selected.Count > 1 && selected.Any(s => s.Id == Id))
-				_panel.RequestImportSprites(selected);
+				_panel.RequestReplaceSprites(selected);
 			else
 				_panel.RequestReplaceSprite(this);
 		}

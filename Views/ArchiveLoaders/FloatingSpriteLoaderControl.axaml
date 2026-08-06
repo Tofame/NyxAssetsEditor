@@ -137,7 +137,7 @@
 										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>
-										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
 										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
@@ -177,7 +177,7 @@
 										<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C"/>
 										<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V"/>
 										<Separator/>
-										<MenuItem Header="Import..." Command="{Binding ReplaceCommand}"/>
+										<MenuItem Header="Replace..." Command="{Binding ReplaceCommand}"/>
 										<MenuItem Header="Export..." Command="{Binding ExportCommand}"/>
 										<Separator/>
 										<MenuItem Header="Remove" Command="{Binding RemoveCommand}"/>
@@ -283,13 +283,16 @@
 									<Image Source="/Assets/Icons/action_paste.png" Width="14" Height="14"/>
 								</Button>
 							</Border>
-							<Border Background="Transparent" ToolTip.Tip="Import">
+							<Border Background="Transparent" ToolTip.Tip="Import images as new sprites at the end">
 								<Button Command="{Binding ImportSelectedSpritesCommand}" Padding="8,4">
 									<Image Source="/Assets/Icons/action_import.png" Width="14" Height="14"/>
 								</Button>
 							</Border>
 							<Button Command="{Binding ExportSelectedCommand}" ToolTip.Tip="Export" Padding="8,4">
 								<Image Source="/Assets/Icons/action_export.png" Width="14" Height="14"/>
+							</Button>
+							<Button Command="{Binding ReplaceSelectedSpritesCommand}" ToolTip.Tip="Replace" Padding="8,4">
+								<Image Source="/Assets/Icons/action_replace.png" Width="14" Height="14"/>
 							</Button>
 						</StackPanel>
 

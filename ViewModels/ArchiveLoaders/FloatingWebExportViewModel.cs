@@ -11,6 +11,7 @@ using NyxAssets.Things;
 using NyxAssets.Things.Frames;
 using NyxAssets.Sprites;
 using NyxAssets.Utils;
+using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Services.Rendering;
@@ -430,7 +431,7 @@ public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposabl
 			var psi = new System.Diagnostics.ProcessStartInfo
 			{
 				FileName = "oxipng",
-				Arguments = $"-o {optLevel}{zopfli} --strip safe --quiet \"{Path.Combine(directory, "*.png")}\"",
+				Arguments = $"-o {optLevel}{zopfli} --strip safe --quiet \"{Path.Combine(directory, SupportedFileFormats.ToPattern(SupportedFileFormats.ExtPng))}\"",
 				UseShellExecute = false,
 				CreateNoWindow = true
 			};

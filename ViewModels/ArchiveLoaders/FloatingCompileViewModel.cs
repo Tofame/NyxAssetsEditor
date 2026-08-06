@@ -112,7 +112,7 @@ public partial class FloatingCompileViewModel : PanelViewModelBase
 	{
 		if (SelectedArchivePair == null || RequestSavePathHandler == null) return;
 		var format = SelectedArchivePair.Pair.SpritePanel.ArchiveFormat;
-		var ext = format == ArchiveFormat.Spr ? ".spr" : ".assets";
+		var ext = format == ArchiveFormat.Spr ? SupportedFileFormats.ExtSpr : SupportedFileFormats.ExtAssets;
 		var result = await RequestSavePathHandler(Path.GetFileName(SelectedArchivePair.Pair.SpritePanel.FilePath), ext);
 		if (!string.IsNullOrEmpty(result))
 		{
@@ -125,7 +125,7 @@ public partial class FloatingCompileViewModel : PanelViewModelBase
 	{
 		if (SelectedArchivePair == null || RequestSavePathHandler == null) return;
 		var format = SelectedArchivePair.Pair.ThingsPanel.ArchiveFormat;
-		var ext = format == ArchiveFormat.Dat ? ".dat" : ".json";
+		var ext = format == ArchiveFormat.Dat ? SupportedFileFormats.ExtDat : SupportedFileFormats.ExtJson;
 		var result = await RequestSavePathHandler(Path.GetFileName(SelectedArchivePair.Pair.ThingsPanel.FilePath), ext);
 		if (!string.IsNullOrEmpty(result))
 		{

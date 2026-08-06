@@ -7,11 +7,13 @@ using Avalonia.Platform.Storage;
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using NyxAssets.Utils;
 using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
+using NyxAssetsEditor.ViewModels.Common;
 using NyxAssetsEditor.ViewModels.Sprites;
 using NyxAssetsEditor.ViewModels.Pages;
 using NyxAssetsEditor.Views.Pages;
@@ -243,12 +245,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					Title = "Open Nyx Sprite or Asset Archive",
 					AllowMultiple = false,
-					FileTypeFilter = new[]
-					{
-						new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.spr", "*.assets" } },
-						new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } },
-						new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } }
-					}
+					FileTypeFilter = FilePickerFilters.OpenSpriteArchives
 				});
 
 				if (files != null && files.Count > 0)
@@ -273,12 +270,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						Title = "Save Archive As",
 						DefaultExtension = System.IO.Path.GetExtension(vm.FilePath),
 						SuggestedFileName = System.IO.Path.GetFileName(vm.FilePath),
-						FileTypeChoices = new[]
-						{
-							new FilePickerFileType("All Supported Archives") { Patterns = new[] { "*.spr", "*.assets" } },
-							new FilePickerFileType("Nyx Sprite Archive") { Patterns = new[] { "*.spr" } },
-							new FilePickerFileType("Nyx Asset Archive") { Patterns = new[] { "*.assets" } }
-						}
+						FileTypeChoices = FilePickerFilters.OpenSpriteArchives
 					});
 
 					if (file != null)
@@ -307,6 +299,33 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			if (window == null)
 				return;
 
+			if (e.Format == "replace")
+			{
+				if (e.Sprites.Count != 1)
+					return;
+				var target = e.Sprite;
+				var dialog = new SingleAssetReplaceDialog(
+					$"Replace sprite #{target.Id}",
+					"Drop an image file here",
+					FilePickerFilters.OpenImages,
+					SupportedFileFormats.ImageExtensions,
+					path =>
+					{
+						try
+						{
+							var rgba = SpriteImageImporter.Load32x32Rgba(path);
+							vm.ApplyReplacementPixels(new Dictionary<uint, byte[]> { [target.Id] = rgba });
+							return null;
+						}
+						catch (Exception ex)
+						{
+							return $"Failed to replace the sprite: {ex.Message}";
+						}
+					});
+				await dialog.ShowDialog<bool>(window);
+				return;
+			}
+
 			if (e.Format == "export_popup")
 			{
 				string defaultName = "sprite";
@@ -316,6 +335,30 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					PerformSpriteExport(vm, e.Sprites, dialog.ExportName, dialog.ExportPath, dialog.ExportFormat);
 				}
+				return;
+			}
+
+			if (e.Format == "append")
+			{
+				var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+				{
+					Title = "Import Images as New Sprites",
+					AllowMultiple = true,
+					FileTypeFilter = FilePickerFilters.OpenImages
+				});
+
+				if (files == null || files.Count == 0)
+					return;
+
+				try
+				{
+					vm.ImportFiles(files.Select(f => f.Path.LocalPath));
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Failed to import sprites: {ex.Message}");
+				}
+
 				return;
 			}
 
@@ -329,10 +372,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				{
 					Title = title,
 					AllowMultiple = false,
-					FileTypeFilter = new[]
-					{
-						new FilePickerFileType("Image Files") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp", "*.tga" } }
-					}
+					FileTypeFilter = FilePickerFilters.OpenImages
 				});
 
 				if (file == null || file.Count == 0)
@@ -353,23 +393,16 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			}
 
 			var format = e.Format.ToLowerInvariant();
-			var extension = format is "jpg" or "jpeg" ? ".jpg" : format == "bmp" ? ".bmp" : ".png";
+			var extension = SupportedFileFormats.NormalizeImageExportExtension(format);
 
 			if (e.Sprites.Count == 1)
 			{
-				var (fileTypeChoices, title) = format switch
-				{
-					"jpg" or "jpeg" => (new[] { new FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } } }, "Export Sprite as JPEG"),
-					"bmp" => (new[] { new FilePickerFileType("BMP Image") { Patterns = new[] { "*.bmp" } } }, "Export Sprite as BMP"),
-					_ => (new[] { new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } } }, "Export Sprite as PNG"),
-				};
-
 				var saveFile = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
 				{
-					Title = title,
+					Title = FilePickerFilters.ImageExportTitle("Sprite", format),
 					DefaultExtension = extension,
 					SuggestedFileName = $"sprite_{e.Sprite.Id}{extension}",
-					FileTypeChoices = fileTypeChoices
+					FileTypeChoices = FilePickerFilters.ForImageExport(format)
 				});
 
 				if (saveFile == null)
@@ -507,7 +540,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				return;
 
 			var formatLower = format.ToLowerInvariant();
-			var extension = formatLower is "jpg" or "jpeg" ? ".jpg" : formatLower == "bmp" ? ".bmp" : ".png";
+			var extension = SupportedFileFormats.NormalizeImageExportExtension(formatLower);
 
 			try
 			{

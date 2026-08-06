@@ -296,7 +296,7 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panel in assetsVm.ActivePanels)
 				{
-					if (panel is FloatingThingFinderViewModel) continue;
+					if (panel is FloatingThingFinderViewModel or FloatingReplacerViewModel) continue;
 					// Archive and slicer panels restore only when docked; the generator is safe to restore floating.
 					if (panel.DockState == "Floating" && panel is not FloatingLooktypeGeneratorViewModel) continue;
 
