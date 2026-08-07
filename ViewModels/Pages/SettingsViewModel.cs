@@ -115,6 +115,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _saveFloatingPanels = true;
+		public static bool SaveFloatingPanels
+		{
+			get => _saveFloatingPanels;
+			set
+			{
+				if (_saveFloatingPanels != value)
+				{
+					_saveFloatingPanels = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
 		private static bool _compileLinkedPairTogether = true;
 		public static bool CompileLinkedPairTogether
 		{
@@ -463,6 +477,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			set => SetLooktypeMountedRiderOffset(ref _looktypeMountedRiderOffsetY, value, nameof(LooktypeMountedRiderOffsetYSetting));
 		}
 
+		public bool SaveFloatingPanelsSetting
+		{
+			get => SaveFloatingPanels;
+			set
+			{
+				if (SaveFloatingPanels != value)
+				{
+					SaveFloatingPanels = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public bool PreloadGraphicalAssetsSetting
 		{
 			get => PreloadGraphicalAssets;
@@ -587,7 +614,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int defaultSpritePanelWidth = 430,
 			int defaultSpritePanelHeight = 500,
 			int defaultThingsPanelWidth = 430,
-			int defaultThingsPanelHeight = 500)
+			int defaultThingsPanelHeight = 500,
+			bool saveFloatingPanels = true)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -626,6 +654,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_defaultSpritePanelHeight = defaultSpritePanelHeight;
 			_defaultThingsPanelWidth = defaultThingsPanelWidth;
 			_defaultThingsPanelHeight = defaultThingsPanelHeight;
+			_saveFloatingPanels = saveFloatingPanels;
 		}
 
 		public int SelectedThingIdOffset

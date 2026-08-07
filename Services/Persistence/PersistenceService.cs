@@ -7,6 +7,7 @@ using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
+using System.Linq;
 
 namespace NyxAssetsEditor.Services.Persistence
 {
@@ -14,6 +15,12 @@ namespace NyxAssetsEditor.Services.Persistence
 	{
 		private static readonly string SettingsPath = Path.Combine(AppContext.BaseDirectory, "settings.toml");
 		private static readonly string AppStatePath = Path.Combine(AppContext.BaseDirectory, "app_state.toml");
+		private static readonly string FloatingSaveDataPath = Path.Combine(AppContext.BaseDirectory, "floating_save_data.toml");
+
+		public class FloatingStateTomlModel
+		{
+			public List<PanelStateModel> Panels { get; set; } = new List<PanelStateModel>();
+		}
 
 		private static bool _isRestoring;
 		private static SlicerStateModel _slicerState = new();
@@ -65,6 +72,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int DefaultSpritePanelHeight { get; set; } = 500;
 			public int DefaultThingsPanelWidth { get; set; } = 430;
 			public int DefaultThingsPanelHeight { get; set; } = 500;
+			public bool SaveFloatingPanels { get; set; } = true;
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
 
@@ -154,6 +162,12 @@ namespace NyxAssetsEditor.Services.Persistence
 			// Looktype-generator-specific
 			public string SelectedLooktypeSpritePath { get; set; } = "";
 			public string SelectedLooktypeThingsPath { get; set; } = "";
+
+			// Floating editor/finder specific
+			public uint ThingId { get; set; }
+			public List<uint> ThingIds { get; set; } = new List<uint>();
+			public string SourceFilePath { get; set; } = "";
+			public string SelectedKind { get; set; } = "";
 		}
 
 		public static void LoadSettings()
@@ -196,7 +210,8 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.DefaultSpritePanelWidth,
 							model.DefaultSpritePanelHeight,
 							model.DefaultThingsPanelWidth,
-							model.DefaultThingsPanelHeight);
+							model.DefaultThingsPanelHeight,
+							model.SaveFloatingPanels);
 					}
 				}
 			}
@@ -242,6 +257,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					DefaultSpritePanelHeight = SettingsViewModel.DefaultSpritePanelHeight,
 					DefaultThingsPanelWidth = SettingsViewModel.DefaultThingsPanelWidth,
 					DefaultThingsPanelHeight = SettingsViewModel.DefaultThingsPanelHeight,
+					SaveFloatingPanels = SettingsViewModel.SaveFloatingPanels,
 					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);
@@ -309,8 +325,7 @@ namespace NyxAssetsEditor.Services.Persistence
 				foreach (var panel in assetsVm.ActivePanels)
 				{
 					if (panel is FloatingThingFinderViewModel or FloatingReplacerViewModel) continue;
-					// Archive and slicer panels restore only when docked; the generator is safe to restore floating.
-					if (panel.DockState == "Floating" && panel is not FloatingLooktypeGeneratorViewModel) continue;
+					if (panel.DockState == "Floating") continue;
 
 					var state = new PanelStateModel
 					{
@@ -364,6 +379,8 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(AppStatePath, toml);
+
+				SaveFloatingAppState(assetsVm);
 			}
 			catch (Exception ex)
 			{
@@ -390,8 +407,8 @@ namespace NyxAssetsEditor.Services.Persistence
 
 				foreach (var panelState in model.Assets.Panels)
 				{
-					// Archive and slicer panels restore only when docked; the generator may also restore floating.
-					if ((panelState.DockState == "Floating" && panelState.Type != "Looktype") || string.IsNullOrEmpty(panelState.DockState)) continue;
+					// Archive and slicer panels restore only when docked.
+					if (panelState.DockState == "Floating" || string.IsNullOrEmpty(panelState.DockState)) continue;
 
 					if (panelState.Type == "Sprite")
 					{
@@ -513,6 +530,11 @@ namespace NyxAssetsEditor.Services.Persistence
 					};
 					assetsVm.RestorePanel(panel);
 					panel.RefreshArchivePairs(panelState.SelectedLooktypeSpritePath, panelState.SelectedLooktypeThingsPath);
+				}
+
+				if (SettingsViewModel.SaveFloatingPanels)
+				{
+					await LoadFloatingAppStateAsync(assetsVm, spriteRenderer).ConfigureAwait(true);
 				}
 			}
 			catch (Exception ex)
@@ -693,6 +715,403 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int CanvasWidth { get; set; } = 32;
 			public int CanvasHeight { get; set; } = 32;
 			public string GridColor { get; set; } = "#FF000000";
+		}
+
+		private static void SaveFloatingAppState(AssetsViewModel assetsVm)
+		{
+			try
+			{
+				if (!SettingsViewModel.SaveFloatingPanels)
+				{
+					if (File.Exists(FloatingSaveDataPath))
+					{
+						File.Delete(FloatingSaveDataPath);
+					}
+					return;
+				}
+
+				var model = new FloatingStateTomlModel();
+
+				foreach (var panel in assetsVm.ActivePanels)
+				{
+					if (panel.DockState != "Floating") continue;
+
+					var state = new PanelStateModel
+					{
+						DockState = panel.DockState,
+						IsMinimized = panel.IsMinimized,
+						PositionX = panel.PositionX,
+						PositionY = panel.PositionY,
+						PanelWidth = panel.PanelWidth,
+						ContentHeight = panel.ContentHeight
+					};
+
+					if (panel is FloatingSpriteLoaderViewModel spritePanel)
+					{
+						state.Type = "Sprite";
+						state.FilePath = spritePanel.FilePath == "No archive loaded" ? "" : spritePanel.FilePath;
+						state.IsGridView = spritePanel.IsGridView;
+						state.PageSize = spritePanel.PageSize;
+						state.CurrentPage = spritePanel.CurrentPage;
+						state.UseTransparentPixels = spritePanel.UseTransparentPixels;
+						state.UseExtendedSpriteIds = spritePanel.UseExtendedSpriteIds;
+						state.GuessSettingsFromSignature = spritePanel.GuessSettingsFromSignature;
+						state.PreferOtfiSettings = spritePanel.PreferOtfiSettings;
+					}
+					else if (panel is FloatingThingsLoaderViewModel thingsPanel)
+					{
+						state.Type = "Things";
+						state.FilePath = thingsPanel.FilePath == "No things loaded" ? "" : thingsPanel.FilePath;
+						state.IsGridView = thingsPanel.IsGridView;
+						state.PageSize = thingsPanel.PageSize;
+						state.CurrentPage = thingsPanel.CurrentPage;
+						state.UseExtendedThingIds = thingsPanel.UseExtendedThingIds;
+						state.UseFrameAnimations = thingsPanel.UseFrameAnimations;
+						state.UseFrameGroups = thingsPanel.UseFrameGroups;
+						state.LinkedSpriteFilePath = thingsPanel.LinkedSpritePanel?.FilePath ?? "";
+						state.GuessSettingsFromSignature = thingsPanel.GuessSettingsFromSignature;
+						state.PreferOtfiSettings = thingsPanel.PreferOtfiSettings;
+					}
+					else if (panel is FloatingLooktypeGeneratorViewModel looktypePanel)
+					{
+						state.Type = "Looktype";
+						state.SelectedLooktypeSpritePath = looktypePanel.SelectedSpritePath;
+						state.SelectedLooktypeThingsPath = looktypePanel.SelectedThingsPath;
+					}
+					else if (panel is SpritesheetSlicerViewModel)
+					{
+						state.Type = "Slicer";
+					}
+					else if (panel is FloatingReplacerViewModel)
+					{
+						state.Type = "Replacer";
+					}
+					else if (panel is FloatingWebExportViewModel)
+					{
+						state.Type = "WebExport";
+					}
+					else if (panel is FloatingCompileViewModel)
+					{
+						state.Type = "Compile";
+					}
+					else if (panel is FloatingThingFinderViewModel finderPanel)
+					{
+						state.Type = "ThingFinder";
+						state.SourceFilePath = finderPanel.SourcePanel?.FilePath ?? "";
+						state.SelectedKind = finderPanel.SelectedKind.ToString();
+					}
+					else if (panel is FloatingThingEditorViewModel editorPanel)
+					{
+						state.Type = "ThingEditor";
+						state.SourceFilePath = editorPanel.SourcePanel?.FilePath ?? "";
+						state.ThingId = editorPanel.ThingId;
+					}
+					else if (panel is FloatingMultiThingEditorViewModel multiEditorPanel)
+					{
+						state.Type = "MultiThingEditor";
+						state.SourceFilePath = multiEditorPanel.SourcePanel?.FilePath ?? "";
+						if (multiEditorPanel.Entries != null)
+						{
+							foreach (var entry in multiEditorPanel.Entries)
+							{
+								state.ThingIds.Add(entry.Id);
+							}
+						}
+					}
+
+					model.Panels.Add(state);
+				}
+
+				string toml = TomlSerializer.Serialize(model);
+				File.WriteAllText(FloatingSaveDataPath, toml);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to save floating_save_data.toml: {ex.Message}");
+			}
+		}
+
+		private static async System.Threading.Tasks.Task LoadFloatingAppStateAsync(AssetsViewModel assetsVm, SpriteRenderer spriteRenderer)
+		{
+			try
+			{
+				if (!File.Exists(FloatingSaveDataPath)) return;
+
+				string toml = File.ReadAllText(FloatingSaveDataPath);
+				var model = TomlSerializer.Deserialize<FloatingStateTomlModel>(toml);
+				if (model == null || model.Panels == null) return;
+
+				var spritePanels = new List<(PanelStateModel state, FloatingSpriteLoaderViewModel panel)>();
+				var thingsPanels = new List<(PanelStateModel state, FloatingThingsLoaderViewModel panel)>();
+				var otherPanels = new List<PanelStateModel>();
+
+				foreach (var panelState in model.Panels)
+				{
+					if (panelState.Type == "Sprite")
+					{
+						var panel = new FloatingSpriteLoaderViewModel(spriteRenderer)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight,
+							IsGridView = panelState.IsGridView,
+							PageSize = panelState.PageSize,
+							UseTransparentPixels = panelState.UseTransparentPixels,
+							UseExtendedSpriteIds = panelState.UseExtendedSpriteIds,
+							IsDefaultPosition = false,
+							GuessSettingsFromSignature = panelState.GuessSettingsFromSignature,
+							PreferOtfiSettings = panelState.PreferOtfiSettings
+						};
+
+						assetsVm.RestorePanel(panel);
+						spritePanels.Add((panelState, panel));
+					}
+					else if (panelState.Type == "Things")
+					{
+						var panel = new FloatingThingsLoaderViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight,
+							IsGridView = panelState.IsGridView,
+							PageSize = panelState.PageSize,
+							UseExtendedThingIds = panelState.UseExtendedThingIds,
+							UseFrameAnimations = panelState.UseFrameAnimations,
+							UseFrameGroups = panelState.UseFrameGroups,
+							IsDefaultPosition = false,
+							GuessSettingsFromSignature = panelState.GuessSettingsFromSignature,
+							PreferOtfiSettings = panelState.PreferOtfiSettings
+						};
+
+						assetsVm.RestorePanel(panel);
+						thingsPanels.Add((panelState, panel));
+					}
+					else
+					{
+						otherPanels.Add(panelState);
+					}
+				}
+
+				foreach (var (panelState, panel) in spritePanels)
+				{
+					if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
+					{
+						try
+						{
+							await panel.LoadArchiveAsync(panelState.FilePath).ConfigureAwait(true);
+							panel.CurrentPage = panelState.CurrentPage;
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine($"Failed to load spr/assets from state: {ex.Message}");
+						}
+					}
+				}
+
+				foreach (var (panelState, panel) in thingsPanels)
+				{
+					assetsVm.RestoreThingsLink(panel, panelState.LinkedSpriteFilePath);
+
+					if (!string.IsNullOrEmpty(panelState.FilePath) && File.Exists(panelState.FilePath))
+					{
+						try
+						{
+							await panel.LoadArchiveAsync(panelState.FilePath, useLastLoadedSprite: false).ConfigureAwait(true);
+							panel.CurrentPage = panelState.CurrentPage;
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine($"Failed to load dat/things from state: {ex.Message}");
+						}
+					}
+				}
+
+				// Restore other panels now that source loaders are loaded and indexed
+				foreach (var panelState in otherPanels)
+				{
+					if (panelState.Type == "Looktype")
+					{
+						var panel = new FloatingLooktypeGeneratorViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? FloatingLooktypeGeneratorViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? FloatingLooktypeGeneratorViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						};
+						assetsVm.RestorePanel(panel);
+						panel.RefreshArchivePairs(panelState.SelectedLooktypeSpritePath, panelState.SelectedLooktypeThingsPath);
+					}
+					else if (panelState.Type == "Slicer")
+					{
+						var panel = new SpritesheetSlicerViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? SpritesheetSlicerViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? SpritesheetSlicerViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						};
+						assetsVm.RestorePanel(panel);
+					}
+					else if (panelState.Type == "Replacer")
+					{
+						var panel = new FloatingReplacerViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? FloatingReplacerViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? FloatingReplacerViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						};
+						assetsVm.RestorePanel(panel);
+						panel.RefreshArchivePairs();
+					}
+					else if (panelState.Type == "WebExport")
+					{
+						var panel = new FloatingWebExportViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? 550
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? 600
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						};
+						assetsVm.RestorePanel(panel);
+						panel.RefreshArchivePairs();
+					}
+					else if (panelState.Type == "Compile")
+					{
+						var panel = new FloatingCompileViewModel(assetsVm)
+						{
+							DockState = panelState.DockState,
+							IsMinimized = panelState.IsMinimized,
+							PositionX = panelState.PositionX,
+							PositionY = panelState.PositionY,
+							PanelWidth = panelState.PanelWidth <= 0
+								? FloatingCompileViewModel.DefaultPanelWidth
+								: panelState.PanelWidth,
+							ContentHeight = panelState.ContentHeight <= 0
+								? FloatingCompileViewModel.DefaultContentHeight
+								: panelState.ContentHeight,
+							IsDefaultPosition = false,
+						};
+						assetsVm.RestorePanel(panel);
+						panel.RefreshArchivePairs();
+					}
+					else if (panelState.Type == "ThingFinder")
+					{
+						var sourcePanel = assetsVm.ActivePanels
+							.OfType<FloatingThingsLoaderViewModel>()
+							.FirstOrDefault(p => p.FilePath == panelState.SourceFilePath);
+						if (sourcePanel != null)
+						{
+							var panel = new FloatingThingFinderViewModel(assetsVm, sourcePanel)
+							{
+								DockState = panelState.DockState,
+								IsMinimized = panelState.IsMinimized,
+								PositionX = panelState.PositionX,
+								PositionY = panelState.PositionY,
+								PanelWidth = panelState.PanelWidth,
+								ContentHeight = panelState.ContentHeight,
+								IsDefaultPosition = false,
+							};
+							if (Enum.TryParse<NyxAssets.Things.ThingKind>(panelState.SelectedKind, out var kind))
+							{
+								panel.SelectedKind = kind;
+							}
+							assetsVm.RestorePanel(panel);
+						}
+					}
+					else if (panelState.Type == "ThingEditor")
+					{
+						var sourcePanel = assetsVm.ActivePanels
+							.OfType<FloatingThingsLoaderViewModel>()
+							.FirstOrDefault(p => p.FilePath == panelState.SourceFilePath);
+						if (sourcePanel != null)
+						{
+							var thing = sourcePanel.GetThingType(panelState.ThingId);
+							if (thing != null)
+							{
+								var panel = new FloatingThingEditorViewModel(sourcePanel, thing)
+								{
+									DockState = panelState.DockState,
+									IsMinimized = panelState.IsMinimized,
+									PositionX = panelState.PositionX,
+									PositionY = panelState.PositionY,
+									PanelWidth = panelState.PanelWidth,
+									ContentHeight = panelState.ContentHeight,
+									IsDefaultPosition = false,
+								};
+								assetsVm.RestorePanel(panel);
+							}
+						}
+					}
+					else if (panelState.Type == "MultiThingEditor")
+					{
+						var sourcePanel = assetsVm.ActivePanels
+							.OfType<FloatingThingsLoaderViewModel>()
+							.FirstOrDefault(p => p.FilePath == panelState.SourceFilePath);
+						if (sourcePanel != null)
+						{
+							var thingsList = new List<NyxAssets.Things.ThingType>();
+							foreach (var id in panelState.ThingIds)
+							{
+								var t = sourcePanel.GetThingType(id);
+								if (t != null) thingsList.Add(t);
+							}
+							if (thingsList.Count >= 2)
+							{
+								var panel = new FloatingMultiThingEditorViewModel(sourcePanel, thingsList)
+								{
+									DockState = panelState.DockState,
+									IsMinimized = panelState.IsMinimized,
+									PositionX = panelState.PositionX,
+									PositionY = panelState.PositionY,
+									PanelWidth = panelState.PanelWidth,
+									ContentHeight = panelState.ContentHeight,
+									IsDefaultPosition = false,
+								};
+								assetsVm.RestorePanel(panel);
+							}
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Failed to load floating_save_data.toml: {ex.Message}");
+			}
 		}
 
 		private static readonly string PaintStatePath = Path.Combine(AppContext.BaseDirectory, "paint_state.toml");
