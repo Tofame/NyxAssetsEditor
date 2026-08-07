@@ -524,6 +524,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public FloatingThingsLoaderViewModel(AssetsViewModel? parentViewModel = null)
 		{
 			_parentViewModel = parentViewModel;
+			PanelWidth = SettingsViewModel.DefaultThingsPanelWidth;
+			ContentHeight = SettingsViewModel.DefaultThingsPanelHeight;
 			SettingsViewModel.ThingIdOffsetChanged += OnThingIdOffsetChanged;
 			SettingsViewModel.ClientVersionChanged += OnClientVersionChanged;
 			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;

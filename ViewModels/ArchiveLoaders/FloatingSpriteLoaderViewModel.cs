@@ -355,6 +355,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public FloatingSpriteLoaderViewModel(SpriteRenderer renderer)
 		{
 			_renderer = renderer;
+			PanelWidth = SettingsViewModel.DefaultSpritePanelWidth;
+			ContentHeight = SettingsViewModel.DefaultSpritePanelHeight;
 			SettingsViewModel.AssetDisplaySizeChanged += OnAssetDisplaySizeChanged;
 			_undoRedoStack = new Services.Archive.UndoRedoStack<Services.Archive.SpriteUndoAction>(SettingsViewModel.UndoLimit);
 		}

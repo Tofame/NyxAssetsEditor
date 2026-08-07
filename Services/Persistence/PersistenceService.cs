@@ -61,6 +61,10 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool CompileLinkedPairTogether { get; set; } = true;
 			public bool ShowInformationBoxes { get; set; } = true;
 			public string CustomAccentColor { get; set; } = "";
+			public int DefaultSpritePanelWidth { get; set; } = 430;
+			public int DefaultSpritePanelHeight { get; set; } = 500;
+			public int DefaultThingsPanelWidth { get; set; } = 430;
+			public int DefaultThingsPanelHeight { get; set; } = 500;
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
 
@@ -188,7 +192,11 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.LooktypeMountedRiderOffsetY,
 							model.CompileLinkedPairTogether,
 							model.CustomAccentColor,
-							model.ShowInformationBoxes);
+							model.ShowInformationBoxes,
+							model.DefaultSpritePanelWidth,
+							model.DefaultSpritePanelHeight,
+							model.DefaultThingsPanelWidth,
+							model.DefaultThingsPanelHeight);
 					}
 				}
 			}
@@ -230,6 +238,10 @@ namespace NyxAssetsEditor.Services.Persistence
 					CompileLinkedPairTogether = SettingsViewModel.CompileLinkedPairTogether,
 					ShowInformationBoxes = SettingsViewModel.ShowInformationBoxes,
 					CustomAccentColor = SettingsViewModel.CustomAccentColor,
+					DefaultSpritePanelWidth = SettingsViewModel.DefaultSpritePanelWidth,
+					DefaultSpritePanelHeight = SettingsViewModel.DefaultSpritePanelHeight,
+					DefaultThingsPanelWidth = SettingsViewModel.DefaultThingsPanelWidth,
+					DefaultThingsPanelHeight = SettingsViewModel.DefaultThingsPanelHeight,
 					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);

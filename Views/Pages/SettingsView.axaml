@@ -70,6 +70,8 @@
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
 
+
+
 					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 						<TextBlock Text="Theme Color:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
 						<ColorPicker Color="{Binding ThemeColor, Mode=TwoWay}" Width="120" Height="28"/>
@@ -106,6 +108,19 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Default Size:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<NumericUpDown Value="{Binding DefaultSpritePanelWidthSetting}" Minimum="200" Maximum="2000" Increment="10" Width="120" Height="28" Padding="5,0"/>
+						<TextBlock Text="x" VerticalAlignment="Center" Foreground="#CCCCCC" Margin="2,0"/>
+						<NumericUpDown Value="{Binding DefaultSpritePanelHeightSetting}" Minimum="200" Maximum="2000" Increment="10" Width="120" Height="28" Padding="5,0"/>
+						<Button Command="{Binding SyncSpritesSizeToThingsCommand}" ToolTip.Tip="Sync size to Things Panel" Padding="5" Margin="5,0,0,0">
+							<Image Source="/Assets/Icons/action_replace.png" Width="14" Height="14"/>
+						</Button>
+						<TextBlock Text="Default dimensions (width x height) for newly opened Sprites viewer panels."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 
@@ -137,6 +152,19 @@
 						<TextBlock Text="Display Information Boxes:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
 						<CheckBox IsChecked="{Binding ShowInformationBoxesSetting}"/>
 						<TextBlock Text="Show rounded 'i' info badges with tooltips next to flags and properties in Thing Editor."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0"/>
+					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Default Size:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="160"/>
+						<NumericUpDown Value="{Binding DefaultThingsPanelWidthSetting}" Minimum="200" Maximum="2000" Increment="10" Width="120" Height="28" Padding="5,0"/>
+						<TextBlock Text="x" VerticalAlignment="Center" Foreground="#CCCCCC" Margin="2,0"/>
+						<NumericUpDown Value="{Binding DefaultThingsPanelHeightSetting}" Minimum="200" Maximum="2000" Increment="10" Width="120" Height="28" Padding="5,0"/>
+						<Button Command="{Binding SyncThingsSizeToSpritesCommand}" ToolTip.Tip="Sync size to Sprites Panel" Padding="5" Margin="5,0,0,0">
+							<Image Source="/Assets/Icons/action_replace.png" Width="14" Height="14"/>
+						</Button>
+						<TextBlock Text="Default dimensions (width x height) for newly opened Things viewer panels."
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0"/>
 					</StackPanel>

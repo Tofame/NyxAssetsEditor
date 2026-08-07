@@ -4,10 +4,11 @@ using NyxAssetsEditor.Services.Persistence;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.Core;
 using Avalonia.Media;
+using CommunityToolkit.Mvvm.Input;
 
 namespace NyxAssetsEditor.ViewModels.Pages
 {
-	public class SettingsViewModel : ViewModelBase
+	public partial class SettingsViewModel : ViewModelBase
 	{
 		public string Title => "Application Settings";
 		public string Description => "This is the dynamically loaded Settings View. Configure your editor options here.";
@@ -15,6 +16,62 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public static int DefaultPageSize { get; private set; } = 100;
 		public static int MaxRecentCombinations { get; private set; } = 10;
 		public static int UndoLimit { get; private set; } = 10;
+
+		private static int _defaultSpritePanelWidth = 430;
+		public static int DefaultSpritePanelWidth
+		{
+			get => _defaultSpritePanelWidth;
+			set
+			{
+				if (_defaultSpritePanelWidth != value)
+				{
+					_defaultSpritePanelWidth = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private static int _defaultSpritePanelHeight = 500;
+		public static int DefaultSpritePanelHeight
+		{
+			get => _defaultSpritePanelHeight;
+			set
+			{
+				if (_defaultSpritePanelHeight != value)
+				{
+					_defaultSpritePanelHeight = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private static int _defaultThingsPanelWidth = 430;
+		public static int DefaultThingsPanelWidth
+		{
+			get => _defaultThingsPanelWidth;
+			set
+			{
+				if (_defaultThingsPanelWidth != value)
+				{
+					_defaultThingsPanelWidth = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
+
+		private static int _defaultThingsPanelHeight = 500;
+		public static int DefaultThingsPanelHeight
+		{
+			get => _defaultThingsPanelHeight;
+			set
+			{
+				if (_defaultThingsPanelHeight != value)
+				{
+					_defaultThingsPanelHeight = value;
+					NyxAssetsEditor.Services.Persistence.PersistenceService.SaveSettings();
+				}
+			}
+		}
 
 		private static bool _useTransparentPixels = true;
 		public static bool UseTransparentPixels
@@ -444,6 +501,58 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		public int DefaultSpritePanelWidthSetting
+		{
+			get => DefaultSpritePanelWidth;
+			set
+			{
+				if (DefaultSpritePanelWidth != value)
+				{
+					DefaultSpritePanelWidth = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
+		public int DefaultSpritePanelHeightSetting
+		{
+			get => DefaultSpritePanelHeight;
+			set
+			{
+				if (DefaultSpritePanelHeight != value)
+				{
+					DefaultSpritePanelHeight = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
+		public int DefaultThingsPanelWidthSetting
+		{
+			get => DefaultThingsPanelWidth;
+			set
+			{
+				if (DefaultThingsPanelWidth != value)
+				{
+					DefaultThingsPanelWidth = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
+		public int DefaultThingsPanelHeightSetting
+		{
+			get => DefaultThingsPanelHeight;
+			set
+			{
+				if (DefaultThingsPanelHeight != value)
+				{
+					DefaultThingsPanelHeight = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -474,7 +583,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int looktypeMountedRiderOffsetY = 0,
 			bool compileLinkedPairTogether = true,
 			string? customAccentColor = null,
-			bool showInformationBoxes = true)
+			bool showInformationBoxes = true,
+			int defaultSpritePanelWidth = 430,
+			int defaultSpritePanelHeight = 500,
+			int defaultThingsPanelWidth = 430,
+			int defaultThingsPanelHeight = 500)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -509,6 +622,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					: MountedOutfitAlignment.OtClientCompatible;
 			_looktypeMountedRiderOffsetX = Math.Clamp(looktypeMountedRiderOffsetX, -128, 128);
 			_looktypeMountedRiderOffsetY = Math.Clamp(looktypeMountedRiderOffsetY, -128, 128);
+			_defaultSpritePanelWidth = defaultSpritePanelWidth;
+			_defaultSpritePanelHeight = defaultSpritePanelHeight;
+			_defaultThingsPanelWidth = defaultThingsPanelWidth;
+			_defaultThingsPanelHeight = defaultThingsPanelHeight;
 		}
 
 		public int SelectedThingIdOffset
@@ -715,6 +832,24 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			OnPropertyChanged(propertyName);
 			LooktypeRendererSettingsChanged?.Invoke();
 			PersistenceService.SaveSettings();
+		}
+
+		[RelayCommand]
+		private void SyncSpritesSizeToThings()
+		{
+			DefaultThingsPanelWidth = DefaultSpritePanelWidth;
+			DefaultThingsPanelHeight = DefaultSpritePanelHeight;
+			OnPropertyChanged(nameof(DefaultThingsPanelWidthSetting));
+			OnPropertyChanged(nameof(DefaultThingsPanelHeightSetting));
+		}
+
+		[RelayCommand]
+		private void SyncThingsSizeToSprites()
+		{
+			DefaultSpritePanelWidth = DefaultThingsPanelWidth;
+			DefaultSpritePanelHeight = DefaultThingsPanelHeight;
+			OnPropertyChanged(nameof(DefaultSpritePanelWidthSetting));
+			OnPropertyChanged(nameof(DefaultSpritePanelHeightSetting));
 		}
 
 		public SettingsViewModel()
