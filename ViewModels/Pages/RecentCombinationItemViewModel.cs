@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Common;
+using Avalonia.Input.Platform;
 
 namespace NyxAssetsEditor.ViewModels.Pages
 {
@@ -163,6 +164,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		private void Remove()
 		{
 			_parent.RemoveCombination(this);
+		}
+
+		[RelayCommand]
+		private async System.Threading.Tasks.Task CopyPath()
+		{
+			var path = !string.IsNullOrEmpty(SpritePath) ? SpritePath : ThingsPath;
+			if (string.IsNullOrEmpty(path)) return;
+
+			if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+				desktop.MainWindow?.Clipboard is { } clipboard)
+			{
+				await clipboard.SetTextAsync(path);
+			}
 		}
 	}
 }

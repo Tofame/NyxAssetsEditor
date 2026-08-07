@@ -50,6 +50,11 @@
 					<ItemsControl.ItemTemplate>
 						<DataTemplate x:DataType="vm:RecentCombinationItemViewModel">
 							<Border Background="#1E1E1E" BorderThickness="1" BorderBrush="#2D2D2D" CornerRadius="8" Margin="0,0,12,12" Width="280">
+								<Border.ContextMenu>
+									<ContextMenu>
+										<MenuItem Header="Copy path" Command="{Binding CopyPathCommand}"/>
+									</ContextMenu>
+								</Border.ContextMenu>
 								<Border.Styles>
 									<Style Selector="Border:pointerover">
 										<Setter Property="BorderBrush" Value="#5E94FF"/>
