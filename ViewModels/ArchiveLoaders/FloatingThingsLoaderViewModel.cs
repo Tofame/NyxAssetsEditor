@@ -54,6 +54,37 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_panel = panel;
 		}
 
+		private int _currentFrame = 0;
+
+		public void StepAnimation()
+		{
+			var thing = _panel.GetThingType(Id);
+			if (thing == null || thing.FrameGroups.Count == 0)
+				return;
+
+			var fg = thing.FrameGroups[0];
+			var maxFrames = (int)fg.Frames;
+			if (maxFrames <= 1)
+				return;
+
+			_currentFrame = (_currentFrame + 1) % maxFrames;
+			var loader = _panel.GetActiveSpriteLoader();
+			if (loader != null)
+			{
+				_previewImage = _panel.GetPreviewForThing(thing, _currentFrame);
+				OnPropertyChanged(nameof(PreviewImage));
+			}
+		}
+
+		public void ResetAnimation()
+		{
+			if (_currentFrame != 0)
+			{
+				_currentFrame = 0;
+				InvalidatePreview();
+			}
+		}
+
 		public void InvalidatePreview()
 		{
 			_previewImage = null;
@@ -68,7 +99,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (thing == null)
 				return;
 
-			_previewImage = _panel.GetPreviewForThing(thing);
+			_previewImage = _panel.GetPreviewForThing(thing, _panel.AnimateAll ? _currentFrame : 0);
 			OnPropertyChanged(nameof(PreviewImage));
 		}
 
@@ -169,6 +200,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private Services.Archive.UndoRedoStack<Services.Archive.ThingUndoAction>? _undoRedoStack;
 		private Services.Archive.ThingUndoAction? _currentAction;
 		private bool _hideEmpty;
+		private bool _animateAll;
 
 		public bool HideEmpty
 		{
@@ -178,6 +210,29 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				if (SetProperty(ref _hideEmpty, value))
 				{
 					ReloadThingsForSection();
+				}
+			}
+		}
+
+		public bool AnimateAll
+		{
+			get => _animateAll;
+			set
+			{
+				if (SetProperty(ref _animateAll, value))
+				{
+					if (value)
+					{
+						StartAnimateAllTimer();
+					}
+					else
+					{
+						StopAnimateAllTimer();
+						foreach (var item in PagedThings)
+						{
+							item.ResetAnimation();
+						}
+					}
 				}
 			}
 		}
@@ -428,6 +483,46 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand]
 		private void ToggleHideEmpty() => HideEmpty = !HideEmpty;
 
+		[RelayCommand]
+		private void ToggleAnimateAll() => AnimateAll = !AnimateAll;
+
+		private Avalonia.Threading.DispatcherTimer? _animateAllTimer;
+
+		private void StartAnimateAllTimer()
+		{
+			_animateAllTimer?.Stop();
+			_animateAllTimer = new Avalonia.Threading.DispatcherTimer
+			{
+				Interval = TimeSpan.FromMilliseconds(150)
+			};
+			_animateAllTimer.Tick += OnAnimateAllTimerTick;
+			_animateAllTimer.Start();
+		}
+
+		private void StopAnimateAllTimer()
+		{
+			if (_animateAllTimer != null)
+			{
+				_animateAllTimer.Tick -= OnAnimateAllTimerTick;
+				_animateAllTimer.Stop();
+				_animateAllTimer = null;
+			}
+		}
+
+		private void OnAnimateAllTimerTick(object? sender, EventArgs e)
+		{
+			if (!AnimateAll)
+			{
+				StopAnimateAllTimer();
+				return;
+			}
+
+			foreach (var item in PagedThings)
+			{
+				item.StepAnimation();
+			}
+		}
+
 		private bool _isGridView = true;
 
 		public bool IsGridView
@@ -559,6 +654,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void Dispose()
 		{
+			StopAnimateAllTimer();
 			SettingsViewModel.ThingIdOffsetChanged -= OnThingIdOffsetChanged;
 			SettingsViewModel.ClientVersionChanged -= OnClientVersionChanged;
 			SettingsViewModel.AssetDisplaySizeChanged -= OnAssetDisplaySizeChanged;
@@ -654,7 +750,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			NotifySelectionChanged();
 		}
 
-		public Avalonia.Media.Imaging.WriteableBitmap? GetPreviewForThing(ThingType thing)
+		public Avalonia.Media.Imaging.WriteableBitmap? GetPreviewForThing(ThingType thing, int frameIndex = 0)
 		{
 			var loader = GetActiveSpriteLoader();
 			if (loader == null)
@@ -662,7 +758,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			try
 			{
-				var preview = ThingPreviewRenderer.RenderPreview(thing, loader);
+				var preview = ThingPreviewRenderer.RenderPreview(thing, loader, frameIndex);
 				return preview == null
 					? null
 					: _renderer.ConvertRgba(preview.Width, preview.Height, preview.Pixels);

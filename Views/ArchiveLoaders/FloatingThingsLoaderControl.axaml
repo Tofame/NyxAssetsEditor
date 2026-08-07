@@ -87,6 +87,14 @@
 										</Grid>
 									</MenuItem.Header>
 								</MenuItem>
+								<MenuItem Command="{Binding ToggleAnimateAllCommand}" MinWidth="140" ToolTip.Tip="Loops through all animation phases for all previews on the page.">
+									<MenuItem.Header>
+										<Grid ColumnDefinitions="*, Auto">
+											<TextBlock Grid.Column="0" Text="Animate All" VerticalAlignment="Center"/>
+											<TextBlock Grid.Column="1" Text="✓" IsVisible="{Binding AnimateAll}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#5E94FF"/>
+										</Grid>
+									</MenuItem.Header>
+								</MenuItem>
 								<MenuItem Header="Info" Command="{Binding ShowInfoCommand}"/>
 							</MenuFlyout>
 						</Button.Flyout>

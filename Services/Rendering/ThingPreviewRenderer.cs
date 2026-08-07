@@ -42,12 +42,12 @@ public static class ThingPreviewRenderer
 	/// Renders the selected frame at its native tile dimensions. Viewer controls
 	/// use this path so a large thing is not downscaled and then enlarged again.
 	/// </summary>
-	public static ThingPreviewFrame? RenderPreview(ThingType thing, SpriteLoader loader)
+	public static ThingPreviewFrame? RenderPreview(ThingType thing, SpriteLoader loader, int frameIndex = 0)
 	{
 		if (thing.FrameGroups.Count == 0)
 			return null;
 
-		if (!TryResolveSelection(thing, out var selection))
+		if (!TryResolveSelection(thing, frameIndex, out var selection))
 			return null;
 
 		var fg = selection.FrameGroup;
@@ -93,20 +93,34 @@ public static class ThingPreviewRenderer
 		return new ThingPreviewFrame(canvasW, canvasH, canvas);
 	}
 
-	private static bool TryResolveSelection(ThingType thing, out ThingFrameSelection selection)
+	private static bool TryResolveSelection(ThingType thing, int frameIndex, out ThingFrameSelection selection)
 	{
 		try
 		{
 			switch (thing.Kind)
 			{
 				case ThingKind.Item:
-					selection = ThingFrameResolver.GetItemFrame(thing, new ItemFrameRequest { Frame = 0 });
+					var itemGroup = thing.FrameGroups.FirstOrDefault();
+					var itemMax = itemGroup != null ? Math.Max(0, (int)itemGroup.Frames - 1) : 0;
+					var itemFrame = Math.Clamp(frameIndex, 0, itemMax);
+					selection = ThingFrameResolver.GetItemFrame(thing, new ItemFrameRequest { Frame = (uint)itemFrame });
 					return true;
 				case ThingKind.Outfit:
-					selection = ThingFrameResolver.GetOutfitFrame(thing, SouthIdleOutfit);
+					var outfitGroup = thing.FrameGroups.FirstOrDefault();
+					var outfitMax = outfitGroup != null ? Math.Max(0, (int)outfitGroup.Frames - 1) : 0;
+					var outfitFrame = Math.Clamp(frameIndex, 0, outfitMax);
+					selection = ThingFrameResolver.GetOutfitFrame(thing, new OutfitFrameRequest
+					{
+						Direction = (int)Direction4.South,
+						WalkPhase = (uint)outfitFrame,
+						AddonMask = 0,
+					});
 					return true;
 				case ThingKind.Effect:
-					selection = ThingFrameResolver.GetEffectFrame(thing, new EffectFrameRequest { Frame = 0 });
+					var effectGroup = thing.FrameGroups.FirstOrDefault();
+					var effectMax = effectGroup != null ? Math.Max(0, (int)effectGroup.Frames - 1) : 0;
+					var effectFrame = Math.Clamp(frameIndex, 0, effectMax);
+					selection = ThingFrameResolver.GetEffectFrame(thing, new EffectFrameRequest { Frame = (uint)effectFrame });
 					return true;
 				case ThingKind.Missile:
 					selection = ThingFrameResolver.GetMissileFrame(thing, SouthMissile);
