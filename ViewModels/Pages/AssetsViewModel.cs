@@ -289,6 +289,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
+				BringPanelToFront(existing);
 				return;
 			}
 
@@ -550,6 +551,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
+				BringPanelToFront(existing);
 				return;
 			}
 
@@ -579,6 +581,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
+				BringPanelToFront(existing);
 				return;
 			}
 
@@ -685,11 +688,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.SelectTarget(origin);
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
-				if (existing.IsFloating)
-				{
-					FloatingPanels.Remove(existing);
-					FloatingPanels.Add(existing);
-				}
+				BringPanelToFront(existing);
 				return;
 			}
 
@@ -818,6 +817,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					existing.LoadThing(thing);
 					existing.IsVisible = true;
 					existing.IsMinimized = false;
+					BringPanelToFront(existing);
 					return;
 				}
 			}
@@ -842,6 +842,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			{
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
+				BringPanelToFront(existing);
 				return;
 			}
 
