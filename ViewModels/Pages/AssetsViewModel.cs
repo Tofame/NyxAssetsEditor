@@ -289,7 +289,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
-				BringPanelToFront(existing);
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
@@ -551,7 +551,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
-				BringPanelToFront(existing);
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
@@ -581,7 +581,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				existing.RefreshArchivePairs();
-				BringPanelToFront(existing);
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
@@ -688,7 +688,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.SelectTarget(origin);
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
-				BringPanelToFront(existing);
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
@@ -739,6 +739,10 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			PersistenceService.SaveAppState(this);
 			RefreshCompileCommands();
 			RefreshLooktypeGenerators();
+			if (panel.IsFloating)
+			{
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(panel));
+			}
 		}
 
 		public void OpenThingFinder(
@@ -754,7 +758,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
 				if (existing.IsFloating)
-					BringPanelToFront(existing);
+					Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
@@ -817,7 +821,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 					existing.LoadThing(thing);
 					existing.IsVisible = true;
 					existing.IsMinimized = false;
-					BringPanelToFront(existing);
+					Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 					return;
 				}
 			}
@@ -842,7 +846,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			{
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
-				BringPanelToFront(existing);
+				Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
 			}
 
