@@ -168,6 +168,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		private string _jumpToIdText = string.Empty;
 		private Services.Archive.UndoRedoStack<Services.Archive.ThingUndoAction>? _undoRedoStack;
 		private Services.Archive.ThingUndoAction? _currentAction;
+		private bool _hideEmpty;
+
+		public bool HideEmpty
+		{
+			get => _hideEmpty;
+			set
+			{
+				if (SetProperty(ref _hideEmpty, value))
+				{
+					ReloadThingsForSection();
+				}
+			}
+		}
 
 		private ThingKind _selectedSection = ThingKind.Item;
 
@@ -412,6 +425,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			ErrorMessage = null;
 		}
 
+		[RelayCommand]
+		private void ToggleHideEmpty() => HideEmpty = !HideEmpty;
+
 		private bool _isGridView = true;
 
 		public bool IsGridView
@@ -592,6 +608,12 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void SyncThingInList(ThingType thing, bool replaceExisting)
 		{
+			if (HideEmpty)
+			{
+				ReloadThingsForSection(preserveCurrentPage: true);
+				return;
+			}
+
 			var idx = _allThings.FindIndex(t => t.Id == thing.Id);
 			if (idx >= 0)
 			{
@@ -1017,11 +1039,41 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				yield return thing;
 		}
 
+		private bool HasSpritesAssigned(ThingType thing)
+		{
+			if (thing.FrameGroups == null || thing.FrameGroups.Count == 0)
+				return false;
+
+			foreach (var fg in thing.FrameGroups)
+			{
+				if (fg.SpriteIds != null && fg.SpriteIds.Any(id => id != 0))
+					return true;
+			}
+
+			return false;
+		}
+
 		private void ReloadThingsForSection(bool preserveCurrentPage = false, bool goToLastPage = false)
 		{
 			_allThings.Clear();
-			foreach (var thing in EnumerateSelectedSection())
+			var items = EnumerateSelectedSection().ToList();
+			int lastNonEmptyIdx = -1;
+			for (int i = 0; i < items.Count; i++)
+			{
+				if (HasSpritesAssigned(items[i]))
+				{
+					lastNonEmptyIdx = i;
+				}
+			}
+
+			for (int i = 0; i < items.Count; i++)
+			{
+				var thing = items[i];
+				bool isAtEnd = (items.Count - i <= 20) || (i > lastNonEmptyIdx);
+				if (HideEmpty && !isAtEnd && !HasSpritesAssigned(thing))
+					continue;
 				_allThings.Add(thing);
+			}
 
 			TotalThings = (uint)_allThings.Count;
 			_selectionAnchor = null;
