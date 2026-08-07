@@ -4,7 +4,7 @@ This guide provides technical context for developer contributors building, exten
 
 ---
 
-## 🛠️ 1. Environment & Build Setup
+## 1. Environment & Build Setup
 
 ### Prerequisites
 
@@ -37,7 +37,7 @@ make publish  # Compiles single-file self-contained deployment
 
 ---
 
-## 📂 2. Asset Resolution (`FileSystemAssetLoader`)
+## 2. Asset Resolution (`FileSystemAssetLoader`)
 
 Unlike traditional Avalonia applications that compile UI graphics as embedded assembly resources (`avares://`), Nyx Assets Editor copies assets directly to the build output directory (`Assets/` folder as `<Content>`).
 
@@ -50,7 +50,7 @@ Unlike traditional Avalonia applications that compile UI graphics as embedded as
 
 ---
 
-## 🏗️ 3. Code & Formatting Conventions
+## 3. Code & Formatting Conventions
 
 Refer to global repository rules (`AGENTS.md`):
 
@@ -63,7 +63,7 @@ Refer to global repository rules (`AGENTS.md`):
 
 ---
 
-## ➕ 4. Checklist: Adding a New Feature Page
+## 4. Checklist: Adding a New Feature Page
 
 To add a new top-level page or tool to the editor:
 

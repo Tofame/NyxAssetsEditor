@@ -57,6 +57,35 @@ jobs:
           echo "version=$VERSION_NUM" >> $GITHUB_OUTPUT
           echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Verify csproj version matches release tag
+        run: |
+          CSPROJ="NyxAssetsEditor.csproj"
+          CSPROJ_VERSION=$(grep -oP '(?<=<Version>)[^<]+' "$CSPROJ" | head -n1 | tr -d '[:space:]')
+          CSPROJ_ASSEMBLY=$(grep -oP '(?<=<AssemblyVersion>)[^<]+' "$CSPROJ" | head -n1 | tr -d '[:space:]')
+          RELEASE_VERSION="${{ steps.get_version.outputs.version }}"
+          RELEASE_TAG="${{ steps.get_version.outputs.tag }}"
+
+          echo "csproj <Version>:         $CSPROJ_VERSION"
+          echo "csproj <AssemblyVersion>: $CSPROJ_ASSEMBLY"
+          echo "Release version (tag ${RELEASE_TAG}): $RELEASE_VERSION"
+
+          if [ -z "$CSPROJ_VERSION" ] || [ -z "$CSPROJ_ASSEMBLY" ]; then
+            echo "::error::Could not read <Version> and/or <AssemblyVersion> from $CSPROJ."
+            exit 1
+          fi
+
+          if [ "$CSPROJ_VERSION" != "$CSPROJ_ASSEMBLY" ]; then
+            echo "::error::$CSPROJ has mismatched versions: <Version>$CSPROJ_VERSION</Version> vs <AssemblyVersion>$CSPROJ_ASSEMBLY</AssemblyVersion>. Make them the same."
+            exit 1
+          fi
+
+          if [ "$CSPROJ_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "::error::Release tag version '$RELEASE_VERSION' (from $RELEASE_TAG) does not match $CSPROJ <Version>/<AssemblyVersion> ('$CSPROJ_VERSION'). Update NyxAssetsEditor.csproj to <Version>$RELEASE_VERSION</Version> and <AssemblyVersion>$RELEASE_VERSION</AssemblyVersion>, or pass a matching workflow version input."
+            exit 1
+          fi
+
+          echo "Version check passed: csproj and release tag both use $RELEASE_VERSION."
+
       - name: Create and Push Git Tag
         run: |
           git config --global user.name "github-actions[bot]"

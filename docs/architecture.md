@@ -4,7 +4,7 @@ This document describes the high-level architecture, component decoupling, docki
 
 ---
 
-## 🏛️ 1. Architectural Principles
+## 1. Architectural Principles
 
 Nyx Assets Editor is built around three core architectural goals:
 
@@ -14,7 +14,7 @@ Nyx Assets Editor is built around three core architectural goals:
 
 ---
 
-## 🔗 2. Service Dependency Graph
+## 2. Service Dependency Graph
 
 ```
 NyxAssetsEditor (Avalonia App)
@@ -35,7 +35,7 @@ NyxAssetsEditor (Avalonia App)
 
 ---
 
-## 🪟 3. Canvas Docking & Window Management
+## 3. Canvas Docking & Window Management
 
 The main workspace (`AssetsView` / `AssetsViewModel`) manages a flexible canvas docking engine:
 
@@ -45,7 +45,7 @@ The main workspace (`AssetsView` / `AssetsViewModel`) manages a flexible canvas 
 
 ---
 
-## 💾 4. Persistence Architecture
+## 4. Persistence Architecture
 
 Application state is persisted automatically to the executable directory (`AppContext.BaseDirectory`):
 

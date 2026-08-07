@@ -4,7 +4,7 @@ Nyx Assets Editor supports importing and exporting things and sprites across mul
 
 ---
 
-## 📄 1. Single-Thing Exchange (`.nyx-thing` & `.obd`)
+## 1. Single-Thing Exchange (`.nyx-thing` & `.obd`)
 
 Users can import or export single thing definitions (items, outfits, effects, missiles) through clipboard actions or context menus.
 
@@ -25,7 +25,7 @@ Users can import or export single thing definitions (items, outfits, effects, mi
 
 ---
 
-## 📦 2. Catalog & Archive Packages
+## 2. Catalog & Archive Packages
 
 ### Legacy Formats (`.dat` & `.spr`)
 

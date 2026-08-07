@@ -4,7 +4,7 @@ This guide covers all key user features, tools, and workflows in **Nyx Assets Ed
 
 ---
 
-## 🚀 1. Getting Started & Archive Workflows
+## 1. Getting Started & Archive Workflows
 
 Nyx Assets Editor works with two archive formats:
 - **Legacy Formats**: `.dat` (Thing definitions catalog) paired with `.spr` (Sprite image archive).
@@ -26,7 +26,7 @@ When loading classic `.spr` / `.dat` pairs, the editor checks for an `.otfi` met
 
 ---
 
-## 🗂️ 2. Browsing & Section Tabs
+## 2. Browsing & Section Tabs
 
 The Things Archive Viewer splits catalog content into four primary kinds:
 
@@ -44,7 +44,7 @@ The Things Archive Viewer splits catalog content into four primary kinds:
 
 ---
 
-## ✏️ 3. Thing Editor
+## 3. Thing Editor
 
 Double-clicking any item in a Things Viewer opens the floating **Thing Editor**.
 
@@ -63,7 +63,7 @@ Double-clicking any item in a Things Viewer opens the floating **Thing Editor**.
 
 ---
 
-## 🔍 4. Thing Finder
+## 4. Thing Finder
 
 Each Things Viewer panel includes an integrated **Thing Finder** tool (accessible via **Find Thing** or `Ctrl+F`):
 
@@ -73,7 +73,7 @@ Each Things Viewer panel includes an integrated **Thing Finder** tool (accessibl
 
 ---
 
-## 🎭 5. Looktype Generator
+## 5. Looktype Generator
 
 The **Looktype Generator** (opened from the Assets toolbar) allows creators to assemble outfit appearances and corpse items without modifying source archives:
 
@@ -86,7 +86,7 @@ The **Looktype Generator** (opened from the Assets toolbar) allows creators to a
 
 ---
 
-## 🔄 6. Replacer
+## 6. Replacer
 
 Open **Replacer** from the Assets toolbar to copy an inclusive Thing or Sprite ID range between two loaded archive pairs. Thing replacement copies definitions into the same Thing IDs and maps source sprite pixels onto each existing target Thing's corresponding sprite slots. Raw Sprite replacement remains same-ID.
 
@@ -101,7 +101,7 @@ Open **Replacer** from the Assets toolbar to copy an inclusive Thing or Sprite I
 
 ---
 
-## 🌐 7. Web Export & OxiPNG Optimization
+## 7. Web Export & OxiPNG Optimization
 
 Export archive contents for web applications via **Assets → Web Export**:
 
