@@ -1,5 +1,6 @@
 [flags]
 IsContainer = { id = 0x04, label = "Container", description = "Allows item to store other items inside container window." }
+Stackable = { id = 0x05, label = "Stackable", description = "Allows items of the same type to stack together." }
 ForceUse = { id = 0x06, label = "Force Use", description = "Forces use action even when right-clicking in non-usable context." }
 MultiUse = { id = 0x07, label = "Multi Use", description = "Requires target selection when used (e.g. rope, shovel, potion)." }
 IsFluidContainer = { id = 0x0A, label = "Fluid Container", description = "Can hold liquid types such as water, wine, mana, or blood." }

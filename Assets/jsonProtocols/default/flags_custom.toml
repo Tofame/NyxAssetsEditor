@@ -50,6 +50,13 @@ type = "bool"
 group = "classification"
 locked = true
 
+[flag.stackable]
+label = "Stackable"
+description = "Allows items of the same type to stack together."
+type = "bool"
+group = "classification"
+locked = true
+
 [flag.isFluidContainer]
 label = "Fluid Container"
 description = "Can hold liquid types such as water, wine, mana, or blood."
