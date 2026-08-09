@@ -165,7 +165,7 @@ public partial class BoolFlagViewModel : CustomFlagViewModelBase
 			if (value)
 				SetRawValue("true");
 			else
-				Editor.Thing.ExtraProperties.Remove(Name);
+				SetRawValue(null);
 			OnPropertyChanged();
 			Editor.RequestApplyToCatalog();
 		}
