@@ -3709,6 +3709,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		var flags = new Dictionary<string, string>(StringComparer.Ordinal)
 		{
 			["IsContainer"] = "Container",
+			["Stackable"] = "Stackable",
 			["ForceUse"] = "Force Use",
 			["MultiUse"] = "Multi Use",
 			["IsFluidContainer"] = "Fluid Container",
