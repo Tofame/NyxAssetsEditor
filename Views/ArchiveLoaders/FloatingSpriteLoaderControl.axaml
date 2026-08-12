@@ -115,7 +115,7 @@
 				  DragDrop.DragOver="OnDragOver"
 				  DragDrop.Drop="OnDrop">
 				<!-- Grid View Mode -->
-				<ListBox x:Name="SpriteGridListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsGridView, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8" SelectionMode="Multiple">
+				<ListBox x:Name="SpriteGridListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsGridView, Mode=OneWay}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="8" SelectionMode="Multiple" PointerPressed="OnViewerPointerPressed" PointerWheelChanged="OnViewerPointerWheelChanged">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
@@ -153,7 +153,7 @@
 				</ListBox>
 
 				<!-- List View Mode -->
-				<ListBox x:Name="SpriteListListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsListView, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0" SelectionMode="Multiple">
+				<ListBox x:Name="SpriteListListBox" ItemsSource="{Binding PagedSprites, Mode=OneWay}" IsVisible="{Binding IsListView, Mode=OneWay}" Background="Transparent" BorderThickness="0" Padding="0" SelectionMode="Multiple" PointerPressed="OnViewerPointerPressed" PointerWheelChanged="OnViewerPointerWheelChanged">
 					<ListBox.ItemsPanel>
 						<ItemsPanelTemplate>
 							<VirtualizingStackPanel/>

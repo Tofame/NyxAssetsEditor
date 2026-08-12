@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Exchange;
@@ -29,10 +30,17 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 	public partial class FloatingThingsLoaderControl : UserControl
 	{
 		private FloatingThingsLoaderViewModel? _viewModel;
+		private bool _isMiddleAutoScrollActive;
+		private Point _middleAutoScrollAnchor;
+		private const double MiddleAutoScrollDeadZone = 4.0;
+		private const double MiddleAutoScrollSpeedFactor = 0.35;
+		private int _lastKnownPage = 1;
 
 		public FloatingThingsLoaderControl()
 		{
 			InitializeComponent();
+			PointerMoved += OnAutoScrollPointerMoved;
+			PointerReleased += OnAutoScrollPointerReleased;
 			
 			var titleBar = this.FindControl<Border>("TitleBar");
 			var bottomBar = this.FindControl<Border>("BottomBar");
@@ -56,6 +64,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog -= OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
 					_viewModel.RequestShowInfo -= OnShowInfoRequested;
+					_viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 				}
 
 				_viewModel = DataContext as FloatingThingsLoaderViewModel;
@@ -64,6 +73,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog += OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
 					_viewModel.RequestShowInfo += OnShowInfoRequested;
+					_viewModel.PropertyChanged += OnViewModelPropertyChanged;
+					_lastKnownPage = _viewModel.CurrentPage;
 				}
 			};
 		}
@@ -108,6 +119,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 		{
 			if (sender is not Control control || control.DataContext is not ThingItemViewModel thing)
 				return;
+
+			if (e.GetCurrentPoint(control).Properties.IsMiddleButtonPressed)
+			{
+				if (TryStartMiddleAutoScroll(e))
+					e.Handled = true;
+				return;
+			}
 
 			if (DataContext is FloatingThingsLoaderViewModel vm)
 			{
@@ -617,6 +635,143 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			{
 				System.Diagnostics.Debug.WriteLine($"Failed to export things: {ex.Message}");
 			}
+		}
+
+		private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName != nameof(FloatingThingsLoaderViewModel.CurrentPage) || _viewModel == null)
+				return;
+
+			var currentPage = _viewModel.CurrentPage;
+			if (currentPage == _lastKnownPage)
+				return;
+
+			var scrollToBottom = currentPage < _lastKnownPage;
+			_lastKnownPage = currentPage;
+			ScrollCurrentListToPageEdge(scrollToBottom);
+		}
+
+		private void OnViewerPointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed && TryStartMiddleAutoScroll(e))
+				e.Handled = true;
+		}
+
+		private void OnViewerPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+		{
+			if (_viewModel == null)
+				return;
+
+			if (sender is not ListBox listBox || !TryGetScrollViewer(listBox, out var scrollViewer))
+				return;
+
+			if (e.Delta.Y > 0 && IsAtTop(scrollViewer) && _viewModel.HasPreviousPage)
+			{
+				_viewModel.PreviousPageCommand.Execute(null);
+				e.Handled = true;
+				return;
+			}
+
+			if (e.Delta.Y < 0 && IsAtBottom(scrollViewer) && _viewModel.HasNextPage)
+			{
+				_viewModel.NextPageCommand.Execute(null);
+				e.Handled = true;
+			}
+		}
+
+		private void OnAutoScrollPointerMoved(object? sender, PointerEventArgs e)
+		{
+			if (!_isMiddleAutoScrollActive || _viewModel == null)
+				return;
+
+			var listBox = GetActiveListBox();
+			if (!TryGetScrollViewer(listBox, out var scrollViewer))
+				return;
+
+			var pointerPosition = e.GetPosition(this);
+			var deltaY = pointerPosition.Y - _middleAutoScrollAnchor.Y;
+			if (Math.Abs(deltaY) < MiddleAutoScrollDeadZone)
+				return;
+
+			var targetY = scrollViewer.Offset.Y + (deltaY * MiddleAutoScrollSpeedFactor);
+			var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+			var clampedY = Math.Clamp(targetY, 0, maxY);
+			scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedY);
+
+			if (deltaY < 0 && clampedY <= 0 && _viewModel.HasPreviousPage)
+			{
+				_viewModel.PreviousPageCommand.Execute(null);
+			}
+			else if (deltaY > 0 && clampedY >= maxY && _viewModel.HasNextPage)
+			{
+				_viewModel.NextPageCommand.Execute(null);
+			}
+
+			e.Handled = true;
+		}
+
+		private void OnAutoScrollPointerReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			if (_isMiddleAutoScrollActive && e.InitialPressMouseButton == MouseButton.Middle)
+			{
+				StopMiddleAutoScroll(e.Pointer);
+				e.Handled = true;
+			}
+		}
+
+		private bool TryStartMiddleAutoScroll(PointerPressedEventArgs e)
+		{
+			var listBox = GetActiveListBox();
+			if (!TryGetScrollViewer(listBox, out _))
+				return false;
+
+			_isMiddleAutoScrollActive = true;
+			_middleAutoScrollAnchor = e.GetPosition(this);
+			e.Pointer.Capture(this);
+			return true;
+		}
+
+		private void StopMiddleAutoScroll(IPointer pointer)
+		{
+			_isMiddleAutoScrollActive = false;
+			pointer.Capture(null);
+		}
+
+		private ListBox? GetActiveListBox()
+		{
+			if (_viewModel?.ShowGridViewContent == true)
+				return ThingGridListBox;
+			if (_viewModel?.ShowListViewContent == true)
+				return ThingListListBox;
+			return ThingGridListBox.IsVisible ? ThingGridListBox : ThingListListBox;
+		}
+
+		private static bool TryGetScrollViewer(ListBox? listBox, out ScrollViewer? scrollViewer)
+		{
+			scrollViewer = listBox?.FindDescendantOfType<ScrollViewer>();
+			return scrollViewer != null;
+		}
+
+		private static bool IsAtTop(ScrollViewer scrollViewer) => scrollViewer.Offset.Y <= 0.5;
+
+		private static bool IsAtBottom(ScrollViewer scrollViewer)
+		{
+			var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+			return scrollViewer.Offset.Y >= maxY - 0.5;
+		}
+
+		private void ScrollCurrentListToPageEdge(bool toBottom)
+		{
+			var listBox = GetActiveListBox();
+			if (!TryGetScrollViewer(listBox, out var scrollViewer) || scrollViewer == null)
+				return;
+
+			Dispatcher.UIThread.Post(() =>
+			{
+				var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+				var y = toBottom ? maxY : 0;
+				scrollViewer.Offset = new Vector(scrollViewer.Offset.X, y);
+			}, DispatcherPriority.Loaded);
 		}
 	}
 }
