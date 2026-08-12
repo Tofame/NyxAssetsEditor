@@ -32,13 +32,21 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 		private const double DragThreshold = 8.0;
 		private bool _isMiddleAutoScrollActive;
 		private Point _middleAutoScrollAnchor;
-		private const double MiddleAutoScrollDeadZone = 4.0;
-		private const double MiddleAutoScrollSpeedFactor = 0.35;
+		private double _middleAutoScrollDeltaY;
+		private IPointer? _middleAutoScrollPointer;
+		private readonly DispatcherTimer _middleAutoScrollTimer;
+		private bool _autoScrollPageTransitionPending;
+		private Cursor? _previousCursor;
+		private const double MiddleAutoScrollDeadZone = 8.0;
+		private const double MiddleAutoScrollBaseStep = 1.5;
+		private const double MiddleAutoScrollAcceleration = 0.12;
+		private const double MiddleAutoScrollMaxStep = 45.0;
 		private int _lastKnownPage = 1;
 
 		public FloatingSpriteLoaderControl()
 		{
 			InitializeComponent();
+			_middleAutoScrollTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Background, OnMiddleAutoScrollTick);
 
 			PointerMoved += OnSpriteDragPointerMoved;
 			PointerReleased += OnSpriteDragPointerReleased;
@@ -132,6 +140,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			if (sender is not Control control || control.DataContext is not SpriteViewModel sprite)
 				return;
 
+			if (_isMiddleAutoScrollActive)
+			{
+				StopMiddleAutoScroll();
+				e.Handled = true;
+				return;
+			}
+
 			if (e.GetCurrentPoint(control).Properties.IsMiddleButtonPressed)
 			{
 				if (TryStartMiddleAutoScroll(e))
@@ -164,7 +179,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 		{
 			if (_isMiddleAutoScrollActive)
 			{
-				HandleMiddleAutoScrollMove(e);
+				_middleAutoScrollDeltaY = e.GetPosition(this).Y - _middleAutoScrollAnchor.Y;
+				e.Handled = true;
 				return;
 			}
 
@@ -194,13 +210,6 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 		private void OnSpriteDragPointerReleased(object? sender, PointerReleasedEventArgs e)
 		{
-			if (_isMiddleAutoScrollActive && e.InitialPressMouseButton == MouseButton.Middle)
-			{
-				StopMiddleAutoScroll(e.Pointer);
-				e.Handled = true;
-				return;
-			}
-
 			if (_spriteDragStarted)
 				return;
 
@@ -569,11 +578,19 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			var scrollToBottom = currentPage < _lastKnownPage;
 			_lastKnownPage = currentPage;
+			_autoScrollPageTransitionPending = false;
 			ScrollCurrentListToPageEdge(scrollToBottom);
 		}
 
 		private void OnViewerPointerPressed(object? sender, PointerPressedEventArgs e)
 		{
+			if (_isMiddleAutoScrollActive)
+			{
+				StopMiddleAutoScroll();
+				e.Handled = true;
+				return;
+			}
+
 			if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed && TryStartMiddleAutoScroll(e))
 				e.Handled = true;
 		}
@@ -608,45 +625,66 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			_isMiddleAutoScrollActive = true;
 			_middleAutoScrollAnchor = e.GetPosition(this);
-			e.Pointer.Capture(this);
+			_middleAutoScrollDeltaY = 0;
+			_autoScrollPageTransitionPending = false;
+			_middleAutoScrollPointer = e.Pointer;
+			_middleAutoScrollPointer.Capture(this);
+			_previousCursor = Cursor;
+			Cursor = new Cursor(StandardCursorType.SizeNorthSouth);
+			_middleAutoScrollTimer.Start();
 			return true;
 		}
 
-		private void HandleMiddleAutoScrollMove(PointerEventArgs e)
+		private void OnMiddleAutoScrollTick(object? sender, EventArgs e)
 		{
-			if (_viewModel == null)
+			if (!_isMiddleAutoScrollActive || _viewModel == null)
 				return;
 
 			var listBox = GetActiveListBox();
 			if (!TryGetScrollViewer(listBox, out var scrollViewer))
 				return;
 
-			var pointerPosition = e.GetPosition(this);
-			var deltaY = pointerPosition.Y - _middleAutoScrollAnchor.Y;
-			if (Math.Abs(deltaY) < MiddleAutoScrollDeadZone)
+			var absDelta = Math.Abs(_middleAutoScrollDeltaY);
+			if (absDelta < MiddleAutoScrollDeadZone)
 				return;
 
-			var targetY = scrollViewer.Offset.Y + (deltaY * MiddleAutoScrollSpeedFactor);
+			var direction = Math.Sign(_middleAutoScrollDeltaY);
+			var step = MiddleAutoScrollBaseStep + ((absDelta - MiddleAutoScrollDeadZone) * MiddleAutoScrollAcceleration);
+			step = Math.Min(step, MiddleAutoScrollMaxStep) * direction;
+
+			var targetY = scrollViewer.Offset.Y + step;
 			var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
 			var clampedY = Math.Clamp(targetY, 0, maxY);
 			scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedY);
 
-			if (deltaY < 0 && clampedY <= 0 && _viewModel.HasPreviousPage)
+			if (_autoScrollPageTransitionPending)
+				return;
+
+			if (direction < 0 && clampedY <= 0 && _viewModel.HasPreviousPage)
 			{
+				_autoScrollPageTransitionPending = true;
 				_viewModel.PreviousPageCommand.Execute(null);
 			}
-			else if (deltaY > 0 && clampedY >= maxY && _viewModel.HasNextPage)
+			else if (direction > 0 && clampedY >= maxY && _viewModel.HasNextPage)
 			{
+				_autoScrollPageTransitionPending = true;
 				_viewModel.NextPageCommand.Execute(null);
 			}
-
-			e.Handled = true;
 		}
 
-		private void StopMiddleAutoScroll(IPointer pointer)
+		private void StopMiddleAutoScroll()
 		{
+			if (!_isMiddleAutoScrollActive)
+				return;
+
 			_isMiddleAutoScrollActive = false;
-			pointer.Capture(null);
+			_middleAutoScrollDeltaY = 0;
+			_autoScrollPageTransitionPending = false;
+			_middleAutoScrollTimer.Stop();
+			_middleAutoScrollPointer?.Capture(null);
+			_middleAutoScrollPointer = null;
+			Cursor = _previousCursor;
+			_previousCursor = null;
 		}
 
 		private ListBox? GetActiveListBox()
@@ -658,9 +696,9 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			return SpriteGridListBox.IsVisible ? SpriteGridListBox : SpriteListListBox;
 		}
 
-		private static bool TryGetScrollViewer(ListBox? listBox, out ScrollViewer? scrollViewer)
+		private static bool TryGetScrollViewer(ListBox? listBox, out ScrollViewer scrollViewer)
 		{
-			scrollViewer = listBox?.FindDescendantOfType<ScrollViewer>();
+			scrollViewer = listBox?.FindDescendantOfType<ScrollViewer>()!;
 			return scrollViewer != null;
 		}
 
