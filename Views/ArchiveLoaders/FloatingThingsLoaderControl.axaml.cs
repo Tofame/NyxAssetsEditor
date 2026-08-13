@@ -30,6 +30,14 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 	{
 		private FloatingThingsLoaderViewModel? _viewModel;
 
+		// Auto-scroll fields
+		private bool _autoScrollActive;
+		private Point _autoScrollAnchor;
+		private DispatcherTimer? _autoScrollTimer;
+		private double _autoScrollDeltaY;
+		private DateTime _lastPageChangeTime = DateTime.MinValue;
+		private int _lastPage = 1;
+
 		public FloatingThingsLoaderControl()
 		{
 			InitializeComponent();
@@ -49,6 +57,16 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				RegisterResizeHandle(interaction, "ResizeTopLeft", 8);
 			}
 
+			ThingGridListBox.PointerWheelChanged += OnListBoxPointerWheelChanged;
+			ThingListListBox.PointerWheelChanged += OnListBoxPointerWheelChanged;
+
+			ThingGridListBox.PointerPressed += OnListBoxPointerPressed;
+			ThingListListBox.PointerPressed += OnListBoxPointerPressed;
+
+			PointerMoved += OnGlobalPointerMoved;
+			PointerReleased += OnGlobalPointerReleased;
+			PointerPressed += OnGlobalPointerPressed;
+
 			DataContextChanged += (_, _) =>
 			{
 				if (_viewModel != null)
@@ -56,6 +74,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog -= OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
 					_viewModel.RequestShowInfo -= OnShowInfoRequested;
+					_viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 				}
 
 				_viewModel = DataContext as FloatingThingsLoaderViewModel;
@@ -64,6 +83,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog += OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
 					_viewModel.RequestShowInfo += OnShowInfoRequested;
+					_viewModel.PropertyChanged += OnViewModelPropertyChanged;
+					_lastPage = _viewModel.CurrentPage;
 				}
 			};
 		}
@@ -616,6 +637,229 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.WriteLine($"Failed to export things: {ex.Message}");
+			}
+		}
+
+		private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+		{
+			if (_viewModel == null) return;
+
+			if (e.PropertyName == nameof(FloatingThingsLoaderViewModel.CurrentPage))
+			{
+				int newPage = _viewModel.CurrentPage;
+				bool isBackwards = newPage < _lastPage;
+				_lastPage = newPage;
+
+				var listBox = _viewModel.IsGridView ? ThingGridListBox : ThingListListBox;
+				if (listBox != null)
+				{
+					Dispatcher.UIThread.Post(() =>
+					{
+						var scrollViewer = listBox.FindDescendantOfType<ScrollViewer>();
+						if (scrollViewer != null)
+						{
+							if (isBackwards)
+							{
+								scrollViewer.Offset = new Vector(scrollViewer.Offset.X, scrollViewer.Extent.Height);
+							}
+							else
+							{
+								scrollViewer.Offset = new Vector(scrollViewer.Offset.X, 0);
+							}
+						}
+					}, DispatcherPriority.Loaded);
+				}
+			}
+		}
+
+		private void OnListBoxPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+		{
+			if (_viewModel == null || sender is not ListBox listBox) return;
+			var scrollViewer = listBox.FindDescendantOfType<ScrollViewer>();
+			if (scrollViewer == null) return;
+
+			if (e.Delta.Y > 0) // Scrolling up
+			{
+				if (scrollViewer.Offset.Y <= 0.01)
+				{
+					if (_viewModel.HasPreviousPage)
+					{
+						_viewModel.CurrentPage--;
+						e.Handled = true;
+					}
+				}
+			}
+			else if (e.Delta.Y < 0) // Scrolling down
+			{
+				double maxScroll = scrollViewer.Extent.Height - scrollViewer.Viewport.Height;
+				if (scrollViewer.Offset.Y >= maxScroll - 0.01)
+				{
+					if (_viewModel.HasNextPage)
+					{
+						_viewModel.CurrentPage++;
+						e.Handled = true;
+					}
+				}
+			}
+		}
+
+		private void OnListBoxPointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			if (sender is not ListBox listBox) return;
+
+			var prop = e.GetCurrentPoint(listBox).Properties;
+			if (prop.IsMiddleButtonPressed)
+			{
+				e.Handled = true;
+				if (_autoScrollActive)
+				{
+					StopAutoScroll();
+				}
+				else
+				{
+					StartAutoScroll(listBox, e);
+				}
+			}
+			else if (_autoScrollActive)
+			{
+				StopAutoScroll();
+				e.Handled = true;
+			}
+		}
+
+		private void StartAutoScroll(ListBox listBox, PointerPressedEventArgs e)
+		{
+			_autoScrollActive = true;
+			var mainGrid = this.FindControl<Canvas>("AutoScrollCanvas")?.Parent as Control;
+			if (mainGrid == null) return;
+
+			_autoScrollAnchor = e.GetPosition(mainGrid);
+			
+			var indicator = this.FindControl<Image>("AutoScrollIndicator");
+			if (indicator != null)
+			{
+				Canvas.SetLeft(indicator, _autoScrollAnchor.X - 16);
+				Canvas.SetTop(indicator, _autoScrollAnchor.Y - 16);
+				indicator.IsVisible = true;
+			}
+
+			_autoScrollDeltaY = 0;
+			e.Pointer.Capture(listBox);
+
+			_autoScrollTimer?.Stop();
+			_autoScrollTimer = new DispatcherTimer
+			{
+				Interval = TimeSpan.FromMilliseconds(16)
+			};
+			_autoScrollTimer.Tick += (s, ev) =>
+			{
+				if (!_autoScrollActive || _viewModel == null)
+				{
+					_autoScrollTimer?.Stop();
+					return;
+				}
+
+				var sv = listBox.FindDescendantOfType<ScrollViewer>();
+				if (sv == null) return;
+
+				if (Math.Abs(_autoScrollDeltaY) > 10)
+				{
+					double speed = (_autoScrollDeltaY - Math.Sign(_autoScrollDeltaY) * 10) * 0.15;
+					double newY = sv.Offset.Y + speed;
+					sv.Offset = new Vector(sv.Offset.X, newY);
+
+					if (speed < 0 && sv.Offset.Y <= 0.01)
+					{
+						if ((DateTime.Now - _lastPageChangeTime).TotalMilliseconds > 800)
+						{
+							if (_viewModel.HasPreviousPage)
+							{
+								_viewModel.CurrentPage--;
+								_lastPageChangeTime = DateTime.Now;
+							}
+						}
+					}
+					else if (speed > 0)
+					{
+						double maxScroll = sv.Extent.Height - sv.Viewport.Height;
+						if (sv.Offset.Y >= maxScroll - 0.01)
+						{
+							if ((DateTime.Now - _lastPageChangeTime).TotalMilliseconds > 800)
+							{
+								if (_viewModel.HasNextPage)
+								{
+									_viewModel.CurrentPage++;
+									_lastPageChangeTime = DateTime.Now;
+								}
+							}
+						}
+					}
+				}
+			};
+			_autoScrollTimer.Start();
+		}
+
+		private void StopAutoScroll()
+		{
+			if (!_autoScrollActive) return;
+			_autoScrollActive = false;
+			_autoScrollTimer?.Stop();
+			_autoScrollTimer = null;
+
+			var indicator = this.FindControl<Image>("AutoScrollIndicator");
+			if (indicator != null)
+			{
+				indicator.IsVisible = false;
+			}
+
+			var listBox = _viewModel?.IsGridView == true ? ThingGridListBox : ThingListListBox;
+			if (listBox != null)
+			{
+				var topLevel = TopLevel.GetTopLevel(this);
+				if (topLevel != null)
+				{
+				}
+			}
+		}
+
+		private void OnGlobalPointerMoved(object? sender, PointerEventArgs e)
+		{
+			if (!_autoScrollActive) return;
+
+			var mainGrid = this.FindControl<Canvas>("AutoScrollCanvas")?.Parent as Control;
+			if (mainGrid != null)
+			{
+				var currentPos = e.GetPosition(mainGrid);
+				_autoScrollDeltaY = currentPos.Y - _autoScrollAnchor.Y;
+			}
+		}
+
+		private void OnGlobalPointerReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			if (!_autoScrollActive) return;
+
+			if (e.InitialPressMouseButton == MouseButton.Middle)
+			{
+				var mainGrid = this.FindControl<Canvas>("AutoScrollCanvas")?.Parent as Control;
+				if (mainGrid != null)
+				{
+					var currentPos = e.GetPosition(mainGrid);
+					double dist = Math.Abs(currentPos.Y - _autoScrollAnchor.Y);
+					if (dist > 15)
+					{
+						StopAutoScroll();
+						e.Handled = true;
+					}
+				}
+			}
+		}
+
+		private void OnGlobalPointerPressed(object? sender, PointerPressedEventArgs e)
+		{
+			if (_autoScrollActive)
+			{
+				StopAutoScroll();
+				e.Handled = true;
 			}
 		}
 	}

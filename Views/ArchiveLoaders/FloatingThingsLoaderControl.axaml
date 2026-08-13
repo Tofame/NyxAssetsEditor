@@ -310,6 +310,10 @@
 						</Button>
 					</Grid>
 				</Border>
+				<!-- Auto-scroll Anchor Indicator -->
+				<Canvas Name="AutoScrollCanvas" IsHitTestVisible="False" Background="Transparent" ZIndex="100">
+					<Image Name="AutoScrollIndicator" Source="/Assets/Icons/mouse-scroll.png" Width="32" Height="32" IsVisible="False"/>
+				</Canvas>
 			</Grid>
 
 			<!-- Footer: thing actions + pagination -->
