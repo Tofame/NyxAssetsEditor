@@ -32,16 +32,73 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 	private int _customOffsetX;
 	private int _customOffsetY;
 	private bool _overrideOffset;
+	private ThingKind _targetKind;
+	private uint _targetThingId;
+	private ThingType? _currentTargetThing;
 	private string? _statusMessage;
 
 	public event PropertyChangedEventHandler? PropertyChanged;
 
-	public string Title => $"In-Game Offset Preview — {_editor.Kind} #{_editor.ThingId}";
+	public ThingKind[] AvailableKinds { get; } = { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile };
 
-	public bool IsEffect => _editor.IsEffect;
-	public bool IsOutfit => _editor.IsOutfit;
-	public bool IsItem => _editor.IsItem;
-	public bool IsMissile => _editor.IsMissile;
+	public ThingKind TargetKind
+	{
+		get => _targetKind;
+		set
+		{
+			if (_targetKind != value)
+			{
+				_targetKind = value;
+				OnPropertyChanged();
+				OnPropertyChanged(nameof(IsEffect));
+				OnPropertyChanged(nameof(IsOutfit));
+				OnPropertyChanged(nameof(IsItem));
+				OnPropertyChanged(nameof(IsMissile));
+				OnPropertyChanged(nameof(ShowReferenceOutfitControls));
+				OnPropertyChanged(nameof(ShowOutfitDirectionControls));
+				OnPropertyChanged(nameof(MaxTargetThingId));
+				_overrideOffset = false;
+				SwitchTargetKind(value);
+			}
+		}
+	}
+
+	public uint TargetThingId
+	{
+		get => _targetThingId;
+		set
+		{
+			if (_targetThingId != value)
+			{
+				_targetThingId = value;
+				OnPropertyChanged();
+				_overrideOffset = false;
+				SwitchTargetThing(value);
+			}
+		}
+	}
+
+	public uint MaxTargetThingId
+	{
+		get
+		{
+			var catalog = _editor.SourcePanel.Catalog;
+			if (catalog == null) return 65535;
+			return TargetKind switch
+			{
+				ThingKind.Item => catalog.ItemCount,
+				ThingKind.Outfit => catalog.OutfitCount,
+				ThingKind.Effect => catalog.EffectCount,
+				ThingKind.Missile => catalog.MissileCount,
+				_ => 65535
+			};
+		}
+	}
+
+	public bool IsEffect => TargetKind == ThingKind.Effect;
+	public bool IsOutfit => TargetKind == ThingKind.Outfit;
+	public bool IsItem => TargetKind == ThingKind.Item;
+	public bool IsMissile => TargetKind == ThingKind.Missile;
 	public bool ShowReferenceOutfitControls => IsEffect;
 	public bool ShowOutfitDirectionControls => IsOutfit || IsEffect;
 
@@ -134,7 +191,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 	public int CustomOffsetX
 	{
-		get => _overrideOffset ? _customOffsetX : _editor.OffsetX;
+		get => _overrideOffset ? _customOffsetX : CurrentTargetThing?.OffsetX ?? _editor.OffsetX;
 		set
 		{
 			_overrideOffset = true;
@@ -149,7 +206,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 	public int CustomOffsetY
 	{
-		get => _overrideOffset ? _customOffsetY : _editor.OffsetY;
+		get => _overrideOffset ? _customOffsetY : CurrentTargetThing?.OffsetY ?? _editor.OffsetY;
 		set
 		{
 			_overrideOffset = true;
@@ -161,6 +218,8 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			}
 		}
 	}
+
+	public ThingType? CurrentTargetThing => _currentTargetThing ?? _editor.Thing;
 
 	public WriteableBitmap? PreviewImage
 	{
@@ -188,6 +247,9 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 	public OffsetPreviewDialogViewModel(FloatingThingEditorViewModel editor)
 	{
 		_editor = editor;
+		_targetKind = editor.Kind;
+		_targetThingId = editor.ThingId;
+		_currentTargetThing = editor.Thing;
 		_customOffsetX = editor.OffsetX;
 		_customOffsetY = editor.OffsetY;
 
@@ -201,6 +263,60 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 		SettingsViewModel.OffsetPreviewSettingsChanged += OnSettingsChanged;
 		RefreshPreview();
 		_animationTimer.Start();
+	}
+
+	private void SwitchTargetKind(ThingKind kind)
+	{
+		var catalog = _editor.SourcePanel.Catalog;
+		if (catalog == null) return;
+
+		uint defaultId = kind switch
+		{
+			ThingKind.Item => ThingCatalog.FirstItemId,
+			ThingKind.Outfit => ThingCatalog.FirstOutfitId,
+			ThingKind.Effect => ThingCatalog.FirstEffectId,
+			ThingKind.Missile => ThingCatalog.FirstMissileId,
+			_ => 1
+		};
+
+		if (kind == _editor.Kind)
+		{
+			defaultId = _editor.ThingId;
+		}
+
+		_targetThingId = defaultId;
+		OnPropertyChanged(nameof(TargetThingId));
+		SwitchTargetThing(defaultId);
+	}
+
+	private void SwitchTargetThing(uint id)
+	{
+		var catalog = _editor.SourcePanel.Catalog;
+		if (catalog != null)
+		{
+			if (TargetKind == _editor.Kind && id == _editor.ThingId)
+			{
+				_currentTargetThing = _editor.Thing;
+			}
+			else
+			{
+				_currentTargetThing = TargetKind switch
+				{
+					ThingKind.Item => catalog.TryGetItem(id),
+					ThingKind.Outfit => catalog.TryGetOutfit(id),
+					ThingKind.Effect => catalog.TryGetEffect(id),
+					ThingKind.Missile => catalog.TryGetMissile(id),
+					_ => null
+				};
+			}
+		}
+
+		_customOffsetX = _currentTargetThing?.OffsetX ?? 0;
+		_customOffsetY = _currentTargetThing?.OffsetY ?? 0;
+		_overrideOffset = false;
+		OnPropertyChanged(nameof(CustomOffsetX));
+		OnPropertyChanged(nameof(CustomOffsetY));
+		RefreshPreview();
 	}
 
 	private void OnSettingsChanged()
@@ -218,8 +334,8 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 	public void ResetOffsetToEditor()
 	{
-		_customOffsetX = _editor.OffsetX;
-		_customOffsetY = _editor.OffsetY;
+		_customOffsetX = CurrentTargetThing?.OffsetX ?? _editor.OffsetX;
+		_customOffsetY = CurrentTargetThing?.OffsetY ?? _editor.OffsetY;
 		_overrideOffset = false;
 		OnPropertyChanged(nameof(CustomOffsetX));
 		OnPropertyChanged(nameof(CustomOffsetY));
@@ -228,10 +344,26 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 	public void ApplyOffsetToEditor()
 	{
-		_editor.HasOffset = true;
-		_editor.OffsetX = CustomOffsetX;
-		_editor.OffsetY = CustomOffsetY;
-		StatusMessage = $"Applied Offset ({CustomOffsetX}, {CustomOffsetY}) to Thing #{_editor.ThingId}.";
+		if (TargetKind == _editor.Kind && TargetThingId == _editor.ThingId)
+		{
+			_editor.HasOffset = true;
+			_editor.OffsetX = CustomOffsetX;
+			_editor.OffsetY = CustomOffsetY;
+			StatusMessage = $"Applied Offset ({CustomOffsetX}, {CustomOffsetY}) to Thing #{_editor.ThingId}.";
+		}
+		else
+		{
+			var catalog = _editor.SourcePanel.Catalog;
+			if (catalog != null && _currentTargetThing != null)
+			{
+				_currentTargetThing.HasOffset = true;
+				_currentTargetThing.OffsetX = CustomOffsetX;
+				_currentTargetThing.OffsetY = CustomOffsetY;
+				_editor.SourcePanel.ModifiedThingIds.Add(_currentTargetThing.Id);
+				_editor.SourcePanel.HasSavedChanges = true;
+				StatusMessage = $"Applied Offset ({CustomOffsetX}, {CustomOffsetY}) to {TargetKind} #{TargetThingId}.";
+			}
+		}
 	}
 
 	private void PopulateChoices()
@@ -296,7 +428,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 		// 1. Advance outfit animation
 		var activeOutfitThing = IsOutfit
-			? _editor.Thing
+			? CurrentTargetThing
 			: (SelectedOutfitId.HasValue ? catalog.TryGetOutfit(SelectedOutfitId.Value) : null);
 
 		if (activeOutfitThing != null && activeOutfitThing.FrameGroups.Count > 0)
@@ -316,7 +448,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 		// 2. Advance effect/item/missile animation if target thing is not outfit
 		if (!IsOutfit)
 		{
-			var targetThing = _editor.Thing;
+			var targetThing = CurrentTargetThing;
 			if (targetThing != null && targetThing.FrameGroups.Count > 0)
 			{
 				var targetFg = targetThing.FrameGroups[0];
@@ -382,7 +514,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			if (maxY > edge) maxReachDown = Math.Max(maxReachDown, maxY - edge);
 		}
 
-		var targetThing = _editor.Thing;
+		var targetThing = CurrentTargetThing;
 		var effOffsetX = CustomOffsetX;
 		var effOffsetY = CustomOffsetY;
 
