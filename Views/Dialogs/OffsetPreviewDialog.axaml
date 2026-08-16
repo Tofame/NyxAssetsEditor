@@ -52,15 +52,15 @@
 										  IsEditable="True" PlaceholderText="Select Ground" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
 							</StackPanel>
 
-							<!-- Outfit Selection (when not an outfit itself) -->
-							<StackPanel Spacing="4" IsVisible="{Binding !IsOutfit}">
+							<!-- Outfit Selection (only in Effect preview mode) -->
+							<StackPanel Spacing="4" IsVisible="{Binding ShowReferenceOutfitControls}">
 								<TextBlock Text="Reference Outfit ID:" Classes="label"/>
 								<ComboBox ItemsSource="{Binding AvailableOutfitIds}" SelectedItem="{Binding SelectedOutfitId}"
 										  IsEditable="True" PlaceholderText="Select Outfit" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
 							</StackPanel>
 
-							<!-- Direction Controls -->
-							<StackPanel Spacing="4">
+							<!-- Direction Controls (for Outfit and Effect preview modes) -->
+							<StackPanel Spacing="4" IsVisible="{Binding ShowOutfitDirectionControls}">
 								<TextBlock Text="Outfit Direction:" Classes="label"/>
 								<WrapPanel HorizontalAlignment="Center" Margin="0,2,0,0">
 									<Button Classes="direction" Classes.selected="{Binding IsNorth}" Content="&#x2191;" Click="OnNorthClick" Width="30" Height="26" HorizontalContentAlignment="Center" ToolTip.Tip="Face North"/>
@@ -70,7 +70,7 @@
 								</WrapPanel>
 							</StackPanel>
 
-							<CheckBox Content="Animate Walking / Effect" IsChecked="{Binding IsWalkingAnimation}" FontSize="11"/>
+							<CheckBox Content="Animate" IsChecked="{Binding IsWalkingAnimation}" FontSize="11"/>
 
 							<Separator Background="#333333"/>
 

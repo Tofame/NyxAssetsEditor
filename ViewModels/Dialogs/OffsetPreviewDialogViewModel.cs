@@ -42,6 +42,8 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 	public bool IsOutfit => _editor.IsOutfit;
 	public bool IsItem => _editor.IsItem;
 	public bool IsMissile => _editor.IsMissile;
+	public bool ShowReferenceOutfitControls => IsEffect;
+	public bool ShowOutfitDirectionControls => IsOutfit || IsEffect;
 
 	public ObservableCollection<uint> AvailableGroundIds { get; } = new();
 	public ObservableCollection<uint> AvailableOutfitIds { get; } = new();
@@ -388,7 +390,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 		{
 			MeasureThing(targetThing, effOffsetX, effOffsetY, isOutfitCentering: true);
 		}
-		else
+		else if (IsEffect)
 		{
 			if (SelectedOutfitId.HasValue)
 			{
@@ -404,6 +406,10 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			{
 				MeasureThing(targetThing, effOffsetX, effOffsetY, isOutfitCentering: false);
 			}
+		}
+		else if (targetThing != null)
+		{
+			MeasureThing(targetThing, effOffsetX, effOffsetY, isOutfitCentering: false);
 		}
 
 		int tilesNeededHorizontal = 1 + 2 * (int)Math.Ceiling(Math.Max(maxReachLeft, maxReachRight) / (double)edge);
@@ -449,8 +455,8 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			DrawThingWithOffset(canvas, canvasW, canvasH, targetThing, _effectFrame, centerTileAnchorX, centerTileAnchorY, effOffsetX, effOffsetY, loader);
 		}
 
-		// 3. Draw Player Outfit (in center tile) if we are in Effect / Item mode OR if outfit is selected
-		if (!IsOutfit)
+		// 3. Draw Player Outfit (in center tile) if we are in Effect mode OR if the thing is an outfit
+		if (IsEffect)
 		{
 			if (SelectedOutfitId.HasValue)
 			{
@@ -461,7 +467,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 				}
 			}
 		}
-		else if (targetThing != null)
+		else if (IsOutfit && targetThing != null)
 		{
 			// The thing itself is an outfit! Render it with its custom offset
 			DrawOutfitOnCanvas(canvas, canvasW, canvasH, targetThing, (int)OutfitDirection, _animationPhase, centerTileAnchorX, centerTileAnchorY, loader, effOffsetX, effOffsetY);
