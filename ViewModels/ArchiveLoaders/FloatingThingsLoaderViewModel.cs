@@ -62,8 +62,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (thing == null || thing.FrameGroups.Count == 0)
 				return;
 
-			var fg = thing.FrameGroups[0];
-			var maxFrames = (int)fg.Frames;
+			var maxFrames = thing.Kind == ThingKind.Outfit && thing.FrameGroups.Count > 1
+				? (int)(thing.FrameGroups[0].Frames + thing.FrameGroups[1].Frames)
+				: (int)thing.FrameGroups[0].Frames;
 			if (maxFrames <= 1)
 				return;
 

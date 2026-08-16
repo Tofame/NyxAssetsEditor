@@ -107,7 +107,9 @@ public static class ThingPreviewRenderer
 					return true;
 				case ThingKind.Outfit:
 					var outfitGroup = thing.FrameGroups.FirstOrDefault();
-					var outfitMax = outfitGroup != null ? Math.Max(0, (int)outfitGroup.Frames - 1) : 0;
+					var outfitMax = thing.FrameGroups.Count > 1
+						? Math.Max(0, (int)(thing.FrameGroups[0].Frames + thing.FrameGroups[1].Frames) - 1)
+						: (outfitGroup != null ? Math.Max(0, (int)outfitGroup.Frames - 1) : 0);
 					var outfitFrame = Math.Clamp(frameIndex, 0, outfitMax);
 					selection = ThingFrameResolver.GetOutfitFrame(thing, new OutfitFrameRequest
 					{
