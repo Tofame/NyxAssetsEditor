@@ -580,6 +580,35 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _offsetPreviewCenterOutfits = false;
+		public static event Action? OffsetPreviewSettingsChanged;
+
+		public static bool OffsetPreviewCenterOutfits
+		{
+			get => _offsetPreviewCenterOutfits;
+			set
+			{
+				if (_offsetPreviewCenterOutfits == value)
+					return;
+				_offsetPreviewCenterOutfits = value;
+				OffsetPreviewSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public bool OffsetPreviewCenterOutfitsSetting
+		{
+			get => OffsetPreviewCenterOutfits;
+			set
+			{
+				if (OffsetPreviewCenterOutfits != value)
+				{
+					OffsetPreviewCenterOutfits = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -615,7 +644,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int defaultSpritePanelHeight = 500,
 			int defaultThingsPanelWidth = 430,
 			int defaultThingsPanelHeight = 500,
-			bool saveFloatingPanels = true)
+			bool saveFloatingPanels = true,
+			bool offsetPreviewCenterOutfits = false)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -655,6 +685,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_defaultThingsPanelWidth = defaultThingsPanelWidth;
 			_defaultThingsPanelHeight = defaultThingsPanelHeight;
 			_saveFloatingPanels = saveFloatingPanels;
+			_offsetPreviewCenterOutfits = offsetPreviewCenterOutfits;
 		}
 
 		public int SelectedThingIdOffset

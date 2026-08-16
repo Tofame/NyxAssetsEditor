@@ -1,0 +1,129 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NyxAssetsEditor.ViewModels.Dialogs"
+		x:Class="NyxAssetsEditor.Views.Dialogs.OffsetPreviewDialog"
+		x:DataType="vm:OffsetPreviewDialogViewModel"
+		Title="In-Game Offset Preview"
+		Width="680"
+		Height="480"
+		CanResize="True"
+		WindowStartupLocation="CenterOwner"
+		Background="#141414"
+		RequestedThemeVariant="Dark"
+		ShowInTaskbar="False">
+
+	<Window.Styles>
+		<Style Selector="Button.direction.selected">
+			<Setter Property="Background" Value="#335E94FF"/>
+			<Setter Property="BorderBrush" Value="#5E94FF"/>
+		</Style>
+		<Style Selector="TextBlock.label">
+			<Setter Property="Foreground" Value="#999999"/>
+			<Setter Property="FontSize" Value="11"/>
+		</Style>
+	</Window.Styles>
+
+	<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1">
+		<Grid RowDefinitions="Auto, *">
+			<!-- Header -->
+			<Border Grid.Row="0" Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="14,10">
+				<Grid ColumnDefinitions="*, Auto">
+					<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+						<Border Width="24" Height="24" CornerRadius="12" Background="#2A3545">
+							<Image Source="/Assets/Icons/eye.png" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<TextBlock Text="In-Game Offset Preview —" FontSize="13" FontWeight="SemiBold" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+						<ComboBox ItemsSource="{Binding AvailableKinds}" SelectedItem="{Binding TargetKind}"
+								  Height="28" Width="100" FontSize="11" Padding="8,4" VerticalAlignment="Center"/>
+						<TextBlock Text="#" FontSize="13" Foreground="#888888" VerticalAlignment="Center"/>
+						<NumericUpDown Value="{Binding TargetThingId}" Minimum="1" Maximum="{Binding MaxTargetThingId}"
+									   Increment="1" FormatString="0" ParsingNumberStyle="Integer"
+									   Height="28" Width="120" MinWidth="120" Padding="6,2" FontSize="11"
+									   VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- Content Area (Split Left Panel & Right Preview) -->
+			<Grid Grid.Row="1" ColumnDefinitions="280, *">
+				<!-- Left Controls Panel -->
+				<Border Grid.Column="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,1,0" Padding="14">
+					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+						<StackPanel Spacing="12">
+							<TextBlock Text="Scene Setup" FontWeight="SemiBold" Foreground="#EEEEEE" FontSize="12"/>
+
+							<!-- Ground Selection -->
+							<StackPanel Spacing="4">
+								<TextBlock Text="Ground Item ID:" Classes="label"/>
+								<ComboBox ItemsSource="{Binding AvailableGroundIds}" SelectedItem="{Binding SelectedGroundId}"
+										  IsEditable="True" PlaceholderText="Select Ground" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
+							</StackPanel>
+
+							<!-- Outfit Selection (only in Effect preview mode) -->
+							<StackPanel Spacing="4" IsVisible="{Binding ShowReferenceOutfitControls}">
+								<TextBlock Text="Reference Outfit ID:" Classes="label"/>
+								<ComboBox ItemsSource="{Binding AvailableOutfitIds}" SelectedItem="{Binding SelectedOutfitId}"
+										  IsEditable="True" PlaceholderText="Select Outfit" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
+							</StackPanel>
+
+							<!-- Direction Controls (for Outfit and Effect preview modes) -->
+							<StackPanel Spacing="4" IsVisible="{Binding ShowOutfitDirectionControls}">
+								<TextBlock Text="Outfit Direction:" Classes="label"/>
+								<WrapPanel HorizontalAlignment="Center" Margin="0,2,0,0">
+									<Button Classes="direction" Classes.selected="{Binding IsNorth}" Content="&#x2191;" Click="OnNorthClick" Width="30" Height="26" HorizontalContentAlignment="Center" ToolTip.Tip="Face North"/>
+									<Button Classes="direction" Classes.selected="{Binding IsEast}" Content="&#x2192;" Click="OnEastClick" Width="30" Height="26" Margin="4,0" HorizontalContentAlignment="Center" ToolTip.Tip="Face East"/>
+									<Button Classes="direction" Classes.selected="{Binding IsSouth}" Content="&#x2193;" Click="OnSouthClick" Width="30" Height="26" HorizontalContentAlignment="Center" ToolTip.Tip="Face South"/>
+									<Button Classes="direction" Classes.selected="{Binding IsWest}" Content="&#x2190;" Click="OnWestClick" Width="30" Height="26" Margin="4,0,0,0" HorizontalContentAlignment="Center" ToolTip.Tip="Face West"/>
+								</WrapPanel>
+							</StackPanel>
+
+							<CheckBox Content="Animate" IsChecked="{Binding IsWalkingAnimation}" FontSize="11"/>
+
+							<Separator Background="#333333"/>
+
+							<!-- Offset Calibration -->
+							<TextBlock Text="Offset Calibration" FontWeight="SemiBold" Foreground="#EEEEEE" FontSize="12"/>
+							
+							<Grid ColumnDefinitions="*, *" ColumnSpacing="8">
+								<StackPanel Grid.Column="0" Spacing="4">
+									<TextBlock Text="Offset X:" Classes="label"/>
+									<NumericUpDown Value="{Binding CustomOffsetX}" Minimum="-1024" Maximum="1024" Increment="1" FormatString="0" Height="28" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="4">
+									<TextBlock Text="Offset Y:" Classes="label"/>
+									<NumericUpDown Value="{Binding CustomOffsetY}" Minimum="-1024" Maximum="1024" Increment="1" FormatString="0" Height="28" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+							</Grid>
+
+							<Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="0,4,0,0">
+								<Button Grid.Column="0" Content="Apply" Click="OnApplyClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E3E2B" BorderBrush="#3A7E55" BorderThickness="1" Foreground="#A0FFA0" FontSize="11" Padding="0,6"/>
+								<Button Grid.Column="1" Content="Reset" Click="OnResetClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2E2E2E" BorderBrush="#444444" BorderThickness="1" Foreground="#CCCCCC" FontSize="11" Padding="0,6"/>
+							</Grid>
+
+							<Border Background="#1E2A3A" BorderBrush="#3A5E8A" BorderThickness="1" CornerRadius="4" Padding="6" IsVisible="{Binding HasStatusMessage}">
+								<TextBlock Text="{Binding StatusMessage}" Foreground="#9FC5E8" FontSize="10" TextWrapping="Wrap"/>
+							</Border>
+						</StackPanel>
+					</ScrollViewer>
+				</Border>
+
+				<!-- Right Preview Area -->
+				<Grid Grid.Column="1" RowDefinitions="*, Auto" Background="#181818">
+					<Border Grid.Row="0" Margin="16" Background="#101010" BorderBrush="#333333" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 16 0 #7F000000">
+						<Viewbox Stretch="Uniform" Width="280" Height="280" RenderOptions.BitmapInterpolationMode="None">
+							<Image Source="{Binding PreviewImage}" RenderOptions.BitmapInterpolationMode="None"/>
+						</Viewbox>
+					</Border>
+
+					<!-- Bottom Bar with close button -->
+					<Border Grid.Row="1" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="12,8">
+						<Grid ColumnDefinitions="*, Auto">
+							<TextBlock Grid.Column="0" Text="Center dashed box indicates player tile boundary." Foreground="#666666" FontSize="11" VerticalAlignment="Center"/>
+							<Button Grid.Column="1" Content="Close" Click="OnCloseClick" Padding="16,5" Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" Foreground="#CCCCCC" FontSize="11" CornerRadius="4"/>
+						</Grid>
+					</Border>
+				</Grid>
+			</Grid>
+		</Grid>
+	</Border>
+</Window>
