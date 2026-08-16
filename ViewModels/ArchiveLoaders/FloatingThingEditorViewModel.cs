@@ -1873,98 +1873,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(PatternYCount));
 		OnPropertyChanged(nameof(PatternZCount));
 		OnPropertyChanged(nameof(FrameCount));
-	}	private void NotifyThingProperties()
+	}
+	private void NotifyThingProperties()
 	{
-		OnPropertyChanged(nameof(Thing));
-		OnPropertyChanged(nameof(ThingId));
-		OnPropertyChanged(nameof(Kind));
-		OnPropertyChanged(nameof(Title));
-		OnPropertyChanged(nameof(ImprovedAnimations));
-		OnPropertyChanged(nameof(OutfitFrameGroupsEnabled));
-		OnPropertyChanged(nameof(IsOutfit));
-		OnPropertyChanged(nameof(IsMissile));
-		OnPropertyChanged(nameof(IsItem));
-		OnPropertyChanged(nameof(IsEffect));
-		OnPropertyChanged(nameof(ShowOutfitDirections));
-		OnPropertyChanged(nameof(ShowMissileDirections));
-		OnPropertyChanged(nameof(HasPatterns));
-		OnPropertyChanged(nameof(IsGround));
-		OnPropertyChanged(nameof(GroundSpeed));
-		OnPropertyChanged(nameof(HasLight));
-		OnPropertyChanged(nameof(LightColor));
-		OnPropertyChanged(nameof(LightLevel));
-		OnPropertyChanged(nameof(LightColorBrush));
-		OnPropertyChanged(nameof(MiniMap));
-		OnPropertyChanged(nameof(MiniMapColor));
-		OnPropertyChanged(nameof(MiniMapColorBrush));
-		OnPropertyChanged(nameof(HasOffset));
-		OnPropertyChanged(nameof(OffsetX));
-		OnPropertyChanged(nameof(OffsetY));
-		OnPropertyChanged(nameof(HasElevation));
-		OnPropertyChanged(nameof(Elevation));
-		OnPropertyChanged(nameof(IsMarketItem));
-		OnPropertyChanged(nameof(MarketName));
-		OnPropertyChanged(nameof(MarketCategoryIndex));
-		OnPropertyChanged(nameof(MarketTradeAs));
-		OnPropertyChanged(nameof(MarketShowAs));
-		OnPropertyChanged(nameof(MarketRestrictProfession));
-		OnPropertyChanged(nameof(MarketRestrictLevel));
-		OnPropertyChanged(nameof(Writable));
-		OnPropertyChanged(nameof(WritableOnce));
-		OnPropertyChanged(nameof(MaxTextLength));
-		OnPropertyChanged(nameof(HasDefaultAction));
-		OnPropertyChanged(nameof(DefaultActionIndex));
-		OnPropertyChanged(nameof(IsLensHelp));
-		OnPropertyChanged(nameof(LensHelpIndex));
-		OnPropertyChanged(nameof(IsDat));
-		OnPropertyChanged(nameof(IsJson));
-		OnPropertyChanged(nameof(ShowGroundBorder));
-		OnPropertyChanged(nameof(ShowHasCharges));
-		OnPropertyChanged(nameof(ShowNoMoveAnimation));
-		OnPropertyChanged(nameof(ShowHangable));
-		OnPropertyChanged(nameof(ShowIsVertical));
-		OnPropertyChanged(nameof(ShowIsHorizontal));
-		OnPropertyChanged(nameof(ShowDontHide));
-		OnPropertyChanged(nameof(ShowIsTranslucent));
-		OnPropertyChanged(nameof(ShowIgnoreLook));
-		OnPropertyChanged(nameof(ShowCloth));
-		OnPropertyChanged(nameof(ShowMarket));
-		OnPropertyChanged(nameof(ShowHasDefaultAction));
-		OnPropertyChanged(nameof(ShowWrappable));
-		OnPropertyChanged(nameof(ShowUnwrappable));
-		OnPropertyChanged(nameof(ShowBottomEffect));
-		OnPropertyChanged(nameof(ShowDontCenterOutfit));
-		OnPropertyChanged(nameof(ShowUsable));
-		OnPropertyChanged(nameof(ShowFloorChange));
-
-		// Notify remaining flags
-		OnPropertyChanged(nameof(IsGroundBorder));
-		OnPropertyChanged(nameof(IsOnBottom));
-		OnPropertyChanged(nameof(IsOnTop));
-		OnPropertyChanged(nameof(IsContainer));
-		OnPropertyChanged(nameof(ForceUse));
-		OnPropertyChanged(nameof(MultiUse));
-		OnPropertyChanged(nameof(HasCharges));
-		OnPropertyChanged(nameof(IsFluidContainer));
-		OnPropertyChanged(nameof(IsFluid));
-		OnPropertyChanged(nameof(IsUnpassable));
-		OnPropertyChanged(nameof(IsUnmoveable));
-		OnPropertyChanged(nameof(BlockPathfind));
-		OnPropertyChanged(nameof(NoMoveAnimation));
-		OnPropertyChanged(nameof(Hangable));
-		OnPropertyChanged(nameof(IsVertical));
-		OnPropertyChanged(nameof(IsHorizontal));
-		OnPropertyChanged(nameof(DontHide));
-		OnPropertyChanged(nameof(IsTranslucent));
-		OnPropertyChanged(nameof(FloorChange));
-		OnPropertyChanged(nameof(IsLyingObject));
-		OnPropertyChanged(nameof(IsFullGround));
-		OnPropertyChanged(nameof(IgnoreLook));
-		OnPropertyChanged(nameof(Cloth));
-		OnPropertyChanged(nameof(ClothSlot));
-		OnPropertyChanged(nameof(Wrappable));
-		OnPropertyChanged(nameof(Unwrappable));
-		OnPropertyChanged(nameof(Usable));
+		// In Avalonia / CommunityToolkit MVVM, passing string.Empty (or null) signals that ALL properties have changed.
+		OnPropertyChanged(string.Empty);
 
 		NotifyRadioProperties();
 		RefreshCustomFlags();
@@ -3499,44 +3412,51 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 	private void LoadProtocolFlags()
 	{
-		string tomlText = "";
-		string? overridePath = FindTomlFile("flags_override.toml");
-		if (overridePath != null)
-		{
-			try { tomlText = System.IO.File.ReadAllText(overridePath); } catch { }
-		}
+		_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
+		_loadedFlagDescriptions.Clear();
 
-		if (string.IsNullOrEmpty(tomlText))
+		string versionDirName = DatVersion.ToString().ToLowerInvariant();
+
+		// Helper to read toml text from file or avares
+		string? ReadToml(string fileName)
 		{
-			string? defaultPath = FindTomlFile("flags.toml");
-			if (defaultPath != null)
+			string? path = FindTomlFile(fileName);
+			if (path != null)
 			{
-				try { tomlText = System.IO.File.ReadAllText(defaultPath); } catch { }
+				try { return System.IO.File.ReadAllText(path); } catch { }
 			}
-		}
 
-		if (string.IsNullOrEmpty(tomlText))
-		{
 			try
 			{
-				string versionDirName = DatVersion.ToString().ToLowerInvariant();
-				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/flags.toml")))
-				using (var reader = new System.IO.StreamReader(stream))
-				{
-					tomlText = reader.ReadToEnd();
-				}
+				using var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/{fileName}"));
+				using var reader = new System.IO.StreamReader(stream);
+				return reader.ReadToEnd();
 			}
 			catch
 			{
 			}
+
+			try
+			{
+				using var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{fileName}"));
+				using var reader = new System.IO.StreamReader(stream);
+				return reader.ReadToEnd();
+			}
+			catch
+			{
+			}
+
+			return null;
 		}
 
-		if (!string.IsNullOrEmpty(tomlText))
+		// 1. Read base flags.toml
+		string? baseToml = ReadToml("flags.toml");
+		if (!string.IsNullOrEmpty(baseToml))
 		{
 			try
 			{
-				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
-				if (model != null && model.flags != null && model.flags.Count > 0)
+				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(baseToml);
+				if (model?.flags != null && model.flags.Count > 0)
 				{
 					_loadedFlags = model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.label ?? pair.Key, StringComparer.Ordinal);
 					_loadedFlagDescriptions = model.flags
@@ -3548,9 +3468,29 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			{
 			}
 		}
-		else
+
+		// 2. Read and merge flags_override.toml on top of base
+		string? overrideToml = ReadToml("flags_override.toml");
+		if (!string.IsNullOrEmpty(overrideToml))
 		{
-			_loadedFlags = GetDefaultFlagsForVersion(DatVersion);
+			try
+			{
+				var overrideModel = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(overrideToml);
+				if (overrideModel?.flags != null && overrideModel.flags.Count > 0)
+				{
+					foreach (var pair in overrideModel.flags)
+					{
+						_loadedFlags[pair.Key] = pair.Value.label ?? pair.Key;
+						if (!string.IsNullOrWhiteSpace(pair.Value.description))
+						{
+							_loadedFlagDescriptions[pair.Key] = pair.Value.description!;
+						}
+					}
+				}
+			}
+			catch
+			{
+			}
 		}
 
 		LoadProtocolProperties();
@@ -3655,30 +3595,38 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			return null;
 		}
 
-		string tomlText = "";
-		string? overridePath = FindPath("flags_override.toml");
-		if (overridePath != null)
+		string? ReadToml(string fileName)
 		{
-			try { tomlText = System.IO.File.ReadAllText(overridePath); } catch { }
-		}
-
-		if (string.IsNullOrEmpty(tomlText))
-		{
-			string? defaultPath = FindPath("flags.toml");
-			if (defaultPath != null)
+			string? path = FindPath(fileName);
+			if (path != null)
 			{
-				try { tomlText = System.IO.File.ReadAllText(defaultPath); } catch { }
+				try { return System.IO.File.ReadAllText(path); } catch { }
 			}
+
+			try
+			{
+				using var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/{fileName}"));
+				using var reader = new System.IO.StreamReader(stream);
+				return reader.ReadToEnd();
+			}
+			catch
+			{
+			}
+
+			return null;
 		}
 
-		if (string.IsNullOrEmpty(tomlText))
+		Dictionary<string, byte>? map = null;
+
+		string? baseToml = ReadToml("flags.toml");
+		if (!string.IsNullOrEmpty(baseToml))
 		{
 			try
 			{
-				using (var stream = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://NyxAssetsEditor/Assets/datProtocols/{versionDirName}/flags.toml")))
-				using (var reader = new System.IO.StreamReader(stream))
+				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(baseToml);
+				if (model?.flags != null && model.flags.Count > 0)
 				{
-					tomlText = reader.ReadToEnd();
+					map = model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.id, StringComparer.Ordinal);
 				}
 			}
 			catch
@@ -3686,14 +3634,19 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			}
 		}
 
-		if (!string.IsNullOrEmpty(tomlText))
+		string? overrideToml = ReadToml("flags_override.toml");
+		if (!string.IsNullOrEmpty(overrideToml))
 		{
 			try
 			{
-				var model = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(tomlText);
-				if (model != null && model.flags != null && model.flags.Count > 0)
+				var overrideModel = Tomlyn.TomlSerializer.Deserialize<FlagsTomlModel>(overrideToml);
+				if (overrideModel?.flags != null && overrideModel.flags.Count > 0)
 				{
-					return model.flags.ToDictionary(pair => pair.Key, pair => pair.Value.id, StringComparer.Ordinal);
+					map ??= new Dictionary<string, byte>(StringComparer.Ordinal);
+					foreach (var pair in overrideModel.flags)
+					{
+						map[pair.Key] = pair.Value.id;
+					}
 				}
 			}
 			catch
@@ -3701,7 +3654,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			}
 		}
 
-		return null;
+		return map;
 	}
 
 	private Dictionary<string, string> GetDefaultFlagsForVersion(DatVersionFormat version)
