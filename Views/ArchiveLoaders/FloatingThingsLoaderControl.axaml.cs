@@ -74,6 +74,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog -= OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested -= OnScrollToItemRequested;
 					_viewModel.RequestShowInfo -= OnShowInfoRequested;
+					_viewModel.RequestShowWarning -= OnShowWarningRequested;
 					_viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 				}
 
@@ -83,6 +84,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestThingFileDialog += OnThingFileDialogRequested;
 					_viewModel.ScrollToItemRequested += OnScrollToItemRequested;
 					_viewModel.RequestShowInfo += OnShowInfoRequested;
+					_viewModel.RequestShowWarning += OnShowWarningRequested;
 					_viewModel.PropertyChanged += OnViewModelPropertyChanged;
 					_lastPage = _viewModel.CurrentPage;
 				}
@@ -94,6 +96,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			var window = TopLevel.GetTopLevel(this) as Window ?? this.VisualRoot as Window;
 			if (window == null) return;
 			await new InfoDialog("Things Archive Info", message).ShowDialog(window);
+		}
+
+		private async void OnShowWarningRequested(object? sender, (string Title, string Message, string? InfoMessage, string? SnippetCode) e)
+		{
+			var window = TopLevel.GetTopLevel(this) as Window ?? this.VisualRoot as Window;
+			if (window == null) return;
+			await new WarningDialog(e.Title, e.Message, e.InfoMessage, e.SnippetCode).ShowDialog(window);
 		}
 
 		private void RegisterResizeHandle(FloatingPanelInteraction interaction, string name, int direction)

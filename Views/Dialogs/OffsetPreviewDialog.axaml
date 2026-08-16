@@ -56,6 +56,7 @@
 							<StackPanel Spacing="4">
 								<TextBlock Text="Ground Item ID:" Classes="label"/>
 								<ComboBox ItemsSource="{Binding AvailableGroundIds}" SelectedItem="{Binding SelectedGroundId}"
+										  Text="{Binding GroundIdText, Mode=TwoWay}"
 										  IsEditable="True" PlaceholderText="Select Ground" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
 							</StackPanel>
 
@@ -63,6 +64,7 @@
 							<StackPanel Spacing="4" IsVisible="{Binding ShowReferenceOutfitControls}">
 								<TextBlock Text="Reference Outfit ID:" Classes="label"/>
 								<ComboBox ItemsSource="{Binding AvailableOutfitIds}" SelectedItem="{Binding SelectedOutfitId}"
+										  Text="{Binding OutfitIdText, Mode=TwoWay}"
 										  IsEditable="True" PlaceholderText="Select Outfit" HorizontalAlignment="Stretch" Height="28" FontSize="11"/>
 							</StackPanel>
 

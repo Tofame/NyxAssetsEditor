@@ -951,6 +951,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public bool CanCompile => IsArchiveLoaded && LinkedSpritePanel != null && HasSavedChanges;
 
 		public event EventHandler<string>? RequestShowInfo;
+		public event EventHandler<(string Title, string Message, string? InfoMessage, string? SnippetCode)>? RequestShowWarning;
 
 		[RelayCommand]
 		private void ShowInfo()
@@ -1302,10 +1303,25 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					{
 						if (!SettingsViewModel.AllowUnknownSignatures)
 						{
+							string hexSig = signature.ToString("X8").TrimStart('0');
+							if (string.IsNullOrEmpty(hexSig)) hexSig = "0";
+
+							string sprSigHex = "0";
+							var spritePanel = LinkedSpritePanel ?? _parentViewModel?.ResolveSpritePanelFor(this);
+							if (spritePanel?.Loader != null)
+							{
+								sprSigHex = spritePanel.Loader.SprSignature.ToString("X8").TrimStart('0');
+								if (string.IsNullOrEmpty(sprSigHex)) sprSigHex = "0";
+							}
+
 							ErrorMessage = $"Unsupported version\nSignature: 0x{signature:X8}";
 							_catalog = null;
 							OnPropertyChanged(nameof(IsArchiveLoaded));
 							CatalogChanged?.Invoke();
+
+							string snippet = $"[[versions]]\nvalue = YOUR_VERSION\nstring = \"YOUR_VERSION\"\ndat = \"{hexSig}\"\nspr = \"{sprSigHex}\"\notb = 0";
+							string infoBoxMessage = $"Detected custom signature 0x{signature:X8} which is not present in signatures.toml.\n\nTo fix this, add the snippet below to signatures.toml (or enable 'Allow unknown signatures' in Settings).";
+							RequestShowWarning?.Invoke(this, ("Unsupported .dat Signature", $"The file signature 0x{signature:X8} does not match any known client version.", infoBoxMessage, snippet));
 							return;
 						}
 					}
@@ -1358,6 +1374,44 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				CatalogChanged?.Invoke();
 				_allThings.Clear();
 				TotalThings = 0;
+
+				string? infoBoxMessage = null;
+				string? snippet = null;
+				if (SupportedFileFormats.HasExtension(path, SupportedFileFormats.ExtDat) && System.IO.File.Exists(path))
+				{
+					uint datSignature = 0;
+					try
+					{
+						using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
+						using var br = new System.IO.BinaryReader(fs);
+						if (fs.Length >= 4)
+							datSignature = br.ReadUInt32();
+					}
+					catch { }
+
+					if (datSignature != 0)
+					{
+						string hexSig = datSignature.ToString("X8").TrimStart('0');
+						if (string.IsNullOrEmpty(hexSig)) hexSig = "0";
+
+						string sprSigHex = "0";
+						var spritePanel = LinkedSpritePanel ?? _parentViewModel?.ResolveSpritePanelFor(this);
+						if (spritePanel?.Loader != null)
+						{
+							sprSigHex = spritePanel.Loader.SprSignature.ToString("X8").TrimStart('0');
+							if (string.IsNullOrEmpty(sprSigHex)) sprSigHex = "0";
+						}
+
+						var known = ClientVersion.AvailableVersions.Find(v => v.DatSignature == datSignature);
+						if (known == null)
+						{
+							snippet = $"[[versions]]\nvalue = YOUR_VERSION\nstring = \"YOUR_VERSION\"\ndat = \"{hexSig}\"\nspr = \"{sprSigHex}\"\notb = 0";
+							infoBoxMessage = $"Detected custom signature 0x{datSignature:X8} which is not present in signatures.toml.\n\nTo fix this, add the snippet below to signatures.toml (or enable 'Allow unknown signatures' in Settings).";
+						}
+					}
+				}
+
+				RequestShowWarning?.Invoke(this, ("Failed to Load .dat", ex.Message, infoBoxMessage, snippet));
 			}
 
 			_selectionAnchor = null;

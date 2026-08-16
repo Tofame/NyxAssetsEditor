@@ -25,9 +25,27 @@
 			</Border>
 
 			<!-- Body -->
-			<Border Padding="20,20,20,10">
-				<TextBlock Name="MessageText" Text="Warning message goes here."
-						   Foreground="#CCCCCC" FontSize="13" TextWrapping="Wrap"/>
+			<Border Padding="20,16,20,10">
+				<StackPanel Spacing="14">
+					<TextBlock Name="MessageText" Text="Warning message goes here."
+							   Foreground="#CCCCCC" FontSize="13" TextWrapping="Wrap"/>
+					<Border Name="InfoBox" Background="#1E2A3A" BorderBrush="#3A5E8A" BorderThickness="1" CornerRadius="6" Padding="12" IsVisible="False">
+						<StackPanel Spacing="8">
+							<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+								<Image Source="/Assets/Icons/state/info.png" Width="14" Height="14" VerticalAlignment="Center"/>
+								<TextBlock Text="How to fix:" FontWeight="SemiBold" Foreground="#9FC5E8" FontSize="12" VerticalAlignment="Center"/>
+							</StackPanel>
+							<TextBlock Name="InfoBoxText" Text="" Foreground="#BBDDFF" FontSize="11" TextWrapping="Wrap"/>
+							<StackPanel Name="SnippetPanel" Spacing="6" Margin="0,4,0,0" IsVisible="False">
+								<Grid ColumnDefinitions="*, Auto">
+									<TextBlock Grid.Column="0" Text="Suggested signatures.toml entry:" Foreground="#88BBEE" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
+									<Button Grid.Column="1" Name="CopySnippetButton" Content="Copy Entry" Padding="8,2" FontSize="10" Background="#2A3D55" BorderBrush="#4A75A5" BorderThickness="1" Foreground="#D0E5FF" CornerRadius="3" Click="OnCopySnippetClick"/>
+								</Grid>
+								<TextBox Name="SnippetTextBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas, Cascadia Code, Courier New, monospace" FontSize="11" Background="#131B26" BorderBrush="#2D4666" BorderThickness="1" Foreground="#E0E0E0" Padding="8,6" CornerRadius="4"/>
+							</StackPanel>
+						</StackPanel>
+					</Border>
+				</StackPanel>
 			</Border>
 
 			<!-- Buttons -->
