@@ -104,7 +104,7 @@
 				<Grid Grid.Column="1" RowDefinitions="*, Auto" Background="#181818">
 					<Border Grid.Row="0" Margin="16" Background="#101010" BorderBrush="#333333" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 4 16 0 #7F000000">
 						<Viewbox Stretch="Uniform" Width="280" Height="280" RenderOptions.BitmapInterpolationMode="None">
-							<Image Source="{Binding PreviewImage}" Width="128" Height="128" RenderOptions.BitmapInterpolationMode="None"/>
+							<Image Source="{Binding PreviewImage}" RenderOptions.BitmapInterpolationMode="None"/>
 						</Viewbox>
 					</Border>
 

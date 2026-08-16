@@ -12,6 +12,7 @@ using NyxAssets.Things.Frames;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
+using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.ViewModels.Dialogs;
 
@@ -195,13 +196,20 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 		_animationTimer.Tick += OnAnimationTick;
 
 		PopulateChoices();
+		SettingsViewModel.OffsetPreviewSettingsChanged += OnSettingsChanged;
 		RefreshPreview();
 		_animationTimer.Start();
+	}
+
+	private void OnSettingsChanged()
+	{
+		RefreshPreview();
 	}
 
 	public void StopTimer()
 	{
 		_animationTimer.Stop();
+		SettingsViewModel.OffsetPreviewSettingsChanged -= OnSettingsChanged;
 	}
 
 	public void SetDirection(Direction4 dir) => OutfitDirection = dir;
@@ -334,18 +342,88 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			return;
 		}
 
-		// Grid: 3x3 tiles = 96x96 px (with 16px padding on borders = 128x128 canvas, center tile at (48, 48))
+		// Compute required grid span so all tiles of large outfits/effects fit comfortably
 		const int edge = (int)SpritePixelCodec.SpriteEdgeLength; // 32
-		const int gridTiles = 3;
 		const int padding = 16;
-		const int canvasW = gridTiles * edge + padding * 2; // 32*3 + 32 = 128
-		const int canvasH = gridTiles * edge + padding * 2; // 128
+
+		int maxReachLeft = 0;
+		int maxReachRight = 0;
+		int maxReachUp = 0;
+		int maxReachDown = 0;
+
+		void MeasureThing(ThingType? t, int offX, int offY, bool isOutfitCentering)
+		{
+			if (t == null || t.FrameGroups.Count == 0) return;
+			var fg = t.FrameGroups[0];
+			int w = (int)Math.Max(1, fg.Width);
+			int h = (int)Math.Max(1, fg.Height);
+
+			int dispX = offX;
+			int dispY = offY;
+			if (isOutfitCentering && SettingsViewModel.OffsetPreviewCenterOutfits && !t.DontCenterOutfit && w > 1)
+			{
+				dispX -= (w - 1) * edge / 2;
+			}
+
+			// Horizontal reach relative to center tile [0, edge]
+			// The drawing origin is: tileAnchorX - dispX - (w - 1) * edge
+			// The drawing right is: originX + w * edge = tileAnchorX - dispX + edge
+			int minX = -dispX - (w - 1) * edge;
+			int maxX = -dispX + edge;
+
+			int minY = -dispY - (h - 1) * edge;
+			int maxY = -dispY + edge;
+
+			if (minX < 0) maxReachLeft = Math.Max(maxReachLeft, -minX);
+			if (maxX > edge) maxReachRight = Math.Max(maxReachRight, maxX - edge);
+			if (minY < 0) maxReachUp = Math.Max(maxReachUp, -minY);
+			if (maxY > edge) maxReachDown = Math.Max(maxReachDown, maxY - edge);
+		}
+
+		var targetThing = _editor.Thing;
+		var effOffsetX = CustomOffsetX;
+		var effOffsetY = CustomOffsetY;
+
+		if (IsOutfit && targetThing != null)
+		{
+			MeasureThing(targetThing, effOffsetX, effOffsetY, isOutfitCentering: true);
+		}
+		else
+		{
+			if (SelectedOutfitId.HasValue)
+			{
+				var refOutfit = catalog.TryGetOutfit(SelectedOutfitId.Value);
+				if (refOutfit != null)
+				{
+					int refOffX = refOutfit.HasOffset ? refOutfit.OffsetX : 0;
+					int refOffY = refOutfit.HasOffset ? refOutfit.OffsetY : 0;
+					MeasureThing(refOutfit, refOffX, refOffY, isOutfitCentering: true);
+				}
+			}
+			if (targetThing != null)
+			{
+				MeasureThing(targetThing, effOffsetX, effOffsetY, isOutfitCentering: false);
+			}
+		}
+
+		int tilesNeededHorizontal = 1 + 2 * (int)Math.Ceiling(Math.Max(maxReachLeft, maxReachRight) / (double)edge);
+		int tilesNeededVertical = 1 + 2 * (int)Math.Ceiling(Math.Max(maxReachUp, maxReachDown) / (double)edge);
+
+		int gridTiles = Math.Max(3, Math.Max(tilesNeededHorizontal, tilesNeededVertical));
+		if (gridTiles % 2 == 0) gridTiles++; // Ensure odd number of tiles so middle tile is exact center
+
+		const int maxTiles = 9;
+		if (gridTiles > maxTiles) gridTiles = maxTiles;
+
+		int centerTileIndex = gridTiles / 2;
+		int canvasW = gridTiles * edge + padding * 2;
+		int canvasH = gridTiles * edge + padding * 2;
 		var canvas = new byte[canvasW * canvasH * 4];
 
-		const int centerTileAnchorX = padding + 1 * edge; // 16 + 32 = 48
-		const int centerTileAnchorY = padding + 1 * edge; // 48
+		int centerTileAnchorX = padding + centerTileIndex * edge;
+		int centerTileAnchorY = padding + centerTileIndex * edge;
 
-		// 1. Draw 3x3 Ground Flooring
+		// 1. Draw Ground Flooring
 		if (SelectedGroundId.HasValue)
 		{
 			var ground = catalog.TryGetItem(SelectedGroundId.Value);
@@ -363,11 +441,7 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			}
 		}
 
-		var targetThing = _editor.Thing;
-		var effOffsetX = CustomOffsetX;
-		var effOffsetY = CustomOffsetY;
-
-		bool isTargetUnderOutfit = IsEffect && targetThing.IsOnBottom;
+		bool isTargetUnderOutfit = IsEffect && targetThing?.IsOnBottom == true;
 
 		// 2. If target is effect with IsOnBottom / below outfit, draw it first
 		if (targetThing != null && isTargetUnderOutfit)
@@ -477,6 +551,17 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 
 			int dispX = overrideOffsetX ?? (outfit.HasOffset ? outfit.OffsetX : 0);
 			int dispY = overrideOffsetY ?? (outfit.HasOffset ? outfit.OffsetY : 0);
+
+			if (SettingsViewModel.OffsetPreviewCenterOutfits && !outfit.DontCenterOutfit)
+			{
+				var fg = selection.FrameGroup;
+				const int edge = (int)SpritePixelCodec.SpriteEdgeLength; // 32
+				if (fg.Width > 1)
+				{
+					// For a 2x1 outfit (Width=2, 64px), centering on a 1x1 (32px) tile shifts it right by +16px (half the extra width: (2-1)*32/2 = 16)
+					dispX -= (int)((fg.Width - 1) * edge / 2);
+				}
+			}
 
 			DrawFrameSelection(canvas, canvasW, canvasH, selection, anchorX, anchorY, dispX, dispY, loader, baseLayerOnly: true);
 		}
