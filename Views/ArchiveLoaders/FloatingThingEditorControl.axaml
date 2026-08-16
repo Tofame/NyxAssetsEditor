@@ -449,6 +449,9 @@
 									<StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasOffset}" VerticalAlignment="Center" Margin="0,0,0,4">
 										<TextBlock Text="Offset X:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
 										<NumericUpDown Value="{Binding OffsetX}" Minimum="-1024" Maximum="1024" Width="100" Height="28" Padding="4,0" FontSize="11"/>
+										<Button Width="28" Height="28" Padding="6" Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Click="OnPreviewOffsetClick" ToolTip.Tip="Preview">
+											<Image Source="/Assets/Icons/eye.png" Width="14" Height="14"/>
+										</Button>
 									</StackPanel>
 									<StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasOffset}" VerticalAlignment="Center">
 										<TextBlock Text="Offset Y:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
