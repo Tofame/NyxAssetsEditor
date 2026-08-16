@@ -105,6 +105,70 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 	public ObservableCollection<uint> AvailableGroundIds { get; } = new();
 	public ObservableCollection<uint> AvailableOutfitIds { get; } = new();
 
+	private string _groundIdText = "";
+	public string GroundIdText
+	{
+		get => _groundIdText;
+		set
+		{
+			if (_groundIdText != value)
+			{
+				_groundIdText = value;
+				OnPropertyChanged();
+				if (uint.TryParse(value?.Trim(), out var parsedId))
+				{
+					if (_selectedGroundId != parsedId)
+					{
+						_selectedGroundId = parsedId;
+						OnPropertyChanged(nameof(SelectedGroundId));
+						RefreshPreview();
+					}
+				}
+				else if (string.IsNullOrWhiteSpace(value))
+				{
+					if (_selectedGroundId != null)
+					{
+						_selectedGroundId = null;
+						OnPropertyChanged(nameof(SelectedGroundId));
+						RefreshPreview();
+					}
+				}
+			}
+		}
+	}
+
+	private string _outfitIdText = "";
+	public string OutfitIdText
+	{
+		get => _outfitIdText;
+		set
+		{
+			if (_outfitIdText != value)
+			{
+				_outfitIdText = value;
+				OnPropertyChanged();
+				if (uint.TryParse(value?.Trim(), out var parsedId))
+				{
+					if (_selectedOutfitId != parsedId)
+					{
+						_selectedOutfitId = parsedId;
+						OnPropertyChanged(nameof(SelectedOutfitId));
+						RefreshPreview();
+					}
+				}
+				else if (string.IsNullOrWhiteSpace(value))
+				{
+					if (_selectedOutfitId != null)
+					{
+						_selectedOutfitId = null;
+						OnPropertyChanged(nameof(SelectedOutfitId));
+						RefreshPreview();
+					}
+				}
+			}
+		}
+	}
+
 	public uint? SelectedGroundId
 	{
 		get => _selectedGroundId;
@@ -113,7 +177,9 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			if (_selectedGroundId != value)
 			{
 				_selectedGroundId = value;
+				_groundIdText = value?.ToString() ?? "";
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(GroundIdText));
 				RefreshPreview();
 			}
 		}
@@ -127,7 +193,9 @@ public sealed class OffsetPreviewDialogViewModel : INotifyPropertyChanged
 			if (_selectedOutfitId != value)
 			{
 				_selectedOutfitId = value;
+				_outfitIdText = value?.ToString() ?? "";
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(OutfitIdText));
 				RefreshPreview();
 			}
 		}
