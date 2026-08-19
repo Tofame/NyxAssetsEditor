@@ -1601,13 +1601,37 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			if (_catalog == null)
 				return;
 
+			if (document.Thing.Kind == ThingKind.Outfit)
+			{
+				if (UseFrameGroups && document.Thing.FrameGroups.Count == 1)
+				{
+					SplitOutfitFrameGroups(document.Thing);
+				}
+				else if (!UseFrameGroups && document.Thing.FrameGroups.Count > 1)
+				{
+					CollapseOutfitFrameGroups(document.Thing);
+				}
+			}
+
 			var kind = document.Thing.Kind;
 			StartThingTransaction(new[] { (kind, assignId) });
 
 			var loader = GetActiveSpriteLoader();
+			var spritePanel = _parentViewModel?.ResolveSpritePanelFor(this);
 			try
 			{
-				ThingExchangeHelper.ImportDocument(document, _catalog, assignId, loader);
+				ThingExchangeHelper.ImportDocument(document, _catalog, assignId, loader, newSpriteId =>
+				{
+					if (spritePanel != null)
+					{
+						spritePanel.AddedSpriteIds.Add(newSpriteId);
+					}
+				});
+				if (spritePanel != null)
+				{
+					spritePanel.NotifyExternalArchiveMutation();
+					spritePanel.HasSavedChanges = true;
+				}
 				var thing = ThingExchangeHelper.GetThingFromCatalog(_catalog, document.Thing.Kind, assignId);
 				if (thing != null)
 				{
@@ -2275,6 +2299,132 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			while (_catalog.OutfitCount > outfits) _catalog.RemoveOutfit(_catalog.OutfitCount, _catalog.OutfitCount == outfits + 1);
 			while (_catalog.EffectCount > effects) _catalog.RemoveEffect(_catalog.EffectCount, _catalog.EffectCount == effects + 1);
 			while (_catalog.MissileCount > missiles) _catalog.RemoveMissile(_catalog.MissileCount, _catalog.MissileCount == missiles + 1);
+		}
+
+		private void SplitOutfitFrameGroups(ThingType thing)
+		{
+			if (thing.FrameGroups.Count != 1) return;
+			var srcFg = thing.FrameGroups[0];
+
+			var idleFg = new ThingFrameGroup
+			{
+				GroupTypeId = 0,
+				Width = srcFg.Width,
+				Height = srcFg.Height,
+				ExactSize = srcFg.ExactSize,
+				Layers = srcFg.Layers,
+				PatternX = srcFg.PatternX,
+				PatternY = srcFg.PatternY,
+				PatternZ = srcFg.PatternZ,
+				Frames = 1,
+				IsAnimation = false
+			};
+			var idleTotal = idleFg.GetTotalSpriteSlots();
+			idleFg.SpriteIds = new uint[idleTotal];
+
+			for (uint w = 0; w < idleFg.Width; w++)
+			for (uint h = 0; h < idleFg.Height; h++)
+			for (uint l = 0; l < idleFg.Layers; l++)
+			for (uint px = 0; px < idleFg.PatternX; px++)
+			for (uint py = 0; py < idleFg.PatternY; py++)
+			for (uint pz = 0; pz < idleFg.PatternZ; pz++)
+			{
+				var srcIndex = srcFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+				var dstIndex = idleFg.GetSpriteIndex(w, h, l, px, py, pz, 0);
+				idleFg.SpriteIds[dstIndex] = srcFg.SpriteIds[srcIndex];
+			}
+
+			var walkFrames = srcFg.Frames > 1 ? srcFg.Frames - 1 : 1;
+			var walkFg = new ThingFrameGroup
+			{
+				GroupTypeId = 1,
+				Width = srcFg.Width,
+				Height = srcFg.Height,
+				ExactSize = srcFg.ExactSize,
+				Layers = srcFg.Layers,
+				PatternX = srcFg.PatternX,
+				PatternY = srcFg.PatternY,
+				PatternZ = srcFg.PatternZ,
+				Frames = walkFrames,
+				IsAnimation = walkFrames > 1
+			};
+			if (walkFg.IsAnimation)
+			{
+				var duration = Pages.SettingsViewModel.GetDefaultAnimationDurationMs(ThingKind.Outfit);
+				if (duration == 0) duration = 150;
+				walkFg.FrameTimings = new AnimationFrameTiming[walkFrames];
+				for (int i = 0; i < walkFrames; i++)
+					walkFg.FrameTimings[i] = new AnimationFrameTiming(duration, duration);
+			}
+			var walkTotal = walkFg.GetTotalSpriteSlots();
+			walkFg.SpriteIds = new uint[walkTotal];
+
+			for (uint w = 0; w < walkFg.Width; w++)
+			for (uint h = 0; h < walkFg.Height; h++)
+			for (uint l = 0; l < walkFg.Layers; l++)
+			for (uint px = 0; px < walkFg.PatternX; px++)
+			for (uint py = 0; py < walkFg.PatternY; py++)
+			for (uint pz = 0; pz < walkFg.PatternZ; pz++)
+			for (uint f = 0; f < walkFrames; f++)
+			{
+				var srcFrame = srcFg.Frames > 1 ? f + 1 : 0;
+				var srcIndex = srcFg.GetSpriteIndex(w, h, l, px, py, pz, srcFrame);
+				var dstIndex = walkFg.GetSpriteIndex(w, h, l, px, py, pz, f);
+				walkFg.SpriteIds[dstIndex] = srcFg.SpriteIds[srcIndex];
+			}
+
+			thing.FrameGroups.Clear();
+			thing.FrameGroups.Add(idleFg);
+			thing.FrameGroups.Add(walkFg);
+		}
+
+		private void CollapseOutfitFrameGroups(ThingType thing)
+		{
+			if (thing.FrameGroups.Count <= 1) return;
+			var groups = thing.FrameGroups.OrderBy(group => group.GroupTypeId).ToList();
+			var first = groups[0];
+			if (groups.Any(group => group.Width != first.Width || group.Height != first.Height ||
+				group.Layers != first.Layers || group.PatternX != first.PatternX ||
+				group.PatternY != first.PatternY))
+			{
+				return;
+			}
+
+			var totalFrames = checked((uint)groups.Sum(group => (long)group.Frames));
+			var merged = new ThingFrameGroup
+			{
+				GroupTypeId = 0,
+				Width = first.Width,
+				Height = first.Height,
+				ExactSize = first.ExactSize,
+				Layers = first.Layers,
+				PatternX = first.PatternX,
+				PatternY = first.PatternY,
+				PatternZ = 1,
+				Frames = totalFrames,
+				IsAnimation = totalFrames > 1,
+			};
+			merged.SpriteIds = new uint[checked((int)merged.GetTotalSpriteSlots())];
+
+			var targetFrame = 0u;
+			foreach (var group in groups)
+			{
+				for (var frame = 0u; frame < group.Frames; frame++)
+				for (var patternY = 0u; patternY < group.PatternY; patternY++)
+				for (var patternX = 0u; patternX < group.PatternX; patternX++)
+				for (var layer = 0u; layer < group.Layers; layer++)
+				for (var innerWidth = 0u; innerWidth < group.Width; innerWidth++)
+				for (var innerHeight = 0u; innerHeight < group.Height; innerHeight++)
+				{
+					var sourceIndex = group.GetSpriteIndex(innerWidth, innerHeight, layer, patternX, patternY, 0, frame);
+					var targetIndex = merged.GetSpriteIndex(innerWidth, innerHeight, layer, patternX, patternY, 0, targetFrame + frame);
+					merged.SpriteIds[targetIndex] = group.SpriteIds[sourceIndex];
+				}
+				targetFrame += group.Frames;
+			}
+
+			thing.FrameGroups.Clear();
+			thing.FrameGroups.Add(merged);
 		}
 	}
 }
