@@ -2350,7 +2350,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			};
 			if (walkFg.IsAnimation)
 			{
-				var duration = (int)Pages.SettingsViewModel.GetDefaultAnimationDurationMs(ThingKind.Outfit);
+				var duration = Pages.SettingsViewModel.GetDefaultAnimationDurationMs(ThingKind.Outfit);
 				if (duration == 0) duration = 150;
 				walkFg.FrameTimings = new AnimationFrameTiming[walkFrames];
 				for (int i = 0; i < walkFrames; i++)
