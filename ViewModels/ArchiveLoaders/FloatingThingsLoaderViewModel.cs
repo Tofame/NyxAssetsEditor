@@ -1605,9 +1605,21 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			StartThingTransaction(new[] { (kind, assignId) });
 
 			var loader = GetActiveSpriteLoader();
+			var spritePanel = _parentViewModel?.ResolveSpritePanelFor(this);
 			try
 			{
-				ThingExchangeHelper.ImportDocument(document, _catalog, assignId, loader);
+				ThingExchangeHelper.ImportDocument(document, _catalog, assignId, loader, newSpriteId =>
+				{
+					if (spritePanel != null)
+					{
+						spritePanel.AddedSpriteIds.Add(newSpriteId);
+					}
+				});
+				if (spritePanel != null)
+				{
+					spritePanel.NotifyExternalArchiveMutation();
+					spritePanel.HasSavedChanges = true;
+				}
 				var thing = ThingExchangeHelper.GetThingFromCatalog(_catalog, document.Thing.Kind, assignId);
 				if (thing != null)
 				{
