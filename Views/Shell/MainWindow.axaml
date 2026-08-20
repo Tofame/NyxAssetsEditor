@@ -17,6 +17,27 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
+	<Window.Styles>
+		<Style Selector="Button.nav">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Foreground" Value="#E0E0E0"/>
+			<Setter Property="Padding" Value="12,6"/>
+			<Setter Property="CornerRadius" Value="4"/>
+		</Style>
+		<Style Selector="Button.nav:pointerover">
+			<Setter Property="Background" Value="#2A2A2A"/>
+			<Setter Property="Foreground" Value="#FFFFFF"/>
+		</Style>
+		<Style Selector="Button.nav.active">
+			<Setter Property="Background" Value="#2E2E2E"/>
+			<Setter Property="Foreground" Value="#FFFFFF"/>
+			<Setter Property="BorderThickness" Value="0,0,0,2"/>
+			<Setter Property="BorderBrush" Value="#5E94FF"/>
+			<Setter Property="CornerRadius" Value="4,4,0,0"/>
+		</Style>
+	</Window.Styles>
+
 	<Grid RowDefinitions="Auto, *">
 		<!-- Top Navigation Bar -->
 		<Border Grid.Row="0" Background="#1C1C1C" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Height="50" Padding="15,0">
@@ -29,11 +50,11 @@
 				
 				<!-- Navigation Buttons -->
 				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="30,0,0,0" VerticalAlignment="Center">
-					<Button Content="Home" Command="{Binding NavigateToHomeCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Content="Assets" Command="{Binding NavigateToAssetsCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Content="Paint" Command="{Binding NavigateToPaintCommand}" Background="Transparent" BorderThickness="0" Foreground="#E0E0E0" Padding="12,6"/>
-					<Button Command="{Binding NavigateToConverterCommand}" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="#FF4C4C" Foreground="#E0E0E0" Padding="12,6">
+					<Button Content="Home" Command="{Binding NavigateToHomeCommand}" Classes="nav" Classes.active="{Binding IsHomeActive}"/>
+					<Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" Classes="nav" Classes.active="{Binding IsSettingsActive}"/>
+					<Button Content="Assets" Command="{Binding NavigateToAssetsCommand}" Classes="nav" Classes.active="{Binding IsAssetsActive}"/>
+					<Button Content="Paint" Command="{Binding NavigateToPaintCommand}" Classes="nav" Classes.active="{Binding IsPaintActive}"/>
+					<Button Command="{Binding NavigateToConverterCommand}" Classes="nav" Classes.active="{Binding IsConverterActive}">
 						<StackPanel Orientation="Horizontal" Spacing="4">
 							<TextBlock Text="Converter" VerticalAlignment="Center"/>
 							<TextBlock Text="!" Foreground="#FF4C4C" FontWeight="Bold" VerticalAlignment="Center" ToolTip.Tip="Experimental feature"/>

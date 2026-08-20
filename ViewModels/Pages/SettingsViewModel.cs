@@ -608,6 +608,39 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 		public static event Action? AddonSettingsChanged;
 
+		public enum LaunchSection
+		{
+			Home,
+			Assets,
+			Paint,
+			Converter
+		}
+
+		private static LaunchSection _defaultLaunchSection = LaunchSection.Home;
+		public static LaunchSection DefaultLaunchSection
+		{
+			get => _defaultLaunchSection;
+			set
+			{
+				if (_defaultLaunchSection == value) return;
+				_defaultLaunchSection = value;
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public int SelectedDefaultLaunchSectionIndex
+		{
+			get => (int)DefaultLaunchSection;
+			set
+			{
+				if ((int)DefaultLaunchSection != value)
+				{
+					DefaultLaunchSection = (LaunchSection)value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		private static bool _offsetPreviewCenterOutfits = false;
 		public static event Action? OffsetPreviewSettingsChanged;
 
@@ -701,7 +734,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			bool saveFloatingPanels = true,
 			bool offsetPreviewCenterOutfits = false,
 			bool addonDuplicateFrameEnabled = false,
-			bool addonRotateCloneDirectionEnabled = false)
+			bool addonRotateCloneDirectionEnabled = false,
+			LaunchSection defaultLaunchSection = LaunchSection.Home)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -744,6 +778,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_offsetPreviewCenterOutfits = offsetPreviewCenterOutfits;
 			_addonDuplicateFrameEnabled = addonDuplicateFrameEnabled;
 			_addonRotateCloneDirectionEnabled = addonRotateCloneDirectionEnabled;
+			_defaultLaunchSection = defaultLaunchSection;
 		}
 
 		public int SelectedThingIdOffset

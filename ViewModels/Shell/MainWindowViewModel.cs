@@ -21,7 +21,14 @@ public partial class MainWindowViewModel : ViewModelBase
 	public MainWindowViewModel()
 	{
 		_assetsViewModel = new AssetsViewModel();
-		_currentPage = new HomeViewModel(this);
+		
+		_currentPage = SettingsViewModel.DefaultLaunchSection switch
+		{
+			SettingsViewModel.LaunchSection.Assets => _assetsViewModel,
+			SettingsViewModel.LaunchSection.Paint => _paintViewModel = new PaintViewModel(this),
+			SettingsViewModel.LaunchSection.Converter => new ConverterViewModel(),
+			_ => new HomeViewModel(this)
+		};
 	}
 
 	[RelayCommand]
@@ -127,5 +134,20 @@ public partial class MainWindowViewModel : ViewModelBase
 		if (!string.IsNullOrEmpty(thingsPath)) return isThingsOpen;
 
 		return false;
+	}
+
+	public bool IsHomeActive => CurrentPage is HomeViewModel;
+	public bool IsSettingsActive => CurrentPage is SettingsViewModel;
+	public bool IsAssetsActive => CurrentPage is AssetsViewModel;
+	public bool IsPaintActive => CurrentPage is PaintViewModel;
+	public bool IsConverterActive => CurrentPage is ConverterViewModel;
+
+	partial void OnCurrentPageChanged(ViewModelBase? oldValue, ViewModelBase newValue)
+	{
+		OnPropertyChanged(nameof(IsHomeActive));
+		OnPropertyChanged(nameof(IsSettingsActive));
+		OnPropertyChanged(nameof(IsAssetsActive));
+		OnPropertyChanged(nameof(IsPaintActive));
+		OnPropertyChanged(nameof(IsConverterActive));
 	}
 }
