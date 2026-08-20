@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NyxAssetsEditor.ViewModels.Common;
+using NyxAssetsEditor.Services.Rendering;
 using SkiaSharp;
 
 namespace NyxAssetsEditor.Services.ImportExport;
@@ -264,37 +265,25 @@ public static class SpritesheetSlicerService
 
 	public static SlicerImage RotateClockwise(SlicerImage source)
 	{
-		var output = new byte[source.Rgba.Length];
-		for (var y = 0; y < source.Height; y++)
-		for (var x = 0; x < source.Width; x++)
-			CopyPixel(source.Rgba, (y * source.Width + x) * 4, output, (x * source.Height + (source.Height - 1 - y)) * 4);
+		var output = SpriteTransformUtil.RotateRgba90(source.Rgba, source.Width, source.Height, 1);
 		return new SlicerImage(source.Height, source.Width, output);
 	}
 
 	public static SlicerImage RotateCounterClockwise(SlicerImage source)
 	{
-		var output = new byte[source.Rgba.Length];
-		for (var y = 0; y < source.Height; y++)
-		for (var x = 0; x < source.Width; x++)
-			CopyPixel(source.Rgba, (y * source.Width + x) * 4, output, ((source.Width - 1 - x) * source.Height + y) * 4);
+		var output = SpriteTransformUtil.RotateRgba90(source.Rgba, source.Width, source.Height, 3);
 		return new SlicerImage(source.Height, source.Width, output);
 	}
 
 	public static SlicerImage FlipHorizontal(SlicerImage source)
 	{
-		var output = new byte[source.Rgba.Length];
-		for (var y = 0; y < source.Height; y++)
-		for (var x = 0; x < source.Width; x++)
-			CopyPixel(source.Rgba, (y * source.Width + x) * 4, output, (y * source.Width + source.Width - 1 - x) * 4);
+		var output = SpriteTransformUtil.FlipHorizontal(source.Rgba, source.Width, source.Height);
 		return new SlicerImage(source.Width, source.Height, output);
 	}
 
 	public static SlicerImage FlipVertical(SlicerImage source)
 	{
-		var output = new byte[source.Rgba.Length];
-		for (var y = 0; y < source.Height; y++)
-		for (var x = 0; x < source.Width; x++)
-			CopyPixel(source.Rgba, (y * source.Width + x) * 4, output, ((source.Height - 1 - y) * source.Width + x) * 4);
+		var output = SpriteTransformUtil.FlipVertical(source.Rgba, source.Width, source.Height);
 		return new SlicerImage(source.Width, source.Height, output);
 	}
 
@@ -422,6 +411,4 @@ public static class SpritesheetSlicerService
 		}
 	}
 
-	private static void CopyPixel(byte[] source, int sourceOffset, byte[] destination, int destinationOffset) =>
-		Buffer.BlockCopy(source, sourceOffset, destination, destinationOffset, 4);
 }
