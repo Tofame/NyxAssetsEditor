@@ -322,7 +322,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool ShowOutfitDirections => IsOutfit && !ShowAllOutfitDirections;
 
 	public bool ShowAddonDuplicateFrameButton => IsOutfit && SettingsViewModel.AddonDuplicateFrameEnabled;
-	public bool ShowAddonRotateCloneButton => IsOutfit && SettingsViewModel.AddonRotateCloneDirectionEnabled;
 
 	private bool _showAllOutfitDirections;
 	public bool ShowAllOutfitDirections
@@ -584,7 +583,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private void OnAddonSettingsChanged()
 	{
 		OnPropertyChanged(nameof(ShowAddonDuplicateFrameButton));
-		OnPropertyChanged(nameof(ShowAddonRotateCloneButton));
 	}
 
 	/// <summary>
@@ -630,58 +628,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		RefreshAppearance();
 	}
 
-	/// <summary>
-	/// Takes all animation frames of the currently selected direction and rotates+clones them
-	/// to all other directions using RotSprite.
-	/// South→East = +90°, South→North = 180°, South→West = −90° (etc.)
-	/// </summary>
-	[RelayCommand]
-	private void AddonRotateCloneDirection()
-	{
-		var loader = SourcePanel.GetActiveSpriteLoader();
-		var linkedPanel = SourcePanel.LinkedSpritePanel;
-		if (loader == null || linkedPanel == null) return;
-
-		// Direction4 maps to PatternX: North=0, East=1, South=2, West=3
-		uint srcPx = _viewPatternX;
-
-		// Apply to all frame groups
-		foreach (var fg in Thing.FrameGroups)
-		{
-			int tileEdge = SpritePixelCodec.SpriteEdgeLength;
-			int cellW = (int)(fg.Width * tileEdge);
-			int cellH = (int)(fg.Height * tileEdge);
-
-			// Ensure full array capacity before writing rotated sprites to target slots
-			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
-
-			for (uint frame = 0; frame < fg.Frames; frame++)
-			{
-				byte[] srcRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, _viewPatternY, _viewPatternZ, frame);
-
-				bool hasContent = false;
-				for (int i = 3; i < srcRgba.Length; i += 4)
-					if (srcRgba[i] > 0) { hasContent = true; break; }
-				if (!hasContent) continue;
-
-				for (uint targetPx = 0; targetPx < fg.PatternX; targetPx++)
-				{
-					if (targetPx == srcPx) continue;
-
-					// Calculate clockwise 90-degree rotation steps
-					int steps = ((int)targetPx - (int)srcPx + 4) % 4;
-					byte[] rotated = SpriteTransformUtil.RotateRgba90(srcRgba, cellW, cellH, steps);
-
-					SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
-				}
-			}
-		}
-
-		linkedPanel.NotifyExternalArchiveMutation();
-		linkedPanel.HasSavedChanges = true;
-		ApplyToCatalog();
-		RefreshAppearance();
-	}
 
 	[RelayCommand]
 	private void ConfirmAddSprite()
