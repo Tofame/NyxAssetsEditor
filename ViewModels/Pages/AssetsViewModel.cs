@@ -714,16 +714,17 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			AddPanel(panel);
 		}
 
-		/// <summary>Moves the complete floating panel container above its siblings.</summary>
+		/// <summary>Raises a floating panel without moving its visual during input routing.</summary>
 		public void BringPanelToFront(PanelViewModelBase panel)
 		{
 			if (!panel.IsFloating)
 				return;
 
-			var currentIndex = FloatingPanels.IndexOf(panel);
-			var topIndex = FloatingPanels.Count - 1;
-			if (currentIndex >= 0 && currentIndex != topIndex)
-				FloatingPanels.Move(currentIndex, topIndex);
+			var highestZIndex = FloatingPanels.Count == 0
+				? 0
+				: FloatingPanels.Max(floatingPanel => floatingPanel.ZIndex);
+			if (panel.ZIndex <= highestZIndex)
+				panel.ZIndex = highestZIndex + 1;
 		}
 
 		private void AddPanel(PanelViewModelBase panel)

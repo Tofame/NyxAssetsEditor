@@ -12,6 +12,7 @@ namespace NyxAssetsEditor.ViewModels.Core
 		private double _positionY = 100;
 		private double _panelWidth = 430;
 		private double _contentHeight = 500;
+		private int _zIndex;
 		private string _dockState = "Floating";
 		private bool _isDefaultPosition = true;
 
@@ -77,6 +78,17 @@ namespace NyxAssetsEditor.ViewModels.Core
 					OnPropertyChanged(nameof(DisplayHeight));
 				}
 			}
+		}
+
+		/// <summary>
+		/// Gets the visual stacking order used by the floating-panel canvas.
+		/// Keeping this separate from the collection order lets a click activate a
+		/// panel without replacing the control that received that click.
+		/// </summary>
+		public int ZIndex
+		{
+			get => _zIndex;
+			set => SetProperty(ref _zIndex, value);
 		}
 
 		public string DockState

@@ -237,6 +237,7 @@
 					<Style Selector="ItemsControl.overlay > ContentPresenter" x:DataType="core:PanelViewModelBase">
 						<Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
 						<Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
+						<Setter Property="Canvas.ZIndex" Value="{Binding ZIndex}"/>
 						<Setter Property="IsVisible" Value="{Binding IsVisible}"/>
 					</Style>
 				</ItemsControl.Styles>
