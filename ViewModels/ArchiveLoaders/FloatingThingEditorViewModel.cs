@@ -588,51 +588,74 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	/// <summary>
-	/// Copies the currently visible frame (current direction + animation frame) to every other
-	/// direction and animation frame slot within the current frame group.
+	/// Reuses the currently visible cell's sprite IDs across every direction / addon / animation
+	/// frame slot in the active frame group (no new sprites — same IDs shared).
+	/// With outfit frame groups (10.98+): only the selected idle/walk group.
+	/// Without: the single merged group.
 	/// </summary>
 	[RelayCommand]
 	private void AddonDuplicateFrameToAll()
 	{
-		var loader = SourcePanel.GetActiveSpriteLoader();
-		var linkedPanel = SourcePanel.LinkedSpritePanel;
-		if (loader == null || linkedPanel == null) return;
-
 		var srcFg = CurrentFrameGroup;
-		// Load the cell that is currently visible
-		byte[] srcRgba = LoadCellRgba(srcFg, loader, SelectedLayer, _viewPatternX, _viewPatternY, _viewPatternZ, (uint)SelectedFrame);
+		uint layer = (uint)SelectedLayer;
+		uint srcPx = _viewPatternX;
+		uint srcPy = _viewPatternY;
+		uint srcPz = _viewPatternZ;
+		uint srcFrame = (uint)SelectedFrame;
 
+		// Snapshot source cell tile sprite IDs (reuse these everywhere in this group)
+		var srcIds = new uint[srcFg.Width, srcFg.Height];
 		bool hasContent = false;
-		for (int i = 3; i < srcRgba.Length; i += 4)
-			if (srcRgba[i] > 0) { hasContent = true; break; }
+		for (uint innerW = 0; innerW < srcFg.Width; innerW++)
+		{
+			for (uint innerH = 0; innerH < srcFg.Height; innerH++)
+			{
+				uint id = 0;
+				try { id = srcFg.GetSpriteId(innerW, innerH, layer, srcPx, srcPy, srcPz, srcFrame); }
+				catch { /* slot OOB */ }
+				srcIds[innerW, innerH] = id;
+				if (id > 0) hasContent = true;
+			}
+		}
 		if (!hasContent) return;
 
-		// Write to all frame groups × all directions × all addons × all frames
-		foreach (var fg in Thing.FrameGroups)
-		{
-			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+		// Never cross idle ↔ walking when frame groups exist — only current group
+		var fg = srcFg;
+		ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
 
-			for (uint px = 0; px < fg.PatternX; px++)
+		for (uint px = 0; px < fg.PatternX; px++)
+		{
+			for (uint py = 0; py < fg.PatternY; py++)
 			{
-				for (uint py = 0; py < fg.PatternY; py++)
+				for (uint frame = 0; frame < fg.Frames; frame++)
 				{
-					for (uint frame = 0; frame < fg.Frames; frame++)
+					for (uint innerW = 0; innerW < fg.Width; innerW++)
 					{
-						SaveCellRgba(fg, linkedPanel, SelectedLayer, px, py, _viewPatternZ, frame, srcRgba);
+						for (uint innerH = 0; innerH < fg.Height; innerH++)
+						{
+							try
+							{
+								var index = fg.GetSpriteIndex(innerW, innerH, layer, px, py, srcPz, frame);
+								if (index >= 0 && index < fg.SpriteIds.Length)
+									fg.SpriteIds[index] = srcIds[innerW, innerH];
+							}
+							catch
+							{
+								// Prevent individual slot mapping errors from breaking the entire loop
+							}
+						}
 					}
 				}
 			}
 		}
 
-		linkedPanel.NotifyExternalArchiveMutation();
-		linkedPanel.HasSavedChanges = true;
 		ApplyToCatalog();
 		RefreshAppearance();
 	}
 
 	/// <summary>
 	/// Takes all animation frames of the currently selected direction and rotates+clones them
-	/// to all other directions.
+	/// to all other directions within the active frame group (idle or walk when groups exist).
 	/// </summary>
 	[RelayCommand]
 	private void AddonRotateCloneDirection()
@@ -643,36 +666,33 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		// Direction4 maps to PatternX: North=0, East=1, South=2, West=3
 		uint srcPx = _viewPatternX;
+		var fg = CurrentFrameGroup;
 
-		// Apply to all frame groups
-		foreach (var fg in Thing.FrameGroups)
+		int tileEdge = SpritePixelCodec.SpriteEdgeLength;
+		int cellW = (int)(fg.Width * tileEdge);
+		int cellH = (int)(fg.Height * tileEdge);
+
+		// Ensure full array capacity before writing rotated sprites to target slots
+		ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+
+		for (uint frame = 0; frame < fg.Frames; frame++)
 		{
-			int tileEdge = SpritePixelCodec.SpriteEdgeLength;
-			int cellW = (int)(fg.Width * tileEdge);
-			int cellH = (int)(fg.Height * tileEdge);
+			byte[] srcRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, _viewPatternY, _viewPatternZ, frame);
 
-			// Ensure full array capacity before writing rotated sprites to target slots
-			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+			bool hasContent = false;
+			for (int i = 3; i < srcRgba.Length; i += 4)
+				if (srcRgba[i] > 0) { hasContent = true; break; }
+			if (!hasContent) continue;
 
-			for (uint frame = 0; frame < fg.Frames; frame++)
+			for (uint targetPx = 0; targetPx < fg.PatternX; targetPx++)
 			{
-				byte[] srcRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, _viewPatternY, _viewPatternZ, frame);
+				if (targetPx == srcPx) continue;
 
-				bool hasContent = false;
-				for (int i = 3; i < srcRgba.Length; i += 4)
-					if (srcRgba[i] > 0) { hasContent = true; break; }
-				if (!hasContent) continue;
+				// Calculate clockwise 90-degree rotation steps
+				int steps = ((int)targetPx - (int)srcPx + 4) % 4;
+				byte[] rotated = SpriteTransformUtil.RotateRgba90(srcRgba, cellW, cellH, steps);
 
-				for (uint targetPx = 0; targetPx < fg.PatternX; targetPx++)
-				{
-					if (targetPx == srcPx) continue;
-
-					// Calculate clockwise 90-degree rotation steps
-					int steps = ((int)targetPx - (int)srcPx + 4) % 4;
-					byte[] rotated = SpriteTransformUtil.RotateRgba90(srcRgba, cellW, cellH, steps);
-
-					SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
-				}
+				SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
 			}
 		}
 
@@ -891,7 +911,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _tileWidth == value)
 				return;
-			ApplyPatternChange(g => g.Width = ClampPattern(value, 32));
+			ApplyPatternChange(g => g.Width = ClampPattern(value, 32), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -902,7 +922,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _tileHeight == value)
 				return;
-			ApplyPatternChange(g => g.Height = ClampPattern(value, 32));
+			ApplyPatternChange(g => g.Height = ClampPattern(value, 32), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -913,7 +933,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _cropSize == value)
 				return;
-			ApplyPatternChange(g => g.ExactSize = ClampPattern(value, 64));
+			ApplyPatternChange(g => g.ExactSize = ClampPattern(value, 64), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -924,7 +944,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _layerCount == value)
 				return;
-			ApplyPatternChange(g => g.Layers = ClampPattern(value, 16));
+			ApplyPatternChange(g => g.Layers = ClampPattern(value, 16), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -948,7 +968,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _patternYCount == value)
 				return;
-			ApplyPatternChange(g => g.PatternY = ClampPattern(value, 32));
+			ApplyPatternChange(g => g.PatternY = ClampPattern(value, 32), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -959,7 +979,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (_patternFieldGuard || _patternZCount == value)
 				return;
-			ApplyPatternChange(g => g.PatternZ = ClampPattern(value, 16));
+			ApplyPatternChange(g => g.PatternZ = ClampPattern(value, 16), syncSharedOutfitLayout: true);
 		}
 	}
 
@@ -971,12 +991,13 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			if (_patternFieldGuard || _frameCount == value)
 				return;
 			var frames = ClampPattern(value, 60);
+			// Animations stay per-group: idle vs walk when frame groups exist; single group when not
 			ApplyPatternChange(g =>
 			{
 				g.Frames = frames;
 				var defaults = SettingsViewModel.GetDefaultAnimationDurationMs(Kind);
 				ThingFrameGroupEditor.EnsureFrameTimings(g, defaults, defaults);
-			});
+			}, syncSharedOutfitLayout: false);
 			SyncAnimationFieldsFromGroup();
 		}
 	}
@@ -1508,9 +1529,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		if (IsMissile && (group.PatternX < 3 || group.PatternY < 3))
 		{
+			var snap = ThingFrameGroupEditor.CaptureSpriteLayout(group);
 			group.PatternX = Math.Max(3u, group.PatternX);
 			group.PatternY = Math.Max(3u, group.PatternY);
-			ThingFrameGroupEditor.EnsureSpriteCapacity(group);
+			ThingFrameGroupEditor.RemapSpriteIdsAfterDimensionChange(group, snap);
 		}
 
 		_patternFieldGuard = true;
@@ -1527,10 +1549,24 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(HasPatterns));
 	}
 
-	private void ApplyPatternChange(Action<ThingFrameGroup> mutate)
+	/// <param name="syncSharedOutfitLayout">
+	/// When true and outfit has idle+walk frame groups, mutate every group (Width/Height/Layers/patterns stay in sync).
+	/// When false (Animations), only the selected group — idle/walk keep independent frame counts.
+	/// With a single group (no frame groups), always that one group either way.
+	/// </param>
+	private void ApplyPatternChange(Action<ThingFrameGroup> mutate, bool syncSharedOutfitLayout = false)
 	{
-		mutate(CurrentFrameGroup);
-		ThingFrameGroupEditor.EnsureSpriteCapacity(CurrentFrameGroup);
+		var targets = syncSharedOutfitLayout && IsOutfit && Thing.FrameGroups.Count > 1
+			? Thing.FrameGroups
+			: (IList<ThingFrameGroup>)new[] { CurrentFrameGroup };
+
+		foreach (var group in targets)
+		{
+			var snap = ThingFrameGroupEditor.CaptureSpriteLayout(group);
+			mutate(group);
+			ThingFrameGroupEditor.RemapSpriteIdsAfterDimensionChange(group, snap);
+		}
+
 		_selectedLayer = Math.Clamp(_selectedLayer, 0, LayerMaximum);
 		_selectedFrame = Math.Clamp(_selectedFrame, 0, FrameMaximum);
 		SyncPatternFieldsFromGroup();

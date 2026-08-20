@@ -1924,7 +1924,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				};
 				
 				var px = kind == ThingKind.Outfit ? 4u : 1u;
-				var fg = new ThingFrameGroup
+				var idleFg = new ThingFrameGroup
 				{
 					GroupTypeId = 0,
 					Width = 1,
@@ -1937,7 +1937,26 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					Frames = 1,
 					SpriteIds = new uint[px]
 				};
-				newThing.FrameGroups.Add(fg);
+				newThing.FrameGroups.Add(idleFg);
+
+				// 10.98+ outfit frame groups: idle + walking
+				if (kind == ThingKind.Outfit && UseFrameGroups)
+				{
+					var walkFg = new ThingFrameGroup
+					{
+						GroupTypeId = 1,
+						Width = 1,
+						Height = 1,
+						ExactSize = 32,
+						Layers = 1,
+						PatternX = px,
+						PatternY = 1,
+						PatternZ = 1,
+						Frames = 1,
+						SpriteIds = new uint[px]
+					};
+					newThing.FrameGroups.Add(walkFg);
+				}
 
 				switch (kind)
 				{

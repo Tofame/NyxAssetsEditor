@@ -150,8 +150,24 @@ public partial class FloatingMultiThingEditorViewModel : PanelViewModelBase, IDi
 			if (Equals(before, after)) continue;
 			foreach (var targetGroup in targetGroups)
 			{
-				property.SetValue(targetGroup, after);
-				ThingFrameGroupEditor.EnsureSpriteCapacity(targetGroup);
+				var isDimension = property.Name is nameof(ThingFrameGroup.Width)
+					or nameof(ThingFrameGroup.Height)
+					or nameof(ThingFrameGroup.Layers)
+					or nameof(ThingFrameGroup.PatternX)
+					or nameof(ThingFrameGroup.PatternY)
+					or nameof(ThingFrameGroup.PatternZ)
+					or nameof(ThingFrameGroup.Frames);
+				if (isDimension)
+				{
+					var snap = ThingFrameGroupEditor.CaptureSpriteLayout(targetGroup);
+					property.SetValue(targetGroup, after);
+					ThingFrameGroupEditor.RemapSpriteIdsAfterDimensionChange(targetGroup, snap);
+				}
+				else
+				{
+					property.SetValue(targetGroup, after);
+					ThingFrameGroupEditor.EnsureSpriteCapacity(targetGroup);
+				}
 			}
 		}
 
