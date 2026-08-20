@@ -301,7 +301,7 @@
 										<TextBlock Grid.Row="3" Grid.Column="0" Text="Layers:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
 										<NumericUpDown x:Name="PatternLayerCountNud" Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="16" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
 										<TextBlock Grid.Row="4" Grid.Column="0" Text="Pattern X:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
-										<NumericUpDown x:Name="PatternXCountNud" Grid.Row="4" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
+										<NumericUpDown x:Name="PatternXCountNud" Grid.Row="4" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4" IsEnabled="{Binding !IsOutfit}"/>
 										<TextBlock Grid.Row="5" Grid.Column="0" Text="Pattern Y:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>
 										<NumericUpDown x:Name="PatternYCountNud" Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="32" Increment="1" Width="120" MinWidth="120" Height="28" Padding="4,0" FontSize="11" Margin="0,0,0,4"/>
 										<TextBlock Grid.Row="6" Grid.Column="0" Text="Pattern Z:" Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,4"/>

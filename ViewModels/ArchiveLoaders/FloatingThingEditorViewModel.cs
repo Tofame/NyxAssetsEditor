@@ -826,6 +826,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		get => _patternXCount;
 		set
 		{
+			if (IsOutfit)
+				return;
 			if (_patternFieldGuard || _patternXCount == value)
 				return;
 			ApplyPatternChange(g => g.PatternX = ClampPattern(value, 32));

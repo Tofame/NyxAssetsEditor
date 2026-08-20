@@ -1923,6 +1923,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					Kind = kind
 				};
 				
+				var px = kind == ThingKind.Outfit ? 4u : 1u;
 				var fg = new ThingFrameGroup
 				{
 					GroupTypeId = 0,
@@ -1930,11 +1931,11 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 					Height = 1,
 					ExactSize = 32,
 					Layers = 1,
-					PatternX = 1,
+					PatternX = px,
 					PatternY = 1,
 					PatternZ = 1,
 					Frames = 1,
-					SpriteIds = new uint[1]
+					SpriteIds = new uint[px]
 				};
 				newThing.FrameGroups.Add(fg);
 
