@@ -588,29 +588,41 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	/// <summary>
-	/// Copies the currently visible frame (current direction + animation frame) to every other
-	/// direction and animation frame slot within the current frame group.
+	/// Reuses the currently visible cell's sprite IDs across every direction / addon / animation
+	/// frame slot in all frame groups (no new sprites — same IDs shared).
 	/// </summary>
 	[RelayCommand]
 	private void AddonDuplicateFrameToAll()
 	{
-		var loader = SourcePanel.GetActiveSpriteLoader();
-		var linkedPanel = SourcePanel.LinkedSpritePanel;
-		if (loader == null || linkedPanel == null) return;
-
 		var srcFg = CurrentFrameGroup;
-		// Load the cell that is currently visible
-		byte[] srcRgba = LoadCellRgba(srcFg, loader, SelectedLayer, _viewPatternX, _viewPatternY, _viewPatternZ, (uint)SelectedFrame);
+		uint layer = (uint)SelectedLayer;
+		uint srcPx = _viewPatternX;
+		uint srcPy = _viewPatternY;
+		uint srcPz = _viewPatternZ;
+		uint srcFrame = (uint)SelectedFrame;
 
+		// Snapshot source cell tile sprite IDs (reuse these everywhere)
+		var srcIds = new uint[srcFg.Width, srcFg.Height];
 		bool hasContent = false;
-		for (int i = 3; i < srcRgba.Length; i += 4)
-			if (srcRgba[i] > 0) { hasContent = true; break; }
+		for (uint innerW = 0; innerW < srcFg.Width; innerW++)
+		{
+			for (uint innerH = 0; innerH < srcFg.Height; innerH++)
+			{
+				uint id = 0;
+				try { id = srcFg.GetSpriteId(innerW, innerH, layer, srcPx, srcPy, srcPz, srcFrame); }
+				catch { /* slot OOB */ }
+				srcIds[innerW, innerH] = id;
+				if (id > 0) hasContent = true;
+			}
+		}
 		if (!hasContent) return;
 
-		// Write to all frame groups × all directions × all addons × all frames
 		foreach (var fg in Thing.FrameGroups)
 		{
 			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+
+			uint wMax = Math.Min(fg.Width, srcFg.Width);
+			uint hMax = Math.Min(fg.Height, srcFg.Height);
 
 			for (uint px = 0; px < fg.PatternX; px++)
 			{
@@ -618,14 +630,27 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				{
 					for (uint frame = 0; frame < fg.Frames; frame++)
 					{
-						SaveCellRgba(fg, linkedPanel, SelectedLayer, px, py, _viewPatternZ, frame, srcRgba);
+						for (uint innerW = 0; innerW < wMax; innerW++)
+						{
+							for (uint innerH = 0; innerH < hMax; innerH++)
+							{
+								try
+								{
+									var index = fg.GetSpriteIndex(innerW, innerH, layer, px, py, srcPz, frame);
+									if (index >= 0 && index < fg.SpriteIds.Length)
+										fg.SpriteIds[index] = srcIds[innerW, innerH];
+								}
+								catch
+								{
+									// Prevent individual slot mapping errors from breaking the entire loop
+								}
+							}
+						}
 					}
 				}
 			}
 		}
 
-		linkedPanel.NotifyExternalArchiveMutation();
-		linkedPanel.HasSavedChanges = true;
 		ApplyToCatalog();
 		RefreshAppearance();
 	}
