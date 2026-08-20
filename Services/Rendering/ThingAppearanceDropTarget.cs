@@ -27,10 +27,33 @@ public static class ThingAppearanceDropTarget
 		if (vm.IsMissile)
 			return ResolveMissile(fg, edge, dropX, dropY, imageWidth, imageHeight);
 
+		if (vm.IsOutfit && vm.ShowAllOutfitDirections)
+			return ResolveOutfitDirectionGrid(fg, edge, dropX, dropY, imageWidth, imageHeight);
+
 		if (vm.ShowPatternGrid)
 			return ResolvePatternGrid(fg, edge, dropX, dropY, imageWidth, imageHeight);
 
 		return ResolveSingleTile(fg, edge, dropX, dropY, imageWidth, imageHeight, vm.ViewPatternXIndex, vm.ViewPatternYIndex);
+	}
+
+	private static ThingAppearanceSlot? ResolveOutfitDirectionGrid(
+		ThingFrameGroup fg,
+		int edge,
+		double dropX,
+		double dropY,
+		int imageWidth,
+		int imageHeight)
+	{
+		var cellW = fg.Width * edge;
+		var cellH = fg.Height * edge;
+		if (cellW <= 0 || cellH <= 0)
+			return null;
+
+		var col = Math.Clamp((int)(dropX / cellW), 0, 3);
+		var localX = dropX - col * cellW;
+		var localY = dropY;
+
+		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, col, 0);
 	}
 
 	private static ThingAppearanceSlot? ResolveMissile(

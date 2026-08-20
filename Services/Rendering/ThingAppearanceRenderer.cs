@@ -251,6 +251,8 @@ public static class ThingAppearanceRenderer
 			}
 		}
 
+		DrawHighlight(canvas, canvasW, canvasH, options);
+
 		return canvas;
 	}
 
@@ -300,6 +302,25 @@ public static class ThingAppearanceRenderer
 			var cellH = (int)(fg.Height * edge);
 			ApplyGridAndHighlight(canvas, canvasW, canvasH, options, edge, (int)(fg.PatternX * fg.Width), (int)(fg.PatternY * fg.Height));
 			DrawPatternCellBorders(canvas, canvasW, canvasH, cellW, cellH, (int)fg.PatternX, (int)fg.PatternY, GetActiveGridStyle(options));
+		}
+		else if (canvasW == (int)(fg.Width * edge) * 4)
+		{
+			var cellW = (int)(fg.Width * edge);
+			var cellH = (int)(fg.Height * edge);
+			var (borderColor, borderWidth) = GetActiveGridStyle(options);
+
+			DrawVerticalLine(canvas, canvasW, canvasH, cellW, 0, canvasH, borderColor, borderWidth);
+			DrawVerticalLine(canvas, canvasW, canvasH, cellW * 2, 0, canvasH, borderColor, borderWidth);
+			DrawVerticalLine(canvas, canvasW, canvasH, cellW * 3, 0, canvasH, borderColor, borderWidth);
+
+			if (UsesGrid(options))
+			{
+				var (gridColor, gridLineWidth) = GetActiveGridStyle(options);
+				for (int i = 0; i < 4; i++)
+				{
+					DrawGrid(canvas, canvasW, canvasH, edge, (int)fg.Width, (int)fg.Height, i * cellW, 0, cellW, cellH, gridColor, gridLineWidth);
+				}
+			}
 		}
 		else
 		{

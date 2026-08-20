@@ -33,6 +33,11 @@ public static class ThingAppearanceSlotGeometry
 			cellOffsetX = compass.Value.Column * cellW;
 			cellOffsetY = compass.Value.Row * cellH;
 		}
+		else if (vm.IsOutfit && vm.ShowAllOutfitDirections)
+		{
+			cellOffsetX = (int)(slot.PatternX * cellW);
+			cellOffsetY = 0;
+		}
 		else if (vm.ShowPatternGrid)
 		{
 			cellOffsetX = (int)(slot.PatternX * cellW);
