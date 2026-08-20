@@ -244,9 +244,11 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			StopAnimationPreview(restoreFrame: false);
 			SettingsViewModel.ThingEditorAppearanceSettingsChanged -= OnAppearanceSettingsChanged;
 			SettingsViewModel.ShowInformationBoxesChanged -= OnShowInformationBoxesChanged;
+			SettingsViewModel.AddonSettingsChanged -= OnAddonSettingsChanged;
 		};
 		SettingsViewModel.ThingEditorAppearanceSettingsChanged += OnAppearanceSettingsChanged;
 		SettingsViewModel.ShowInformationBoxesChanged += OnShowInformationBoxesChanged;
+		SettingsViewModel.AddonSettingsChanged += OnAddonSettingsChanged;
 		LoadThing(thing);
 		PanelWidth = 540;
 		ContentHeight = 680;
@@ -318,6 +320,9 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public bool IsItem => Kind == ThingKind.Item;
 	public bool IsEffect => Kind == ThingKind.Effect;
 	public bool ShowOutfitDirections => IsOutfit && !ShowAllOutfitDirections;
+
+	public bool ShowAddonDuplicateFrameButton => IsOutfit && SettingsViewModel.AddonDuplicateFrameEnabled;
+	public bool ShowAddonRotateCloneButton => IsOutfit && SettingsViewModel.AddonRotateCloneDirectionEnabled;
 
 	private bool _showAllOutfitDirections;
 	public bool ShowAllOutfitDirections
@@ -575,6 +580,108 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	private void OnAppearanceSettingsChanged() => RefreshAppearance();
+
+	private void OnAddonSettingsChanged()
+	{
+		OnPropertyChanged(nameof(ShowAddonDuplicateFrameButton));
+		OnPropertyChanged(nameof(ShowAddonRotateCloneButton));
+	}
+
+	/// <summary>
+	/// Copies the currently visible frame (current direction + animation frame) to every other
+	/// direction and animation frame slot within the current frame group.
+	/// </summary>
+	[RelayCommand]
+	private void AddonDuplicateFrameToAll()
+	{
+		var loader = SourcePanel.GetActiveSpriteLoader();
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (loader == null || linkedPanel == null) return;
+
+		var srcFg = CurrentFrameGroup;
+		// Load the cell that is currently visible
+		byte[] srcRgba = LoadCellRgba(srcFg, loader, SelectedLayer, _viewPatternX, _viewPatternY, _viewPatternZ, (uint)SelectedFrame);
+
+		bool hasContent = false;
+		for (int i = 3; i < srcRgba.Length; i += 4)
+			if (srcRgba[i] > 0) { hasContent = true; break; }
+		if (!hasContent) return;
+
+		// Write to all frame groups × all directions × all addons × all frames
+		foreach (var fg in Thing.FrameGroups)
+		{
+			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+
+			for (uint px = 0; px < fg.PatternX; px++)
+			{
+				for (uint py = 0; py < fg.PatternY; py++)
+				{
+					for (uint frame = 0; frame < fg.Frames; frame++)
+					{
+						SaveCellRgba(fg, linkedPanel, SelectedLayer, px, py, _viewPatternZ, frame, srcRgba);
+					}
+				}
+			}
+		}
+
+		linkedPanel.NotifyExternalArchiveMutation();
+		linkedPanel.HasSavedChanges = true;
+		ApplyToCatalog();
+		RefreshAppearance();
+	}
+
+	/// <summary>
+	/// Takes all animation frames of the currently selected direction and rotates+clones them
+	/// to all other directions using RotSprite.
+	/// South→East = +90°, South→North = 180°, South→West = −90° (etc.)
+	/// </summary>
+	[RelayCommand]
+	private void AddonRotateCloneDirection()
+	{
+		var loader = SourcePanel.GetActiveSpriteLoader();
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (loader == null || linkedPanel == null) return;
+
+		// Direction4 maps to PatternX: North=0, East=1, South=2, West=3
+		uint srcPx = _viewPatternX;
+
+		// Apply to all frame groups
+		foreach (var fg in Thing.FrameGroups)
+		{
+			int tileEdge = SpritePixelCodec.SpriteEdgeLength;
+			int cellW = (int)(fg.Width * tileEdge);
+			int cellH = (int)(fg.Height * tileEdge);
+
+			// Ensure full array capacity before writing rotated sprites to target slots
+			ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
+
+			for (uint frame = 0; frame < fg.Frames; frame++)
+			{
+				byte[] srcRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, _viewPatternY, _viewPatternZ, frame);
+
+				bool hasContent = false;
+				for (int i = 3; i < srcRgba.Length; i += 4)
+					if (srcRgba[i] > 0) { hasContent = true; break; }
+				if (!hasContent) continue;
+
+				for (uint targetPx = 0; targetPx < fg.PatternX; targetPx++)
+				{
+					if (targetPx == srcPx) continue;
+
+					// Calculate clockwise 90-degree rotation steps
+					int steps = ((int)targetPx - (int)srcPx + 4) % 4;
+					byte[] rotated = SpriteTransformUtil.RotateRgba90(srcRgba, cellW, cellH, steps);
+
+					SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
+				}
+			}
+		}
+
+		linkedPanel.NotifyExternalArchiveMutation();
+		linkedPanel.HasSavedChanges = true;
+		ApplyToCatalog();
+		RefreshAppearance();
+	}
 
 	[RelayCommand]
 	private void ConfirmAddSprite()
@@ -1149,10 +1256,17 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				var newId = linkedPanel.Loader.AddNewSprite();
 				linkedPanel.Loader.SetSpritePixels(newId, tilePixels);
 
-				var index = fg.GetSpriteIndex(innerW, innerH, (uint)layer, px, py, pz, frame);
-				if (index < fg.SpriteIds.Length)
+				try
 				{
-					fg.SpriteIds[index] = newId;
+					var index = fg.GetSpriteIndex(innerW, innerH, (uint)layer, px, py, pz, frame);
+					if (index >= 0 && index < fg.SpriteIds.Length)
+					{
+						fg.SpriteIds[index] = newId;
+					}
+				}
+				catch
+				{
+					// Prevent individual slot mapping errors from breaking the entire loop
 				}
 			}
 		}

@@ -580,6 +580,34 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _addonDuplicateFrameEnabled = false;
+		public static bool AddonDuplicateFrameEnabled
+		{
+			get => _addonDuplicateFrameEnabled;
+			set
+			{
+				if (_addonDuplicateFrameEnabled == value) return;
+				_addonDuplicateFrameEnabled = value;
+				AddonSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		private static bool _addonRotateCloneDirectionEnabled = false;
+		public static bool AddonRotateCloneDirectionEnabled
+		{
+			get => _addonRotateCloneDirectionEnabled;
+			set
+			{
+				if (_addonRotateCloneDirectionEnabled == value) return;
+				_addonRotateCloneDirectionEnabled = value;
+				AddonSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static event Action? AddonSettingsChanged;
+
 		private static bool _offsetPreviewCenterOutfits = false;
 		public static event Action? OffsetPreviewSettingsChanged;
 
@@ -604,6 +632,32 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				if (OffsetPreviewCenterOutfits != value)
 				{
 					OffsetPreviewCenterOutfits = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
+		public bool AddonDuplicateFrameEnabledSetting
+		{
+			get => AddonDuplicateFrameEnabled;
+			set
+			{
+				if (AddonDuplicateFrameEnabled != value)
+				{
+					AddonDuplicateFrameEnabled = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
+		public bool AddonRotateCloneDirectionEnabledSetting
+		{
+			get => AddonRotateCloneDirectionEnabled;
+			set
+			{
+				if (AddonRotateCloneDirectionEnabled != value)
+				{
+					AddonRotateCloneDirectionEnabled = value;
 					OnPropertyChanged();
 				}
 			}
@@ -645,7 +699,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			int defaultThingsPanelWidth = 430,
 			int defaultThingsPanelHeight = 500,
 			bool saveFloatingPanels = true,
-			bool offsetPreviewCenterOutfits = false)
+			bool offsetPreviewCenterOutfits = false,
+			bool addonDuplicateFrameEnabled = false,
+			bool addonRotateCloneDirectionEnabled = false)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -686,6 +742,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_defaultThingsPanelHeight = defaultThingsPanelHeight;
 			_saveFloatingPanels = saveFloatingPanels;
 			_offsetPreviewCenterOutfits = offsetPreviewCenterOutfits;
+			_addonDuplicateFrameEnabled = addonDuplicateFrameEnabled;
+			_addonRotateCloneDirectionEnabled = addonRotateCloneDirectionEnabled;
 		}
 
 		public int SelectedThingIdOffset

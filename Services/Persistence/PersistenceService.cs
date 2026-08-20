@@ -74,6 +74,8 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int DefaultThingsPanelHeight { get; set; } = 500;
 			public bool SaveFloatingPanels { get; set; } = true;
 			public bool OffsetPreviewCenterOutfits { get; set; } = false;
+			public bool AddonDuplicateFrameEnabled { get; set; } = false;
+			public bool AddonRotateCloneDirectionEnabled { get; set; } = false;
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
 
@@ -213,7 +215,9 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.DefaultThingsPanelWidth,
 							model.DefaultThingsPanelHeight,
 							model.SaveFloatingPanels,
-							model.OffsetPreviewCenterOutfits);
+							model.OffsetPreviewCenterOutfits,
+							model.AddonDuplicateFrameEnabled,
+							model.AddonRotateCloneDirectionEnabled);
 					}
 				}
 			}
@@ -261,6 +265,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					DefaultThingsPanelHeight = SettingsViewModel.DefaultThingsPanelHeight,
 					SaveFloatingPanels = SettingsViewModel.SaveFloatingPanels,
 					OffsetPreviewCenterOutfits = SettingsViewModel.OffsetPreviewCenterOutfits,
+					AddonDuplicateFrameEnabled = SettingsViewModel.AddonDuplicateFrameEnabled,
+					AddonRotateCloneDirectionEnabled = SettingsViewModel.AddonRotateCloneDirectionEnabled,
 					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);
