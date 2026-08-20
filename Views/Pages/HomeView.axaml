@@ -72,11 +72,15 @@
 											<!-- Icon based on type -->
 											<Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
 												<!-- Icon for Both (DAT + SPR) -->
-												<Image IsVisible="{Binding HasBoth}" Source="/Assets/Icons/home/both.png" Width="20" Height="20"/>
+												<Image IsVisible="{Binding ShowBoth}" Source="/Assets/Icons/home/both.png" Width="20" Height="20"/>
 												<!-- Icon for Sprite only -->
-												<Image IsVisible="{Binding HasSpriteOnly}" Source="/Assets/Icons/home/sprites.png" Width="20" Height="20"/>
+												<Image IsVisible="{Binding ShowSpriteOnly}" Source="/Assets/Icons/home/sprites.png" Width="20" Height="20"/>
 												<!-- Icon for Things only -->
-												<Image IsVisible="{Binding HasThingsOnly}" Source="/Assets/Icons/home/things.png" Width="20" Height="20"/>
+												<Image IsVisible="{Binding ShowThingsOnly}" Source="/Assets/Icons/home/things.png" Width="20" Height="20"/>
+												<!-- Icon for loaded Both/Things -->
+												<Image IsVisible="{Binding ShowDone}" Source="/Assets/Icons/home/done.png" Width="20" Height="20"/>
+												<!-- Icon for loaded Sprite only -->
+												<Image IsVisible="{Binding ShowDoneSprites}" Source="/Assets/Icons/home/done_sprites.png" Width="20" Height="20"/>
 											</Grid>
 											
 											<!-- Texts -->

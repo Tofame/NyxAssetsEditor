@@ -1,3 +1,4 @@
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssetsEditor.Services.Persistence;
@@ -19,6 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
 	public MainWindowViewModel()
 	{
+		_assetsViewModel = new AssetsViewModel();
 		_currentPage = new HomeViewModel(this);
 	}
 
@@ -43,7 +45,7 @@ public partial class MainWindowViewModel : ViewModelBase
 	[RelayCommand]
 	private void NavigateToAssets()
 	{
-		CurrentPage = _assetsViewModel ??= new AssetsViewModel();
+		CurrentPage = _assetsViewModel;
 	}
 
 	public void LoadCombination(
@@ -59,11 +61,6 @@ public partial class MainWindowViewModel : ViewModelBase
 		bool thingsAnimations = true,
 		bool thingsGroups = true)
 	{
-		if (_assetsViewModel == null)
-		{
-			_assetsViewModel = new AssetsViewModel();
-		}
-
 		CurrentPage = _assetsViewModel;
 		_assetsViewModel.LoadCombination(
 			spritePath,
@@ -99,5 +96,36 @@ public partial class MainWindowViewModel : ViewModelBase
 		if (_paintViewModel.Sprite != sprite)
 			_paintViewModel.InitializeWithSprite(sprite, panel);
 		CurrentPage = _paintViewModel;
+	}
+
+	public bool IsCombinationOpen(string spritePath, string thingsPath)
+	{
+		if (_assetsViewModel == null) return false;
+
+		bool isSpriteOpen = false;
+		if (!string.IsNullOrEmpty(spritePath))
+		{
+			isSpriteOpen = _assetsViewModel.ActivePanels
+				.OfType<FloatingSpriteLoaderViewModel>()
+				.Any(p => string.Equals(p.FilePath, spritePath, System.StringComparison.OrdinalIgnoreCase));
+		}
+
+		bool isThingsOpen = false;
+		if (!string.IsNullOrEmpty(thingsPath))
+		{
+			isThingsOpen = _assetsViewModel.ActivePanels
+				.OfType<FloatingThingsLoaderViewModel>()
+				.Any(p => string.Equals(p.FilePath, thingsPath, System.StringComparison.OrdinalIgnoreCase));
+		}
+
+		if (!string.IsNullOrEmpty(spritePath) && !string.IsNullOrEmpty(thingsPath))
+		{
+			return isSpriteOpen || isThingsOpen;
+		}
+
+		if (!string.IsNullOrEmpty(spritePath)) return isSpriteOpen;
+		if (!string.IsNullOrEmpty(thingsPath)) return isThingsOpen;
+
+		return false;
 	}
 }

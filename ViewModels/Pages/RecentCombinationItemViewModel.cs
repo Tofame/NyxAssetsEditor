@@ -35,6 +35,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public bool HasSpriteOnly => !string.IsNullOrEmpty(SpritePath) && string.IsNullOrEmpty(ThingsPath);
 		public bool HasThingsOnly => string.IsNullOrEmpty(SpritePath) && !string.IsNullOrEmpty(ThingsPath);
 
+		public bool IsOpen => _parent.IsCombinationOpen(SpritePath, ThingsPath);
+
+		public bool ShowBoth => HasBoth && !IsOpen;
+		public bool ShowSpriteOnly => HasSpriteOnly && !IsOpen;
+		public bool ShowThingsOnly => HasThingsOnly && !IsOpen;
+		public bool ShowDone => IsOpen && (HasBoth || HasThingsOnly);
+		public bool ShowDoneSprites => IsOpen && HasSpriteOnly;
+
 		public RecentCombinationItemViewModel(
 			string spritePath,
 			string thingsPath,
@@ -131,7 +139,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		}
 
 		[RelayCommand]
-		private void Load()
+		private async System.Threading.Tasks.Task Load()
 		{
 			var missing = new System.Collections.Generic.List<string>();
 			if (!string.IsNullOrEmpty(SpritePath) && !File.Exists(SpritePath))
@@ -143,6 +151,20 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			{
 				_parent.NotifyMissingRecentCombination(this, missing);
 				return;
+			}
+
+			if (IsOpen)
+			{
+				if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+					desktop.MainWindow is { } mainWindow)
+				{
+					var dialog = new NyxAssetsEditor.Views.Shell.ConfirmOpenDialog();
+					await dialog.ShowDialog(mainWindow);
+					if (!dialog.Result)
+					{
+						return;
+					}
+				}
 			}
 
 			_parent.LoadCombination(

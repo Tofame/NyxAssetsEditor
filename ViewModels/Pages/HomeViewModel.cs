@@ -207,6 +207,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				: $"Removed from recents — files not found:\n{string.Join("\n", missingPaths)}";
 		}
 
+		public bool IsCombinationOpen(string spritePath, string thingsPath)
+		{
+			return _mainWindow?.IsCombinationOpen(spritePath, thingsPath) ?? false;
+		}
+
 		public string CurrentVersion
 		{
 			get
