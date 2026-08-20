@@ -121,26 +121,57 @@ public static class SpriteTransformUtil
 			}
 		}
 
-		// === Stage 3: NN Downsample 8x → 1x onto padded 1x canvas ===
+		// === Stage 3: 8×8 block voting downsample to padded canvas ===
 		int padW = w * 2;
 		int padH = h * 2;
 		byte[] padResult = new byte[padW * padH * 4];
-		int scale = 8;
-		int halfScale = scale / 2;
-
+		// For each pixel in the padded canvas, vote over the corresponding 8×8 block in the rotated high‑res image
+		var colorCounts = new System.Collections.Generic.Dictionary<int, int>(64);
 		for (int y = 0; y < padH; y++)
 		{
 			for (int x = 0; x < padW; x++)
 			{
-				int sampleX = x * scale + halfScale;
-				int sampleY = y * scale + halfScale;
-
-				sampleX = Math.Min(sampleX, padHiW - 1);
-				sampleY = Math.Min(sampleY, padHiH - 1);
-
-				int srcIdx = (sampleY * padHiW + sampleX) * 4;
+				colorCounts.Clear();
+				for (int by = 0; by < 8; by++)
+				{
+					int srcY = y * 8 + by;
+					if (srcY >= padHiH) continue;
+					int rowBase = srcY * padHiW * 4;
+					for (int bx = 0; bx < 8; bx++)
+					{
+						int srcX = x * 8 + bx;
+						if (srcX >= padHiW) continue;
+						int srcIdx = rowBase + srcX * 4;
+						// transparent pixels vote as key 0; this lets them outvote sparse
+						// outline pixels at block edges, keeping diagonal outlines thin
+						byte a = rotatedPad8x[srcIdx + 3];
+						int key = a == 0 ? 0 :
+							((a << 24) |
+							(rotatedPad8x[srcIdx + 2] << 16) |
+							(rotatedPad8x[srcIdx + 1] << 8) |
+							rotatedPad8x[srcIdx]);
+						if (colorCounts.TryGetValue(key, out var cnt))
+							colorCounts[key] = cnt + 1;
+						else
+							colorCounts[key] = 1;
+					}
+				}
+				// pick most frequent color
+				int bestKey = 0;
+				int bestCount = -1;
+				foreach (var kvp in colorCounts)
+				{
+					if (kvp.Value > bestCount)
+					{
+						bestCount = kvp.Value;
+						bestKey = kvp.Key;
+					}
+				}
 				int dstIdx = (y * padW + x) * 4;
-				Buffer.BlockCopy(rotatedPad8x, srcIdx, padResult, dstIdx, 4);
+				padResult[dstIdx] = (byte)(bestKey & 0xFF);
+				padResult[dstIdx + 1] = (byte)((bestKey >> 8) & 0xFF);
+				padResult[dstIdx + 2] = (byte)((bestKey >> 16) & 0xFF);
+				padResult[dstIdx + 3] = (byte)((bestKey >> 24) & 0xFF);
 			}
 		}
 
@@ -166,45 +197,9 @@ public static class SpriteTransformUtil
 		if (minX > maxX || minY > maxY)
 			return new byte[w * h * 4];
 
-		int rotW = maxX - minX + 1;
-		int rotH = maxY - minY + 1;
-
-		// === Stage 5: Directionally-aware bottom-right biased target alignment ===
-		double radDir = angleDegrees * Math.PI / 180.0;
-		double dirX = Math.Sin(radDir);
-		double dirY = -Math.Cos(radDir);
-
-		int preferredTargetX;
-		if (dirX > 0.3)
-			preferredTargetX = w - rotW;         // Right aligned (SouthEast, East, NorthEast)
-		else if (dirX < -0.3)
-			preferredTargetX = 0;                 // Left aligned (NorthWest, West, SouthWest)
-		else
-			preferredTargetX = (w - rotW) / 2;    // Centered (North, South)
-
-		int preferredTargetY;
-		if (dirY > 0.3)
-			preferredTargetY = h - rotH;         // Bottom aligned (SouthEast, South, SouthWest)
-		else if (dirY < -0.3)
-			preferredTargetY = 0;                 // Top aligned (NorthWest, North, NorthEast)
-		else
-			preferredTargetY = (h - rotH) / 2;    // Centered (East, West)
-
-		// Compute unshifted padded center coordinates
-		int centerStartX = (padW - w) / 2;
-		int centerStartY = (padH - h) / 2;
-
-		// Shift padded crop window so rotated pixels land at preferredTarget position without edge cutoff
-		int targetPadX = centerStartX + (preferredTargetX - ((w - rotW) / 2));
-		int targetPadY = centerStartY + (preferredTargetY - ((h - rotH) / 2));
-
-		int newStartX = (rotW <= w)
-			? Math.Clamp(targetPadX, maxX - w + 1, minX)
-			: Math.Min(centerStartX, minX);
-
-		int newStartY = (rotH <= h)
-			? Math.Clamp(targetPadY, maxY - h + 1, minY)
-			: Math.Min(centerStartY, minY);
+		// === Stage 5: Center the rotated pixels in the original w×h canvas ===
+		int newStartX = (padW - w) / 2;
+		int newStartY = (padH - h) / 2;
 
 		// === Stage 6: Copy cropped/shifted region into final w × h canvas ===
 		byte[] result = new byte[w * h * 4];
@@ -251,7 +246,7 @@ public static class SpriteTransformUtil
 
 		double cx = (w - 1) / 2.0;
 		double cy = (h - 1) / 2.0;
-		double rad = angleDegrees * Math.PI / 180.0;
+		double rad = -angleDegrees * Math.PI / 180.0;
 		double cosA = Math.Cos(rad);
 		double sinA = Math.Sin(rad);
 
