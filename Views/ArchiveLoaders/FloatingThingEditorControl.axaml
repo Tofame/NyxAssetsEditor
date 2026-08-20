@@ -219,6 +219,14 @@
 											<Button Content="Generate all directions" Command="{Binding GenerateMissileAllDirectionsCommand}" ToolTip.Tip="Prepare 1 direction first" ToolTip.ShowOnDisabled="True" FontSize="10" Padding="6,4" BorderBrush="#FFD700" BorderThickness="1" Background="#2A2510" Foreground="#FFE082"/>
 										</StackPanel>
 
+										<!-- Left: Outfit addon buttons -->
+										<StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Spacing="6">
+											<Button Content="Duplicate frame → all" Command="{Binding AddonDuplicateFrameToAllCommand}"
+													IsVisible="{Binding ShowAddonDuplicateFrameButton}"
+													ToolTip.Tip="Copy the currently visible frame to all other directions and animation frames"
+													FontSize="10" Padding="6,4" BorderBrush="#4FC3F7" BorderThickness="1" Background="#0D1F2D" Foreground="#81D4FA"/>
+										</StackPanel>
+
 										<!-- Right: Controls (OB-style) -->
 										<StackPanel Spacing="6" HorizontalAlignment="Right">
 										<Grid ColumnDefinitions="70,168,80" IsVisible="{Binding ShowFrameGroupSlider}">
