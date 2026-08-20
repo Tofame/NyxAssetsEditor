@@ -302,6 +302,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Rotate &amp; clone direction:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="220"/>
+						<CheckBox IsChecked="{Binding AddonRotateCloneDirectionEnabledSetting}"/>
+						<TextBlock Text="Shows a button in the outfit editor to rotate &amp; clone the current direction's sprites (all animation frames) to all other directions using RotSprite."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 		</StackPanel>

@@ -225,6 +225,10 @@
 													IsVisible="{Binding ShowAddonDuplicateFrameButton}"
 													ToolTip.Tip="Copy the currently visible frame to all other directions and animation frames"
 													FontSize="10" Padding="6,4" BorderBrush="#4FC3F7" BorderThickness="1" Background="#0D1F2D" Foreground="#81D4FA"/>
+											<Button Content="Rotate &amp; clone direction" Command="{Binding AddonRotateCloneDirectionCommand}"
+													IsVisible="{Binding ShowAddonRotateCloneButton}"
+													ToolTip.Tip="Rotate all animation frames of the current direction to all other directions using RotSprite"
+													FontSize="10" Padding="6,4" BorderBrush="#CE93D8" BorderThickness="1" Background="#1A0F2D" Foreground="#E1BEE7"/>
 										</StackPanel>
 
 										<!-- Right: Controls (OB-style) -->
