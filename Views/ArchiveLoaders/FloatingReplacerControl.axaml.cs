@@ -21,7 +21,7 @@ public partial class FloatingReplacerControl : UserControl
 		var titleBar = this.FindControl<Border>("TitleBar");
 		if (titleBar == null) return;
 
-		var interaction = new FloatingPanelInteraction(this, titleBar, null, minWidth: 1020, minHeight: 360);
+		var interaction = new FloatingPanelInteraction(this, titleBar, null, minWidth: 720, minHeight: 360);
 		Register(interaction, "ResizeLeft", 4);
 		Register(interaction, "ResizeRight", 1);
 		Register(interaction, "ResizeBottom", 2);

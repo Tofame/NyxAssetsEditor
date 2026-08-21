@@ -94,7 +94,7 @@ public sealed class ReplacementPreviewRowViewModel : ViewModelBase
 
 public partial class FloatingReplacerViewModel : PanelViewModelBase
 {
-	public const double DefaultPanelWidth = 1160;
+	public const double DefaultPanelWidth = 860;
 	public const double DefaultContentHeight = 540;
 	private const int MaxPreviewRows = 400;
 	private readonly AssetsViewModel _parent;
