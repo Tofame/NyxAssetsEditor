@@ -40,7 +40,6 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private ThingKind _selectedThingKind = ThingKind.Item;
 	private uint _fromId = 100;
 	private uint _toId = 100;
-	private bool _addMissingTargetIds;
 	private string _statusText = "Select two different archive pairs and an ID range.";
 	private bool _hasError;
 
@@ -117,16 +116,6 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		set
 		{
 			if (SetProperty(ref _toId, value))
-				NotifyInputsChanged();
-		}
-	}
-
-	public bool AddMissingTargetIds
-	{
-		get => _addMissingTargetIds;
-		set
-		{
-			if (SetProperty(ref _addMissingTargetIds, value))
 				NotifyInputsChanged();
 		}
 	}
@@ -219,7 +208,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			IsThingsMode ? SelectedThingKind : null,
 			FromId,
 			ToId,
-			AddMissingTargetIds);
+			AddMissingTargetIds: true);
 		var batch = AssetReplacementService.Prepare(request);
 		if (!batch.CanApply)
 		{

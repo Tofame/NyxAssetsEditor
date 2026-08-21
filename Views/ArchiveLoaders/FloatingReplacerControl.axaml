@@ -74,7 +74,7 @@
 									BorderThickness="1" VerticalAlignment="Center" Cursor="Help">
 									<ToolTip.Tip>
 										<TextBlock MaxWidth="300" TextWrapping="Wrap"
-											Text="The archive that will be changed. Matching IDs are overwritten with the source definition and sprite pixels. With Create missing target IDs enabled, new Thing/sprite IDs may also be appended here. Undo/Redo applies to this pair."/>
+											Text="The archive that will be changed. Matching Thing IDs get the source definition. Sprites are matched by pixel content: reuse an equivalent target sprite, or append a unique copy at the end. Missing target Thing IDs are appended without gaps. Undo/Redo applies to this pair."/>
 									</ToolTip.Tip>
 									<TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#AAA"
 										HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -119,12 +119,9 @@
 						</StackPanel>
 					</Grid>
 
-					<CheckBox IsChecked="{Binding AddMissingTargetIds}" Content="Create missing target IDs"
-						ToolTip.Tip="Create target Thing IDs and append only unique additional sprites in one contiguous block at the end of the target archive. Thing IDs must append without gaps; all other unavailable IDs are skipped and reported."/>
-
 					<Border IsVisible="{Binding IsThingsMode}" Background="#332A1600" BorderBrush="#8A6A2A" BorderThickness="1" CornerRadius="4" Padding="9">
 						<TextBlock Foreground="#E6C36A" FontSize="11" TextWrapping="Wrap"
-							Text="Frame conversion warning: when Create missing target IDs is enabled, unique extra source sprites are appended and remapped; without it, any Thing requiring extra sprite slots is skipped. If the source has fewer frames, surplus target sprites are kept and may become unreferenced; Replacer never deletes them automatically."/>
+							Text="Frame conversion: extra unique source sprites are appended and remapped. If the source has fewer frames, surplus target sprites are kept and may become unreferenced; Replacer never deletes them automatically."/>
 					</Border>
 
 					<Border Background="#1B1B1B" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="4" Padding="10" MinHeight="70">
