@@ -227,6 +227,27 @@ public static class AssetReplacementService
 			warnings);
 	}
 
+	private readonly struct SpritePixelKey : IEquatable<SpritePixelKey>
+	{
+		public SpritePixelKey(byte[] pixels)
+		{
+			Pixels = pixels;
+			var hash = new HashCode();
+			hash.AddBytes(pixels);
+			_hashCode = hash.ToHashCode();
+		}
+
+		public byte[] Pixels { get; }
+		private readonly int _hashCode;
+
+		public bool Equals(SpritePixelKey other) =>
+			Pixels.AsSpan().SequenceEqual(other.Pixels);
+
+		public override bool Equals(object? obj) => obj is SpritePixelKey other && Equals(other);
+
+		public override int GetHashCode() => _hashCode;
+	}
+
 	private static bool TryPrepareMappedDocumentThing(
 		ThingDocument document,
 		ThingType targetThing,
@@ -236,61 +257,25 @@ public static class AssetReplacementService
 		out Dictionary<uint, byte[]> pixels,
 		out string reason)
 	{
-		var sourceSlots = EnumerateSpriteSlots(document.Thing).ToList();
-		var targetSlots = EnumerateSpriteSlots(targetThing).ToList();
-		var mappedTargetIds = new uint[sourceSlots.Count];
-		var targetSources = new Dictionary<uint, uint>();
-		pixels = new Dictionary<uint, byte[]>();
-		replacementThing = null!;
-		reason = string.Empty;
-
-		for (var index = 0; index < sourceSlots.Count; index++)
+		var resolvedPixels = new Dictionary<SpritePixelKey, uint>();
+		if (!TryMapThingSlotsByPixelContent(
+			EnumerateSpriteSlots(document.Thing).ToList(),
+			(uint sourceSpriteId, out byte[] rgba, out string loadError) =>
+				TryLoadDocumentSpritePixels(document, sourceSpriteId, out rgba, out loadError),
+			targetThing,
+			targetSprites,
+			targetSprites.Loader.SpriteCount + 1,
+			resolvedPixels,
+			out _,
+			out var mappedTargetIds,
+			out pixels,
+			out reason))
 		{
-			var sourceSpriteId = sourceSlots[index];
-			if (sourceSpriteId == 0)
-			{
-				mappedTargetIds[index] = 0;
-				continue;
-			}
-			if (document.SpritesRgba == null || !document.SpritesRgba.TryGetValue(sourceSpriteId, out var rgba))
-			{
-				reason = $"The imported file does not contain referenced sprite #{sourceSpriteId}.";
-				return false;
-			}
-			if (index >= targetSlots.Count)
-			{
-				reason = $"The imported Thing uses {sourceSlots.Count} sprite slot(s), but the target Thing only provides {targetSlots.Count}.";
-				return false;
-			}
-			var targetSpriteId = targetSlots[index];
-			if (!IsValidTargetSprite(targetSprites, targetSpriteId))
-			{
-				reason = $"Corresponding target sprite #{targetSpriteId} does not exist.";
-				return false;
-			}
-			if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
-			{
-				reason = $"Sprite #{sourceSpriteId} does not contain a complete 32x32 RGBA image.";
-				return false;
-			}
-			if (targetSources.TryGetValue(targetSpriteId, out var earlierSourceId) && earlierSourceId != sourceSpriteId)
-			{
-				reason = $"Target sprite #{targetSpriteId} is reused by slots that require different imported sprites.";
-				return false;
-			}
-			targetSources[targetSpriteId] = sourceSpriteId;
-			mappedTargetIds[index] = targetSpriteId;
-			pixels[targetSpriteId] = rgba.ToArray();
+			replacementThing = null!;
+			return false;
 		}
 
-		replacementThing = ThingCloner.Clone(document.Thing, targetId);
-		var mappedIndex = 0;
-		foreach (var group in replacementThing.FrameGroups)
-		{
-			var slotCount = group.SpriteIds.Length;
-			group.SpriteIds = mappedTargetIds.Skip(mappedIndex).Take(slotCount).ToArray();
-			mappedIndex += slotCount;
-		}
+		replacementThing = CloneWithMappedSpriteIds(document.Thing, targetId, mappedTargetIds);
 		return true;
 	}
 
@@ -307,7 +292,11 @@ public static class AssetReplacementService
 		try
 		{
 			if (batch.SpritePixels.Count > 0)
-				spriteAction = targetSprites.ApplyReplacementPixels(batch.SpritePixels, batch.Request.AddMissingTargetIds);
+			{
+				var allowAppend = batch.Request.AddMissingTargetIds
+					|| batch.SpritePixels.Keys.Any(id => id > targetSprites.Loader.SpriteCount);
+				spriteAction = targetSprites.ApplyReplacementPixels(batch.SpritePixels, allowAppend);
+			}
 			if (batch.Things.Count > 0)
 				thingAction = targetThings.ApplyReplacementThings(batch.Things, batch.Request.AddMissingTargetIds);
 		}
@@ -397,7 +386,7 @@ public static class AssetReplacementService
 
 		var nextTargetId = ThingExchangeHelper.GetNextAppendId(targetCatalog, kind);
 		var nextTargetSpriteId = request.TargetPair.SpritePanel.Loader.SpriteCount + 1;
-		var appendedTargetIdsBySourceSpriteId = new Dictionary<uint, uint>();
+		var pixelsToTargetId = new Dictionary<SpritePixelKey, uint>();
 		ForEachId(request.FromId, request.ToId, id =>
 		{
 			var rawSourceThing = TryGetThing(sourceCatalog, kind, id);
@@ -430,70 +419,41 @@ public static class AssetReplacementService
 			}
 			ThingType replacementThing;
 			Dictionary<uint, byte[]> thingPixels;
-			Dictionary<uint, uint> thingTargetSources;
 			var proposedNextTargetSpriteId = nextTargetSpriteId;
-			var proposedAppendedTargetIds = new Dictionary<uint, uint>(appendedTargetIdsBySourceSpriteId);
-			if (targetThing != null)
+			var proposedPixelsToTargetId = new Dictionary<SpritePixelKey, uint>(pixelsToTargetId);
+			if (!TryPrepareThingSpritesByPixels(
+				sourceThing,
+				targetThing,
+				request.SourcePair.SpritePanel,
+				request.TargetPair.SpritePanel,
+				nextTargetSpriteId,
+				proposedPixelsToTargetId,
+				out proposedNextTargetSpriteId,
+				out replacementThing,
+				out thingPixels,
+				out var reason))
 			{
-				if (!TryPrepareMappedThing(
-					sourceThing,
-					targetThing,
-					request.SourcePair.SpritePanel,
-					request.TargetPair.SpritePanel,
-					request.AddMissingTargetIds,
-					nextTargetSpriteId,
-					proposedAppendedTargetIds,
-					out proposedNextTargetSpriteId,
-					out replacementThing,
-					out thingPixels,
-					out thingTargetSources,
-					out var reason))
-				{
-					skipped.Add(new(id, reason));
-					return;
-				}
-			}
-			else
-			{
-				if (!TryPrepareNewThing(
-					sourceThing,
-					request.SourcePair.SpritePanel,
-					nextTargetSpriteId,
-					proposedAppendedTargetIds,
-					out proposedNextTargetSpriteId,
-					out replacementThing,
-					out thingPixels,
-					out thingTargetSources,
-					out var reason))
-				{
-					skipped.Add(new(id, reason));
-					return;
-				}
+				skipped.Add(new(id, reason));
+				return;
 			}
 
 			foreach (var pair in thingPixels.ToList())
 			{
 				if (pixels.TryGetValue(pair.Key, out var existingPixels) && !existingPixels.SequenceEqual(pair.Value))
 				{
-					if (!request.AddMissingTargetIds)
+					if (proposedNextTargetSpriteId == uint.MaxValue)
 					{
-						skipped.Add(new(id, $"Target sprite #{pair.Key} is shared by selected Things that require different source pixels. Enable Create missing target IDs to separate them."));
+						skipped.Add(new(id, "The target Sprite archive cannot be extended further."));
 						return;
 					}
 
-					var sourceSpriteId = thingTargetSources[pair.Key];
-					var newTargetSpriteId = GetOrAllocateTargetSpriteId(
-						sourceSpriteId,
-						proposedAppendedTargetIds,
-						ref proposedNextTargetSpriteId);
+					var newTargetSpriteId = proposedNextTargetSpriteId++;
 					foreach (var group in replacementThing.FrameGroups)
 						for (var slot = 0; slot < group.SpriteIds.Length; slot++)
 							if (group.SpriteIds[slot] == pair.Key)
 								group.SpriteIds[slot] = newTargetSpriteId;
 					thingPixels.Remove(pair.Key);
 					thingPixels[newTargetSpriteId] = pair.Value;
-					thingTargetSources.Remove(pair.Key);
-					thingTargetSources[newTargetSpriteId] = sourceSpriteId;
 				}
 			}
 			// Gate on sprite IDs this Thing would write, not SpriteCount (count can exceed the
@@ -535,7 +495,7 @@ public static class AssetReplacementService
 			if (addsTargetThing)
 				nextTargetId++;
 			nextTargetSpriteId = proposedNextTargetSpriteId;
-			appendedTargetIdsBySourceSpriteId = proposedAppendedTargetIds;
+			pixelsToTargetId = proposedPixelsToTargetId;
 			foreach (var pair in thingPixels)
 				pixels[pair.Key] = pair.Value;
 		});
@@ -716,29 +676,150 @@ public static class AssetReplacementService
 		// can keep an old signature while still using the extended (32-bit) SPR header.
 		panel.UseExtendedSpriteIds;
 
-	private static bool TryPrepareMappedThing(
+	private delegate bool TryLoadSpriteRgba(uint sourceSpriteId, out byte[] rgba, out string error);
+
+	private static bool TryLoadDocumentSpritePixels(
+		ThingDocument document,
+		uint sourceSpriteId,
+		out byte[] rgba,
+		out string error)
+	{
+		rgba = Array.Empty<byte>();
+		error = string.Empty;
+		if (document.SpritesRgba == null || !document.SpritesRgba.TryGetValue(sourceSpriteId, out var embedded))
+		{
+			error = $"The imported file does not contain referenced sprite #{sourceSpriteId}.";
+			return false;
+		}
+		if (embedded.Length != SpritePixelCodec.RgbaBufferLength)
+		{
+			error = $"Sprite #{sourceSpriteId} does not contain a complete 32x32 RGBA image.";
+			return false;
+		}
+		rgba = embedded.ToArray();
+		return true;
+	}
+
+	private static bool TryLoadArchiveSpritePixels(
+		FloatingSpriteLoaderViewModel sourceSprites,
+		uint sourceSpriteId,
+		out byte[] rgba,
+		out string error)
+	{
+		rgba = Array.Empty<byte>();
+		error = string.Empty;
+		if (!IsValidSourceSprite(sourceSprites, sourceSpriteId))
+		{
+			error = $"Referenced source sprite #{sourceSpriteId} does not exist.";
+			return false;
+		}
+		try
+		{
+			rgba = sourceSprites.Loader.LoadSpritePixels(sourceSpriteId);
+			if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
+			{
+				error = $"Referenced source sprite #{sourceSpriteId} is incomplete.";
+				return false;
+			}
+			rgba = rgba.ToArray();
+			return true;
+		}
+		catch (Exception ex)
+		{
+			error = $"Referenced source sprite #{sourceSpriteId} could not be read: {ex.Message}";
+			return false;
+		}
+	}
+
+	private static ThingType CloneWithMappedSpriteIds(ThingType source, uint targetId, uint[] mappedTargetIds)
+	{
+		var replacementThing = ThingCloner.Clone(source, targetId);
+		var mappedIndex = 0;
+		foreach (var group in replacementThing.FrameGroups)
+		{
+			var slotCount = group.SpriteIds.Length;
+			group.SpriteIds = mappedTargetIds.Skip(mappedIndex).Take(slotCount).ToArray();
+			mappedIndex += slotCount;
+		}
+		return replacementThing;
+	}
+
+	private static bool TryPrepareThingSpritesByPixels(
 		ThingType sourceThing,
-		ThingType targetThing,
+		ThingType? targetThing,
 		FloatingSpriteLoaderViewModel sourceSprites,
 		FloatingSpriteLoaderViewModel targetSprites,
-		bool createMissingTargetIds,
 		uint firstNewTargetSpriteId,
-		Dictionary<uint, uint> appendedTargetIdsBySourceSpriteId,
+		Dictionary<SpritePixelKey, uint> resolvedPixelsToTargetId,
 		out uint nextTargetSpriteId,
 		out ThingType replacementThing,
 		out Dictionary<uint, byte[]> pixels,
-		out Dictionary<uint, uint> targetSources,
 		out string reason)
 	{
-		var sourceSlots = EnumerateSpriteSlots(sourceThing).ToList();
-		var targetSlots = EnumerateSpriteSlots(targetThing).ToList();
-		var mappedTargetIds = new uint[sourceSlots.Count];
-		targetSources = new Dictionary<uint, uint>();
-		var sourcePixels = new Dictionary<uint, byte[]>();
+		if (!TryMapThingSlotsByPixelContent(
+			EnumerateSpriteSlots(sourceThing).ToList(),
+			(uint sourceSpriteId, out byte[] rgba, out string loadError) =>
+				TryLoadArchiveSpritePixels(sourceSprites, sourceSpriteId, out rgba, out loadError),
+			targetThing,
+			targetSprites,
+			firstNewTargetSpriteId,
+			resolvedPixelsToTargetId,
+			out nextTargetSpriteId,
+			out var mappedTargetIds,
+			out pixels,
+			out reason))
+		{
+			replacementThing = null!;
+			return false;
+		}
+
+		replacementThing = CloneWithMappedSpriteIds(sourceThing, sourceThing.Id, mappedTargetIds);
+		return true;
+	}
+
+	private static bool TryMapThingSlotsByPixelContent(
+		IReadOnlyList<uint> sourceSlots,
+		TryLoadSpriteRgba tryLoadSourcePixels,
+		ThingType? targetThing,
+		FloatingSpriteLoaderViewModel targetSprites,
+		uint firstNewTargetSpriteId,
+		Dictionary<SpritePixelKey, uint> resolvedPixelsToTargetId,
+		out uint nextTargetSpriteId,
+		out uint[] mappedTargetIds,
+		out Dictionary<uint, byte[]> pixels,
+		out string reason)
+	{
+		mappedTargetIds = new uint[sourceSlots.Count];
 		pixels = new Dictionary<uint, byte[]>();
 		nextTargetSpriteId = firstNewTargetSpriteId;
-		replacementThing = null!;
 		reason = string.Empty;
+
+		var resolved = new Dictionary<SpritePixelKey, uint>();
+		if (targetThing != null)
+		{
+			foreach (var existingId in EnumerateSpriteSlots(targetThing))
+			{
+				if (!IsValidTargetSprite(targetSprites, existingId))
+					continue;
+				try
+				{
+					var existingPixels = targetSprites.Loader.LoadSpritePixels(existingId);
+					if (existingPixels.Length != SpritePixelCodec.RgbaBufferLength)
+						continue;
+					var existingKey = new SpritePixelKey(existingPixels.ToArray());
+					if (!resolved.ContainsKey(existingKey))
+						resolved[existingKey] = existingId;
+				}
+				catch
+				{
+				}
+			}
+		}
+		foreach (var pair in resolvedPixelsToTargetId)
+		{
+			if (!resolved.ContainsKey(pair.Key))
+				resolved[pair.Key] = pair.Value;
+		}
 
 		for (var index = 0; index < sourceSlots.Count; index++)
 		{
@@ -748,169 +829,27 @@ public static class AssetReplacementService
 				mappedTargetIds[index] = 0;
 				continue;
 			}
-			if (!IsValidSourceSprite(sourceSprites, sourceSpriteId))
-			{
-				reason = $"Referenced source sprite #{sourceSpriteId} does not exist.";
+			if (!tryLoadSourcePixels(sourceSpriteId, out var rgba, out reason))
 				return false;
-			}
 
-			uint targetSpriteId;
-			if (index < targetSlots.Count && IsValidTargetSprite(targetSprites, targetSlots[index]))
+			var key = new SpritePixelKey(rgba);
+			if (!resolved.TryGetValue(key, out var targetSpriteId))
 			{
-				targetSpriteId = targetSlots[index];
-			}
-			else if (createMissingTargetIds)
-			{
-				targetSpriteId = GetOrAllocateTargetSpriteId(
-					sourceSpriteId,
-					appendedTargetIdsBySourceSpriteId,
-					ref nextTargetSpriteId);
-			}
-			else
-			{
-				reason = index < targetSlots.Count
-					? $"Corresponding target sprite #{targetSlots[index]} does not exist."
-					: $"Source Thing uses {sourceSlots.Count} sprite slot(s), but the target Thing only provides {targetSlots.Count}. Enable Create missing target IDs to add the extra sprites.";
-				return false;
-			}
-
-			if (targetSources.TryGetValue(targetSpriteId, out var earlierSourceId) && earlierSourceId != sourceSpriteId)
-			{
-				if (createMissingTargetIds)
-					targetSpriteId = GetOrAllocateTargetSpriteId(
-						sourceSpriteId,
-						appendedTargetIdsBySourceSpriteId,
-						ref nextTargetSpriteId);
-				else
+				if (nextTargetSpriteId == uint.MaxValue)
 				{
-					reason = $"Target sprite #{targetSpriteId} is reused by multiple slots that require different source sprites. Enable Create missing target IDs to separate them.";
+					reason = "The target Sprite archive cannot be extended further.";
 					return false;
 				}
+				targetSpriteId = nextTargetSpriteId++;
+				resolved[key] = targetSpriteId;
+				pixels[targetSpriteId] = rgba;
 			}
 
-			if (!sourcePixels.TryGetValue(sourceSpriteId, out var rgba))
-			{
-				try
-				{
-					rgba = sourceSprites.Loader.LoadSpritePixels(sourceSpriteId);
-					if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
-					{
-						reason = $"Referenced source sprite #{sourceSpriteId} is incomplete.";
-						return false;
-					}
-					rgba = rgba.ToArray();
-					sourcePixels[sourceSpriteId] = rgba;
-				}
-				catch (Exception ex)
-				{
-					reason = $"Referenced source sprite #{sourceSpriteId} could not be read: {ex.Message}";
-					return false;
-				}
-			}
-
-			targetSources[targetSpriteId] = sourceSpriteId;
+			resolvedPixelsToTargetId[key] = targetSpriteId;
 			mappedTargetIds[index] = targetSpriteId;
-			pixels[targetSpriteId] = rgba;
 		}
 
-		replacementThing = ThingCloner.Clone(sourceThing, sourceThing.Id);
-		var mappedIndex = 0;
-		foreach (var group in replacementThing.FrameGroups)
-		{
-			var slotCount = group.SpriteIds.Length;
-			group.SpriteIds = mappedTargetIds.Skip(mappedIndex).Take(slotCount).ToArray();
-			mappedIndex += slotCount;
-		}
 		return true;
-	}
-
-	private static bool TryPrepareNewThing(
-		ThingType sourceThing,
-		FloatingSpriteLoaderViewModel sourceSprites,
-		uint firstNewTargetSpriteId,
-		Dictionary<uint, uint> appendedTargetIdsBySourceSpriteId,
-		out uint nextTargetSpriteId,
-		out ThingType replacementThing,
-		out Dictionary<uint, byte[]> pixels,
-		out Dictionary<uint, uint> targetSources,
-		out string reason)
-	{
-		var sourceSlots = EnumerateSpriteSlots(sourceThing).ToList();
-		var mappedTargetIds = new uint[sourceSlots.Count];
-		var sourcePixels = new Dictionary<uint, byte[]>();
-		pixels = new Dictionary<uint, byte[]>();
-		targetSources = new Dictionary<uint, uint>();
-		nextTargetSpriteId = firstNewTargetSpriteId;
-		replacementThing = null!;
-		reason = string.Empty;
-
-		for (var index = 0; index < sourceSlots.Count; index++)
-		{
-			var sourceSpriteId = sourceSlots[index];
-			if (sourceSpriteId == 0)
-			{
-				mappedTargetIds[index] = 0;
-				continue;
-			}
-			if (!IsValidSourceSprite(sourceSprites, sourceSpriteId))
-			{
-				reason = $"Referenced source sprite #{sourceSpriteId} does not exist.";
-				return false;
-			}
-
-			var targetSpriteId = GetOrAllocateTargetSpriteId(
-				sourceSpriteId,
-				appendedTargetIdsBySourceSpriteId,
-				ref nextTargetSpriteId);
-			if (!sourcePixels.TryGetValue(sourceSpriteId, out var rgba))
-			{
-				try
-				{
-					rgba = sourceSprites.Loader.LoadSpritePixels(sourceSpriteId);
-					if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
-					{
-						reason = $"Referenced source sprite #{sourceSpriteId} is incomplete.";
-						return false;
-					}
-					rgba = rgba.ToArray();
-					sourcePixels[sourceSpriteId] = rgba;
-				}
-				catch (Exception ex)
-				{
-					reason = $"Referenced source sprite #{sourceSpriteId} could not be read: {ex.Message}";
-					return false;
-				}
-			}
-
-			mappedTargetIds[index] = targetSpriteId;
-			targetSources[targetSpriteId] = sourceSpriteId;
-			pixels[targetSpriteId] = rgba;
-		}
-
-		replacementThing = ThingCloner.Clone(sourceThing, sourceThing.Id);
-		var mappedIndex = 0;
-		foreach (var group in replacementThing.FrameGroups)
-		{
-			var slotCount = group.SpriteIds.Length;
-			group.SpriteIds = mappedTargetIds.Skip(mappedIndex).Take(slotCount).ToArray();
-			mappedIndex += slotCount;
-		}
-		return true;
-	}
-
-	private static uint GetOrAllocateTargetSpriteId(
-		uint sourceSpriteId,
-		Dictionary<uint, uint> appendedTargetIdsBySourceSpriteId,
-		ref uint nextTargetSpriteId)
-	{
-		if (appendedTargetIdsBySourceSpriteId.TryGetValue(sourceSpriteId, out var targetSpriteId))
-			return targetSpriteId;
-		if (nextTargetSpriteId == uint.MaxValue)
-			throw new InvalidOperationException("The target Sprite archive cannot be extended further.");
-
-		targetSpriteId = nextTargetSpriteId++;
-		appendedTargetIdsBySourceSpriteId[sourceSpriteId] = targetSpriteId;
-		return targetSpriteId;
 	}
 
 	private static PreparedReplacementBatch FinishPreparation(

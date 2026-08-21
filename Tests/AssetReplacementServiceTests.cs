@@ -28,18 +28,21 @@ public class AssetReplacementServiceTests
 
 		Assert.True(result.Succeeded);
 		Assert.True(target.ThingsPanel.Catalog!.TryGetItem(100)!.Pickupable);
-		Assert.Equal(sourcePixels, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(new[] { 2u }, target.ThingsPanel.Catalog.TryGetItem(100)!.FrameGroups[0].SpriteIds);
+		Assert.Equal(originalTargetPixels, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(sourcePixels, target.SpritePanel.Loader.LoadSpritePixels(2));
 		Assert.Contains(100u, target.ThingsPanel.ModifiedThingIds);
-		Assert.Contains(1u, target.SpritePanel.ModifiedSpriteIds);
+		Assert.Contains(2u, target.SpritePanel.AddedSpriteIds);
 
 		Assert.NotNull(result.Transaction);
 		Assert.True(result.Transaction.TryUndo(out var undoError), undoError);
 		Assert.False(target.ThingsPanel.Catalog.TryGetItem(100)!.Pickupable);
 		Assert.Equal(originalTargetPixels, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(1u, target.SpritePanel.Loader.SpriteCount);
 
 		Assert.True(result.Transaction.TryRedo(out var redoError), redoError);
 		Assert.True(target.ThingsPanel.Catalog.TryGetItem(100)!.Pickupable);
-		Assert.Equal(sourcePixels, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(sourcePixels, target.SpritePanel.Loader.LoadSpritePixels(2));
 	}
 
 	[Fact]
@@ -96,29 +99,35 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task ThingRange_SkipsWholeThingWhenTargetSpriteIsMissing()
+	public async Task ThingRange_AppendsMissingTargetSpritesInsteadOfSkipping()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
+		var expected = SolidPixels(19);
+		source.SpritePanel.Loader.SetSpritePixels(2, expected);
 		PutItem(source, 100, 2, pickupable: true);
 		PutItem(target, 100, 2, pickupable: false);
 
 		var batch = AssetReplacementService.Prepare(new AssetReplacementRequest(
 			source, target, AssetReplacementMode.Things, ThingKind.Item, 100, 100, AddMissingTargetIds: false));
+		var result = AssetReplacementService.Apply(batch);
 
-		Assert.False(batch.CanApply);
-		Assert.Single(batch.Skipped);
-		Assert.Contains("target sprite #2", batch.Skipped[0].Reason);
-		Assert.False(target.ThingsPanel.Catalog!.TryGetItem(100)!.Pickupable);
+		Assert.True(result.Succeeded);
+		Assert.Empty(batch.Skipped);
+		Assert.True(target.ThingsPanel.Catalog!.TryGetItem(100)!.Pickupable);
+		Assert.Equal(new[] { 2u }, target.ThingsPanel.Catalog.TryGetItem(100)!.FrameGroups[0].SpriteIds);
+		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(2));
 	}
 
 	[Fact]
-	public async Task ThingRange_MapsSourcePixelsToCorrespondingTargetSpriteIds()
+	public async Task ThingRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
 		var expected = SolidPixels(52);
+		var originalTarget = SolidPixels(11);
 		source.SpritePanel.Loader.SetSpritePixels(2, expected);
+		target.SpritePanel.Loader.SetSpritePixels(1, originalTarget);
 		PutItem(source, 100, 2, pickupable: true);
 		PutItem(target, 100, 1, pickupable: false);
 
@@ -130,8 +139,9 @@ public class AssetReplacementServiceTests
 		Assert.True(result.Succeeded);
 		var replaced = target.ThingsPanel.Catalog!.TryGetItem(100)!;
 		Assert.True(replaced.Pickupable);
-		Assert.Equal(new[] { 1u }, replaced.FrameGroups[0].SpriteIds);
-		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(new[] { 2u }, replaced.FrameGroups[0].SpriteIds);
+		Assert.Equal(originalTarget, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(2));
 	}
 
 	[Fact]
@@ -176,12 +186,14 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task EffectRange_MapsCrossArchiveSpriteIdsBySlot()
+	public async Task EffectRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
 		var expected = SolidPixels(84);
+		var originalTarget = SolidPixels(3);
 		source.SpritePanel.Loader.SetSpritePixels(2, expected);
+		target.SpritePanel.Loader.SetSpritePixels(1, originalTarget);
 		PutEffect(source, 1, 2, hasLight: true);
 		PutEffect(target, 1, 1, hasLight: false);
 
@@ -193,8 +205,9 @@ public class AssetReplacementServiceTests
 		Assert.True(result.Succeeded);
 		var replaced = target.ThingsPanel.Catalog!.TryGetEffect(1)!;
 		Assert.True(replaced.HasLight);
-		Assert.Equal(new[] { 1u }, replaced.FrameGroups[0].SpriteIds);
-		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(new[] { 2u }, replaced.FrameGroups[0].SpriteIds);
+		Assert.Equal(originalTarget, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(2));
 	}
 
 	[Fact]
@@ -212,7 +225,7 @@ public class AssetReplacementServiceTests
 
 		Assert.True(result.Succeeded);
 		Assert.NotEmpty(batch.Warnings);
-		Assert.Equal(new[] { 1u, 0u }, target.ThingsPanel.Catalog!.TryGetEffect(1)!.FrameGroups[0].SpriteIds);
+		Assert.Equal(new[] { 2u, 2u, 0u }, target.ThingsPanel.Catalog!.TryGetEffect(1)!.FrameGroups[0].SpriteIds);
 	}
 
 	[Fact]
@@ -229,9 +242,9 @@ public class AssetReplacementServiceTests
 		var result = AssetReplacementService.Apply(batch);
 
 		Assert.True(result.Succeeded);
-		Assert.Contains(batch.Warnings, warning => warning.Contains("1 additional target sprite ID(s) are appended"));
+		Assert.Contains(batch.Warnings, warning => warning.Contains("No additional target sprite IDs are required"));
 		Assert.DoesNotContain(batch.Warnings, warning => warning.Contains("Enable Create missing target IDs"));
-		Assert.Equal(new[] { 1u, 2u }, target.ThingsPanel.Catalog!.TryGetEffect(1)!.FrameGroups[0].SpriteIds);
+		Assert.Equal(new[] { 1u, 1u, 1u }, target.ThingsPanel.Catalog!.TryGetEffect(1)!.FrameGroups[0].SpriteIds);
 	}
 
 	[Fact]

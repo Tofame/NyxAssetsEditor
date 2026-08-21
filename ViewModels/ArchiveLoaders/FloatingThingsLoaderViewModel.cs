@@ -1155,6 +1155,13 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		private void ReloadThingsForSection(bool preserveCurrentPage = false, bool goToLastPage = false)
 		{
+			var selectedIds = preserveCurrentPage
+				? GetSelectedThings().Select(thing => thing.Id).ToList()
+				: new List<uint>();
+			var selectedId = preserveCurrentPage ? SelectedThing?.Id : null;
+			var anchorId = preserveCurrentPage ? _selectionAnchor?.Id : null;
+			var previousPage = _currentPage;
+
 			_allThings.Clear();
 			var items = EnumerateSelectedSection().ToList();
 			int lastNonEmptyIdx = -1;
@@ -1176,8 +1183,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 
 			TotalThings = (uint)_allThings.Count;
-			_selectionAnchor = null;
-			SelectedThing = null;
 			if (goToLastPage)
 			{
 				_currentPage = TotalPages;
@@ -1185,17 +1190,36 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			else if (!preserveCurrentPage)
 			{
 				_currentPage = 1;
+				ClearSelection();
+				_selectionAnchor = null;
+				SelectedThing = null;
 			}
 			else if (_currentPage > TotalPages && TotalPages > 0)
 			{
 				_currentPage = TotalPages;
 			}
-			OnPropertyChanged(nameof(CurrentPage));
+
+			if (_currentPage != previousPage)
+				OnPropertyChanged(nameof(CurrentPage));
 			OnPropertyChanged(nameof(HasNextPage));
 			OnPropertyChanged(nameof(HasPreviousPage));
 			UpdatePage();
+			if (preserveCurrentPage)
+				RestorePagedSelection(selectedIds, selectedId, anchorId);
 			NotifySelectionChanged();
 			CatalogChanged?.Invoke();
+		}
+
+		private void RestorePagedSelection(IReadOnlyList<uint> selectedIds, uint? selectedId, uint? anchorId)
+		{
+			foreach (var item in PagedThings)
+				item.IsSelected = selectedIds.Contains(item.Id);
+			SelectedThing = selectedId is uint id
+				? PagedThings.FirstOrDefault(item => item.Id == id)
+				: PagedThings.FirstOrDefault(item => item.IsSelected);
+			_selectionAnchor = anchorId is uint anchor
+				? PagedThings.FirstOrDefault(item => item.Id == anchor)
+				: SelectedThing;
 		}
 
 		public async Task CreateNewArchiveAsync(string format, uint clientVersion, bool useExtendedThingIds, bool useFrameAnimations, bool useFrameGroups)
@@ -1459,17 +1483,35 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		private void UpdatePage()
 		{
-			PagedThings.Clear();
-			if (TotalThings == 0) return;
+			if (TotalThings == 0)
+			{
+				PagedThings.Clear();
+				return;
+			}
 
 			int startIdx = (CurrentPage - 1) * PageSize;
 			int endIdx = Math.Min(CurrentPage * PageSize, _allThings.Count);
+			if (startIdx < 0)
+				startIdx = 0;
 
+			var newIds = new List<uint>(Math.Max(0, endIdx - startIdx));
 			for (int i = startIdx; i < endIdx; i++)
+				newIds.Add(_allThings[i].Id);
+
+			if (PagedThings.Count == newIds.Count && PagedThings.Select(item => item.Id).SequenceEqual(newIds))
 			{
-				var thing = _allThings[i];
-				PagedThings.Add(new ThingItemViewModel(thing.Id, this));
+				foreach (var item in PagedThings)
+					item.InvalidatePreview();
+				return;
 			}
+
+			var selectedIds = PagedThings.Where(item => item.IsSelected).Select(item => item.Id).ToList();
+			var selectedId = SelectedThing?.Id;
+			var anchorId = _selectionAnchor?.Id;
+			PagedThings.Clear();
+			foreach (var id in newIds)
+				PagedThings.Add(new ThingItemViewModel(id, this));
+			RestorePagedSelection(selectedIds, selectedId, anchorId);
 		}
 
 		public void SelectThing(ThingItemViewModel thing, bool shift = false, bool ctrl = false)
@@ -1517,6 +1559,82 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public IReadOnlyList<ThingItemViewModel> GetSelectedThings() =>
 			PagedThings.Where(t => t.IsSelected).OrderBy(t => t.Id).ToList();
+
+		private void FocusReplacedThings(IReadOnlyList<ThingType> things)
+		{
+			if (things.Count == 0)
+				return;
+
+			var first = things[0];
+			if (first.Kind != SelectedSection)
+				return;
+
+			var index = _allThings.FindIndex(thing => thing.Id == first.Id);
+			if (index >= 0)
+			{
+				var page = index / PageSize + 1;
+				if (CurrentPage != page)
+					CurrentPage = page;
+			}
+
+			var ids = things.Select(thing => thing.Id).ToHashSet();
+			var pageItems = PagedThings.Where(item => ids.Contains(item.Id)).OrderBy(item => item.Id).ToList();
+			if (pageItems.Count == 0)
+				return;
+
+			ClearSelection();
+			foreach (var item in pageItems)
+				SetThingSelected(item, true);
+			SelectedThing = pageItems[0];
+			_selectionAnchor = pageItems[0];
+			NotifySelectionChanged();
+			ScrollToItemRequested?.Invoke(pageItems[0]);
+			if (things.Count == 1)
+				_ = OpenThingEditor(pageItems[0]);
+		}
+
+		private void SyncViewerAndEditorAfterThingChange(IReadOnlyCollection<uint> affectedIds, bool openEditorIfMissing)
+		{
+			if (affectedIds.Count == 0)
+				return;
+
+			var editors = _parentViewModel?.ActivePanels.OfType<FloatingThingEditorViewModel>()
+				.Where(panel => ReferenceEquals(panel.SourcePanel, this) && affectedIds.Contains(panel.ThingId))
+				.ToList()
+				?? new List<FloatingThingEditorViewModel>();
+
+			uint? editorThingId = null;
+			foreach (var editor in editors)
+			{
+				var current = GetThingType(editor.ThingId);
+				if (current != null)
+				{
+					editor.LoadThing(current);
+					editorThingId ??= editor.ThingId;
+				}
+				else
+				{
+					editor.ClosePanel();
+				}
+			}
+
+			var pageItems = PagedThings.Where(item => affectedIds.Contains(item.Id)).OrderBy(item => item.Id).ToList();
+			if (pageItems.Count == 0)
+				return;
+
+			ClearSelection();
+			foreach (var item in pageItems)
+				SetThingSelected(item, true);
+			SelectedThing = editorThingId is uint id
+				? pageItems.FirstOrDefault(item => item.Id == id) ?? pageItems[0]
+				: pageItems[0];
+			_selectionAnchor = SelectedThing;
+			NotifySelectionChanged();
+			if (SelectedThing != null)
+				ScrollToItemRequested?.Invoke(SelectedThing);
+			if (openEditorIfMissing && pageItems.Count == 1)
+				_ = OpenThingEditor(pageItems[0]);
+		}
 
 		private void ClearSelection()
 		{
@@ -1741,12 +1859,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 			var idsToRemove = new HashSet<uint>(itemsList.Select(t => t.Id));
 
-			if (SelectedThing != null && idsToRemove.Contains(SelectedThing.Id))
-			{
-				SelectedThing = null;
-				NotifySelectionChanged();
-			}
-
 			// Sort descending to allow sequential deletion from the end
 			var idsDescending = itemsList.Select(t => t.Id).Distinct().OrderByDescending(id => id).ToList();
 
@@ -1785,21 +1897,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				}
 				else
 				{
-					var emptyThing = new ThingType { Id = id, Kind = kind };
-					var fg = new ThingFrameGroup
-					{
-						GroupTypeId = 0,
-						Width = 1,
-						Height = 1,
-						ExactSize = 32,
-						Layers = 1,
-						PatternX = 1,
-						PatternY = 1,
-						PatternZ = 1,
-						Frames = 1,
-						SpriteIds = new uint[1]
-					};
-					emptyThing.FrameGroups.Add(fg);
+					var emptyThing = CreateBlankThing(id, kind);
 
 					switch (kind)
 					{
@@ -1848,6 +1946,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			}
 
 			RefreshAfterCatalogMutation(goToLastPage: false);
+			SyncViewerAndEditorAfterThingChange(idsToRemove, openEditorIfMissing: false);
 
 			EndThingTransaction(affected);
 		}
@@ -1905,6 +2004,31 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		[RelayCommand]
 		private void LastPage() => CurrentPage = TotalPages;
 
+		private ThingType CreateBlankThing(uint id, ThingKind kind)
+		{
+			var thing = new ThingType { Id = id, Kind = kind };
+			var patternX = kind == ThingKind.Outfit ? 4u : 1u;
+			thing.FrameGroups.Add(CreateBlankFrameGroup(0, patternX));
+			if (kind == ThingKind.Outfit && UseFrameGroups)
+				thing.FrameGroups.Add(CreateBlankFrameGroup(1, patternX));
+			return thing;
+		}
+
+		private static ThingFrameGroup CreateBlankFrameGroup(uint groupTypeId, uint patternX) =>
+			new()
+			{
+				GroupTypeId = groupTypeId,
+				Width = 1,
+				Height = 1,
+				ExactSize = 32,
+				Layers = 1,
+				PatternX = patternX,
+				PatternY = 1,
+				PatternZ = 1,
+				Frames = 1,
+				SpriteIds = new uint[patternX]
+			};
+
 		[RelayCommand(CanExecute = nameof(IsArchiveLoaded))]
 		private void NewThing()
 		{
@@ -1917,46 +2041,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				StartThingTransaction(Enumerable.Empty<(ThingKind, uint)>());
 
-				var newThing = new ThingType
-				{
-					Id = newId,
-					Kind = kind
-				};
-				
-				var px = kind == ThingKind.Outfit ? 4u : 1u;
-				var idleFg = new ThingFrameGroup
-				{
-					GroupTypeId = 0,
-					Width = 1,
-					Height = 1,
-					ExactSize = 32,
-					Layers = 1,
-					PatternX = px,
-					PatternY = 1,
-					PatternZ = 1,
-					Frames = 1,
-					SpriteIds = new uint[px]
-				};
-				newThing.FrameGroups.Add(idleFg);
-
-				// 10.98+ outfit frame groups: idle + walking
-				if (kind == ThingKind.Outfit && UseFrameGroups)
-				{
-					var walkFg = new ThingFrameGroup
-					{
-						GroupTypeId = 1,
-						Width = 1,
-						Height = 1,
-						ExactSize = 32,
-						Layers = 1,
-						PatternX = px,
-						PatternY = 1,
-						PatternZ = 1,
-						Frames = 1,
-						SpriteIds = new uint[px]
-					};
-					newThing.FrameGroups.Add(walkFg);
-				}
+				var newThing = CreateBlankThing(newId, kind);
 
 				switch (kind)
 				{
@@ -2138,8 +2223,19 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				HasSavedChanges = true;
 				InvalidateFlagUsageCountsCache();
-				ReloadThingsForSection(preserveCurrentPage: true);
+				if (HideEmpty)
+					ReloadThingsForSection(preserveCurrentPage: true);
+				else
+				{
+					foreach (var thing in orderedThings)
+						SyncThingInList(thing, replaceExisting: true);
+					OnPropertyChanged(nameof(TotalPages));
+					OnPropertyChanged(nameof(HasNextPage));
+					OnPropertyChanged(nameof(HasPreviousPage));
+					UpdatePage();
+				}
 				EndThingTransaction(affected);
+				FocusReplacedThings(orderedThings);
 				return action;
 			}
 			catch
