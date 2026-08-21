@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
 using NyxAssetsEditor.Services.Replacement;
@@ -38,11 +39,18 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private ReplacementArchivePairViewModel? _selectedTargetPair;
 	private AssetReplacementMode _selectedMode = AssetReplacementMode.Things;
 	private ThingKind _selectedThingKind = ThingKind.Item;
-	private uint _fromId = 100;
-	private uint _toId = 100;
+	private decimal? _fromId = 100;
+	private decimal? _toId = 100;
 	private bool _keepDiscardedSprites = true;
 	private string _statusText = "Select two different archive pairs and an ID range.";
 	private bool _hasError;
+	private bool _syncingRange;
+	private bool _fromIdInvalid;
+	private bool _toIdInvalid;
+	private int _fromIdShakeNonce;
+	private int _toIdShakeNonce;
+	private DispatcherTimer? _fromIdInvalidTimer;
+	private DispatcherTimer? _toIdInvalidTimer;
 
 	public FloatingReplacerViewModel(AssetsViewModel parent)
 	{
@@ -72,7 +80,10 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		set
 		{
 			if (SetProperty(ref _selectedTargetPair, value))
+			{
+				ClampRangeToTarget();
 				NotifyInputsChanged();
+			}
 		}
 	}
 
@@ -84,6 +95,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			if (!SetProperty(ref _selectedMode, value)) return;
 			OnPropertyChanged(nameof(IsThingsMode));
 			OnPropertyChanged(nameof(IsSpritesMode));
+			ClampRangeToTarget();
 			NotifyInputsChanged();
 		}
 	}
@@ -97,29 +109,42 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		set
 		{
 			if (SetProperty(ref _selectedThingKind, value))
+			{
+				ClampRangeToTarget();
 				NotifyInputsChanged();
+			}
 		}
 	}
 
-	public uint FromId
+	public decimal? FromId
 	{
 		get => _fromId;
-		set
-		{
-			if (SetProperty(ref _fromId, value))
-				NotifyInputsChanged();
-		}
+		set => SetDraftId(ref _fromId, value, nameof(FromId), raisingFrom: true);
 	}
 
-	public uint ToId
+	public decimal? ToId
 	{
 		get => _toId;
-		set
-		{
-			if (SetProperty(ref _toId, value))
-				NotifyInputsChanged();
-		}
+		set => SetDraftId(ref _toId, value, nameof(ToId), raisingFrom: false);
 	}
+
+	public decimal TargetMinId { get; private set; } = 1;
+	public decimal TargetMaxId { get; private set; } = 1;
+
+	public bool FromIdInvalid
+	{
+		get => _fromIdInvalid;
+		private set => SetProperty(ref _fromIdInvalid, value);
+	}
+
+	public bool ToIdInvalid
+	{
+		get => _toIdInvalid;
+		private set => SetProperty(ref _toIdInvalid, value);
+	}
+
+	public int FromIdShakeNonce => _fromIdShakeNonce;
+	public int ToIdShakeNonce => _toIdShakeNonce;
 
 	public bool KeepDiscardedSprites
 	{
@@ -139,11 +164,17 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		private set => SetProperty(ref _hasError, value);
 	}
 
-	public bool CanReplace => SelectedSourcePair != null
-		&& SelectedTargetPair != null
-		&& !ReferenceEquals(SelectedSourcePair.Pair, SelectedTargetPair.Pair)
-		&& FromId > 0
-		&& ToId >= FromId;
+	public bool CanReplace
+	{
+		get
+		{
+			if (SelectedSourcePair == null || SelectedTargetPair == null)
+				return false;
+			if (ReferenceEquals(SelectedSourcePair.Pair, SelectedTargetPair.Pair))
+				return false;
+			return TryGetValidRange(out _, out _);
+		}
+	}
 
 	public void RefreshArchivePairs()
 	{
@@ -205,7 +236,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	[RelayCommand(CanExecute = nameof(CanReplace))]
 	private void Replace()
 	{
-		if (SelectedSourcePair == null || SelectedTargetPair == null)
+		if (SelectedSourcePair == null || SelectedTargetPair == null || !TryGetValidRange(out var fromId, out var toId))
 			return;
 
 		var request = new AssetReplacementRequest(
@@ -213,8 +244,8 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			SelectedTargetPair.Pair,
 			SelectedMode,
 			IsThingsMode ? SelectedThingKind : null,
-			FromId,
-			ToId,
+			fromId,
+			toId,
 			AddMissingTargetIds: true);
 		var batch = AssetReplacementService.Prepare(request);
 		if (!batch.CanApply)
@@ -294,8 +325,239 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		RedoCommand.NotifyCanExecuteChanged();
 	}
 
+	public void CommitIdField(bool fromField)
+	{
+		if (!TryGetTargetBounds(out var min, out var max))
+			return;
+
+		if (fromField)
+		{
+			if (IsIdInBounds(_fromId, min, max, out _))
+				return;
+			FlashInvalid(true);
+			_fromId = ClampDraft(_fromId, min, max);
+			OnPropertyChanged(nameof(FromId));
+		}
+		else
+		{
+			if (IsIdInBounds(_toId, min, max, out _))
+				return;
+			FlashInvalid(false);
+			_toId = ClampDraft(_toId, min, max);
+			OnPropertyChanged(nameof(ToId));
+		}
+
+		if (TryGetValidRange(out var from, out var to) && from > to)
+		{
+			_syncingRange = true;
+			try
+			{
+				if (fromField)
+				{
+					_toId = from;
+					OnPropertyChanged(nameof(ToId));
+				}
+				else
+				{
+					_fromId = to;
+					OnPropertyChanged(nameof(FromId));
+				}
+			}
+			finally
+			{
+				_syncingRange = false;
+			}
+		}
+
+		NotifyInputsChanged();
+	}
+
+	private void SetDraftId(ref decimal? field, decimal? value, string propertyName, bool raisingFrom)
+	{
+		if (_syncingRange)
+		{
+			SetProperty(ref field, value, propertyName);
+			NotifyInputsChanged();
+			return;
+		}
+
+		if (value != null && (value < 0 || value != decimal.Truncate(value.Value) || value > uint.MaxValue))
+		{
+			FlashInvalid(raisingFrom);
+			OnPropertyChanged(propertyName);
+			NotifyInputsChanged();
+			return;
+		}
+
+		SetProperty(ref field, value, propertyName);
+		if (TryGetValidRange(out var from, out var to) && from > to)
+		{
+			_syncingRange = true;
+			try
+			{
+				if (raisingFrom)
+				{
+					_toId = from;
+					OnPropertyChanged(nameof(ToId));
+				}
+				else
+				{
+					_fromId = to;
+					OnPropertyChanged(nameof(FromId));
+				}
+			}
+			finally
+			{
+				_syncingRange = false;
+			}
+		}
+
+		NotifyInputsChanged();
+	}
+
+	private bool TryGetValidRange(out uint from, out uint to)
+	{
+		from = 0;
+		to = 0;
+		if (!TryGetTargetBounds(out var min, out var max))
+			return false;
+		return IsIdInBounds(_fromId, min, max, out from) && IsIdInBounds(_toId, min, max, out to) && to >= from;
+	}
+
+	private static bool IsIdInBounds(decimal? value, uint min, uint max, out uint id)
+	{
+		id = 0;
+		if (value == null || value < 0 || value != decimal.Truncate(value.Value) || value > uint.MaxValue)
+			return false;
+		id = (uint)value.Value;
+		return id >= min && id <= max;
+	}
+
+	private static decimal ClampDraft(decimal? value, uint min, uint max)
+	{
+		if (value == null || value < 0)
+			return min;
+		var id = value > uint.MaxValue ? uint.MaxValue : (uint)decimal.Truncate(value.Value);
+		if (id < min)
+			return min;
+		if (id > max)
+			return max;
+		return id;
+	}
+
+	private void ClampRangeToTarget()
+	{
+		RefreshTargetBounds();
+		if (!TryGetTargetBounds(out var min, out var max))
+			return;
+		_syncingRange = true;
+		try
+		{
+			var from = (uint)ClampDraft(_fromId, min, max);
+			var to = (uint)ClampDraft(_toId, min, max);
+			if (from > to)
+				to = from;
+			SetProperty(ref _fromId, from, nameof(FromId));
+			SetProperty(ref _toId, to, nameof(ToId));
+		}
+		finally
+		{
+			_syncingRange = false;
+		}
+	}
+
+	private void RefreshTargetBounds()
+	{
+		if (TryGetTargetBounds(out var min, out var max))
+		{
+			TargetMinId = min;
+			TargetMaxId = max;
+		}
+		else
+		{
+			TargetMinId = 1;
+			TargetMaxId = uint.MaxValue;
+		}
+		OnPropertyChanged(nameof(TargetMinId));
+		OnPropertyChanged(nameof(TargetMaxId));
+	}
+
+	private bool TryGetTargetBounds(out uint min, out uint max)
+	{
+		min = 1;
+		max = uint.MaxValue;
+		var target = SelectedTargetPair?.Pair;
+		if (target == null)
+			return false;
+
+		if (IsSpritesMode)
+		{
+			if (!target.SpritePanel.IsArchiveLoaded)
+				return false;
+			var count = target.SpritePanel.Loader.SpriteCount;
+			min = 1;
+			max = count == 0 ? 1u : count;
+			return true;
+		}
+
+		var catalog = target.ThingsPanel.Catalog;
+		if (catalog == null)
+			return false;
+
+		var things = target.ThingsPanel.EnumerateThings(SelectedThingKind);
+		if (things.Count > 0)
+		{
+			min = things.Min(thing => thing.Id);
+			max = things.Max(thing => thing.Id);
+			return true;
+		}
+
+		min = SelectedThingKind switch
+		{
+			ThingKind.Item => ThingCatalog.FirstItemId,
+			ThingKind.Outfit => ThingCatalog.FirstOutfitId,
+			ThingKind.Effect => ThingCatalog.FirstEffectId,
+			ThingKind.Missile => ThingCatalog.FirstMissileId,
+			_ => 1u,
+		};
+		max = min;
+		return true;
+	}
+
+	private void FlashInvalid(bool fromField)
+	{
+		if (fromField)
+		{
+			FromIdInvalid = true;
+			_fromIdShakeNonce++;
+			OnPropertyChanged(nameof(FromIdShakeNonce));
+			RestartInvalidTimer(ref _fromIdInvalidTimer, () => FromIdInvalid = false);
+		}
+		else
+		{
+			ToIdInvalid = true;
+			_toIdShakeNonce++;
+			OnPropertyChanged(nameof(ToIdShakeNonce));
+			RestartInvalidTimer(ref _toIdInvalidTimer, () => ToIdInvalid = false);
+		}
+	}
+
+	private static void RestartInvalidTimer(ref DispatcherTimer? timer, Action clear)
+	{
+		timer?.Stop();
+		timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+		var captured = timer;
+		timer.Tick += (_, _) =>
+		{
+			captured.Stop();
+			clear();
+		};
+		timer.Start();
+	}
+
 	private void NotifyInputsChanged()
 	{
+		RefreshTargetBounds();
 		OnPropertyChanged(nameof(CanReplace));
 		ReplaceCommand.NotifyCanExecuteChanged();
 		HasError = false;
