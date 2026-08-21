@@ -124,7 +124,8 @@ public sealed class PreparedReplacementBatch
 		IReadOnlyDictionary<uint, byte[]> spritePixels,
 		IReadOnlyList<ReplacementSkippedId> skipped,
 		string? error,
-		IReadOnlyList<string>? warnings = null)
+		IReadOnlyList<string>? warnings = null,
+		IReadOnlyDictionary<uint, byte[]>? discardedSpritePixels = null)
 	{
 		Request = request;
 		Things = things;
@@ -132,11 +133,13 @@ public sealed class PreparedReplacementBatch
 		Skipped = skipped;
 		Error = error;
 		Warnings = warnings ?? Array.Empty<string>();
+		DiscardedSpritePixels = discardedSpritePixels ?? new Dictionary<uint, byte[]>();
 	}
 
 	public AssetReplacementRequest Request { get; }
 	public IReadOnlyList<ThingType> Things { get; }
 	public IReadOnlyDictionary<uint, byte[]> SpritePixels { get; }
+	public IReadOnlyDictionary<uint, byte[]> DiscardedSpritePixels { get; }
 	public IReadOnlyList<ReplacementSkippedId> Skipped { get; }
 	public IReadOnlyList<string> Warnings { get; }
 	public string? Error { get; }
@@ -329,6 +332,7 @@ public static class AssetReplacementService
 	private static PreparedReplacementBatch PrepareSprites(AssetReplacementRequest request)
 	{
 		var pixels = new Dictionary<uint, byte[]>();
+		var discarded = new Dictionary<uint, byte[]>();
 		var skipped = new List<ReplacementSkippedId>();
 
 		ForEachId(request.FromId, request.ToId, id =>
@@ -338,12 +342,7 @@ public static class AssetReplacementService
 				skipped.Add(new(id, "Source sprite does not exist."));
 				return;
 			}
-			if (!IsValidTargetSprite(request.TargetPair.SpritePanel, id) && !request.AddMissingTargetIds)
-			{
-				skipped.Add(new(id, "Target sprite does not exist."));
-				return;
-			}
-			if (request.AddMissingTargetIds && !TargetUsesExtendedSpriteIds(request.TargetPair.SpritePanel) && id > ushort.MaxValue)
+			if (!TargetUsesExtendedSpriteIds(request.TargetPair.SpritePanel) && id > ushort.MaxValue)
 			{
 				var targetSprites = request.TargetPair.SpritePanel;
 				skipped.Add(new(id,
@@ -362,7 +361,18 @@ public static class AssetReplacementService
 					skipped.Add(new(id, "Source sprite data is incomplete."));
 					return;
 				}
-				pixels[id] = rgba.ToArray();
+				rgba = rgba.ToArray();
+				if (IsValidTargetSprite(request.TargetPair.SpritePanel, id))
+				{
+					var existing = request.TargetPair.SpritePanel.Loader.LoadSpritePixels(id);
+					if (existing.AsSpan().SequenceEqual(rgba))
+					{
+						skipped.Add(new(id, "Source and target pixels are identical."));
+						return;
+					}
+					discarded[id] = existing.ToArray();
+				}
+				pixels[id] = rgba;
 			}
 			catch (Exception ex)
 			{
@@ -370,7 +380,7 @@ public static class AssetReplacementService
 			}
 		});
 
-		return FinishPreparation(request, Array.Empty<ThingType>(), pixels, skipped);
+		return FinishPreparation(request, Array.Empty<ThingType>(), pixels, skipped, discardedSpritePixels: discarded);
 	}
 
 	private static PreparedReplacementBatch PrepareThings(AssetReplacementRequest request, ThingKind kind)
@@ -857,11 +867,12 @@ public static class AssetReplacementService
 		IReadOnlyList<ThingType> things,
 		IReadOnlyDictionary<uint, byte[]> pixels,
 		IReadOnlyList<ReplacementSkippedId> skipped,
-		IReadOnlyList<string>? warnings = null)
+		IReadOnlyList<string>? warnings = null,
+		IReadOnlyDictionary<uint, byte[]>? discardedSpritePixels = null)
 	{
 		if (things.Count == 0 && pixels.Count == 0)
-			return new PreparedReplacementBatch(request, things, pixels, skipped, "No IDs could be replaced. Review the skipped-ID details below.", warnings);
-		return new PreparedReplacementBatch(request, things, pixels, skipped, null, warnings);
+			return new PreparedReplacementBatch(request, things, pixels, skipped, "No IDs could be replaced. Review the skipped-ID details below.", warnings, discardedSpritePixels);
+		return new PreparedReplacementBatch(request, things, pixels, skipped, null, warnings, discardedSpritePixels);
 	}
 
 	private static PreparedReplacementBatch Invalid(AssetReplacementRequest request, string error) =>

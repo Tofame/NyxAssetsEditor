@@ -40,6 +40,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private ThingKind _selectedThingKind = ThingKind.Item;
 	private uint _fromId = 100;
 	private uint _toId = 100;
+	private bool _keepDiscardedSprites = true;
 	private string _statusText = "Select two different archive pairs and an ID range.";
 	private bool _hasError;
 
@@ -118,6 +119,12 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			if (SetProperty(ref _toId, value))
 				NotifyInputsChanged();
 		}
+	}
+
+	public bool KeepDiscardedSprites
+	{
+		get => _keepDiscardedSprites;
+		set => SetProperty(ref _keepDiscardedSprites, value);
 	}
 
 	public string StatusText
@@ -227,6 +234,18 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			while (_undoHistory.Count > Math.Max(1, SettingsViewModel.UndoLimit))
 				_undoHistory.RemoveAt(0);
 			NotifyHistoryChanged();
+			if (IsSpritesMode && KeepDiscardedSprites && batch.DiscardedSpritePixels.Count > 0)
+			{
+				try
+				{
+					var folder = SpriteReplacementBackup.Write(batch.DiscardedSpritePixels, DateTime.Now);
+					StatusText += $"{Environment.NewLine}Saved {batch.DiscardedSpritePixels.Count} discarded sprite(s) to {folder}.";
+				}
+				catch (Exception ex)
+				{
+					StatusText += $"{Environment.NewLine}Replacement succeeded, but discarded sprites could not be saved: {ex.Message}";
+				}
+			}
 		}
 	}
 

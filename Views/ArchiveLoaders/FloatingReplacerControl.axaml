@@ -119,6 +119,10 @@
 						</StackPanel>
 					</Grid>
 
+					<CheckBox IsVisible="{Binding IsSpritesMode}" IsChecked="{Binding KeepDiscardedSprites}"
+						Content="Keep Discarded Sprites"
+						ToolTip.Tip="When source and target pixels differ, save the overwritten target sprite as PNG under the app runtime folder replacer_backup, named {timestamp}_{sprite_id}.png. Identical sprites are not backed up. On by default."/>
+
 					<Border IsVisible="{Binding IsThingsMode}" Background="#332A1600" BorderBrush="#8A6A2A" BorderThickness="1" CornerRadius="4" Padding="9">
 						<TextBlock Foreground="#E6C36A" FontSize="11" TextWrapping="Wrap"
 							Text="Frame conversion: extra unique source sprites are appended and remapped. If the source has fewer frames, surplus target sprites are kept and may become unreferenced; Replacer never deletes them automatically."/>
