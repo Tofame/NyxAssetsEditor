@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
+using NyxAssetsEditor.Services.Exchange;
+using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.Services.Replacement;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Common;
@@ -28,11 +31,71 @@ public sealed class ReplacementArchivePairViewModel
 	public string ToolTipText => _presentation.ToolTipText;
 }
 
+public sealed class ReplacementPreviewRowViewModel : ViewModelBase
+{
+	private readonly FloatingReplacerViewModel _owner;
+	private WriteableBitmap? _currentPreview;
+	private WriteableBitmap? _incomingPreview;
+	private bool _currentRequested;
+	private bool _incomingRequested;
+
+	public ReplacementPreviewRowViewModel(FloatingReplacerViewModel owner, uint id, bool hasCurrent, bool hasIncoming)
+	{
+		_owner = owner;
+		Id = id;
+		HasCurrent = hasCurrent;
+		HasIncoming = hasIncoming;
+	}
+
+	public uint Id { get; }
+	public string IdText => $"#{Id}";
+	public bool HasCurrent { get; }
+	public bool HasIncoming { get; }
+	public string CurrentHint => HasCurrent ? string.Empty : "none";
+	public string IncomingHint => HasIncoming ? string.Empty : "none";
+
+	public WriteableBitmap? CurrentPreview
+	{
+		get
+		{
+			if (_currentPreview == null && !_currentRequested && HasCurrent)
+			{
+				_currentRequested = true;
+				_currentPreview = _owner.RenderPreview(targetSide: true, Id);
+			}
+			return _currentPreview;
+		}
+	}
+
+	public WriteableBitmap? IncomingPreview
+	{
+		get
+		{
+			if (_incomingPreview == null && !_incomingRequested && HasIncoming)
+			{
+				_incomingRequested = true;
+				_incomingPreview = _owner.RenderPreview(targetSide: false, Id);
+			}
+			return _incomingPreview;
+		}
+	}
+
+	public void DisposePreviews()
+	{
+		_currentPreview?.Dispose();
+		_incomingPreview?.Dispose();
+		_currentPreview = null;
+		_incomingPreview = null;
+	}
+}
+
 public partial class FloatingReplacerViewModel : PanelViewModelBase
 {
-	public const double DefaultPanelWidth = 580;
+	public const double DefaultPanelWidth = 1160;
 	public const double DefaultContentHeight = 540;
+	private const int MaxPreviewRows = 400;
 	private readonly AssetsViewModel _parent;
+	private readonly SpriteRenderer _renderer = new();
 	private readonly List<AppliedReplacementTransaction> _undoHistory = new();
 	private readonly List<AppliedReplacementTransaction> _redoHistory = new();
 	private ReplacementArchivePairViewModel? _selectedSourcePair;
@@ -62,7 +125,9 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 
 	public string Title => "Replacer";
 	public ObservableCollection<ReplacementArchivePairViewModel> ArchivePairs { get; } = new();
+	public ObservableCollection<ReplacementPreviewRowViewModel> PreviewRows { get; } = new();
 	public Array ThingKinds { get; } = Enum.GetValues<ThingKind>();
+	public string PreviewCaption { get; private set; } = "Preview";
 
 	public ReplacementArchivePairViewModel? SelectedSourcePair
 	{
@@ -278,6 +343,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 				}
 			}
 		}
+		RefreshPreviewRows();
 	}
 
 	[RelayCommand(CanExecute = nameof(CanUndo))]
@@ -296,6 +362,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		HasError = false;
 		StatusText = "Undid the last replacement.";
 		NotifyHistoryChanged();
+		RefreshPreviewRows();
 	}
 
 	[RelayCommand(CanExecute = nameof(CanRedo))]
@@ -314,6 +381,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		HasError = false;
 		StatusText = "Redid the last replacement.";
 		NotifyHistoryChanged();
+		RefreshPreviewRows();
 	}
 
 	private bool CanUndo() => _undoHistory.Count > 0;
@@ -560,10 +628,92 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		RefreshTargetBounds();
 		OnPropertyChanged(nameof(CanReplace));
 		ReplaceCommand.NotifyCanExecuteChanged();
+		RefreshPreviewRows();
 		HasError = false;
 		StatusText = ArchivePairs.Count < 2
 			? "Load at least two linked archive pairs to use Replacer."
 			: $"Ready to replace IDs {FromId}-{ToId}.";
+	}
+
+	public WriteableBitmap? RenderPreview(bool targetSide, uint id)
+	{
+		var pair = (targetSide ? SelectedTargetPair : SelectedSourcePair)?.Pair;
+		if (pair == null)
+			return null;
+		try
+		{
+			if (IsSpritesMode)
+			{
+				if (!pair.SpritePanel.IsArchiveLoaded)
+					return null;
+				var loader = pair.SpritePanel.Loader;
+				if (id == 0 || id > loader.SpriteCount)
+					return null;
+				return _renderer.Convert(loader.LoadSpritePixels(id));
+			}
+
+			var catalog = pair.ThingsPanel.Catalog;
+			if (catalog == null || !pair.SpritePanel.IsArchiveLoaded)
+				return null;
+			var thing = ThingExchangeHelper.GetThingFromCatalog(catalog, SelectedThingKind, id);
+			if (thing == null)
+				return null;
+			var preview = ThingPreviewRenderer.RenderPreview(thing, pair.SpritePanel.Loader);
+			return preview == null ? null : _renderer.ConvertRgba(preview.Width, preview.Height, preview.Pixels);
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private void RefreshPreviewRows()
+	{
+		foreach (var row in PreviewRows)
+			row.DisposePreviews();
+		PreviewRows.Clear();
+
+		if (SelectedSourcePair == null
+			|| SelectedTargetPair == null
+			|| ReferenceEquals(SelectedSourcePair.Pair, SelectedTargetPair.Pair)
+			|| !TryGetValidRange(out var fromId, out var toId))
+		{
+			PreviewCaption = "Preview";
+			OnPropertyChanged(nameof(PreviewCaption));
+			return;
+		}
+
+		var total = toId - fromId + 1;
+		var count = (int)Math.Min(total, MaxPreviewRows);
+		for (var i = 0; i < count; i++)
+		{
+			var id = fromId + (uint)i;
+			PreviewRows.Add(new ReplacementPreviewRowViewModel(
+				this,
+				id,
+				AssetExists(SelectedTargetPair.Pair, id),
+				AssetExists(SelectedSourcePair.Pair, id)));
+		}
+
+		PreviewCaption = total > MaxPreviewRows
+			? $"Preview (first {MaxPreviewRows} of {total})"
+			: $"Preview ({total})";
+		OnPropertyChanged(nameof(PreviewCaption));
+	}
+
+	private bool AssetExists(LinkedArchivePair pair, uint id)
+	{
+		try
+		{
+			if (IsSpritesMode)
+				return pair.SpritePanel.IsArchiveLoaded && id > 0 && id <= pair.SpritePanel.Loader.SpriteCount;
+			var catalog = pair.ThingsPanel.Catalog;
+			return catalog != null && ThingExchangeHelper.GetThingFromCatalog(catalog, SelectedThingKind, id) != null;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	private static string FormatStatus(

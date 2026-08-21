@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+			 xmlns:common="using:NyxAssetsEditor.Views.Common"
 			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingReplacerControl"
 			 x:DataType="vm:FloatingReplacerViewModel"
 			 x:CompileBindings="False"
@@ -27,6 +28,10 @@
 			<Setter Property="BorderBrush" Value="#3A3A3A"/>
 			<Setter Property="Foreground" Value="#666"/>
 			<Setter Property="Opacity" Value="0.85"/>
+		</Style>
+		<Style Selector="ListBoxItem.preview-row">
+			<Setter Property="Padding" Value="6,5"/>
+			<Setter Property="Background" Value="Transparent"/>
 		</Style>
 	</UserControl.Styles>
 	<Border Background="#252525" BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="8" BoxShadow="0 4 12 0 #7F000000">
@@ -58,34 +63,11 @@
 				</Grid>
 			</Border>
 
-			<ScrollViewer Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+			<Grid Grid.Row="1" IsVisible="{Binding !IsMinimized}" Height="{Binding DisplayHeight}" ColumnDefinitions="*,252">
+			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<StackPanel Spacing="14" Margin="16">
 					<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
 						<StackPanel Spacing="4">
-							<StackPanel Orientation="Horizontal" Spacing="5">
-								<TextBlock Text="Take from" Classes="label" VerticalAlignment="Center"/>
-								<Border Width="14" Height="14" CornerRadius="7" Background="#333" BorderBrush="#666"
-									BorderThickness="1" VerticalAlignment="Center" Cursor="Help">
-									<ToolTip.Tip>
-										<TextBlock MaxWidth="300" TextWrapping="Wrap"
-											Text="Read-only input for this replace. Replacer copies Things or Sprites from this pair's ID range — the source archive itself is never modified."/>
-									</ToolTip.Tip>
-									<TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#AAA"
-										HorizontalAlignment="Center" VerticalAlignment="Center"/>
-								</Border>
-							</StackPanel>
-							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedSourcePair}" PlaceholderText="No archive to copy from">
-								<ComboBox.ItemTemplate>
-									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
-										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
-											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
-										</StackPanel>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
-						</StackPanel>
-						<StackPanel Grid.Column="1" Spacing="4">
 							<StackPanel Orientation="Horizontal" Spacing="5">
 								<TextBlock Text="Replace in" Classes="label" VerticalAlignment="Center"/>
 								<Border Width="14" Height="14" CornerRadius="7" Background="#333" BorderBrush="#666"
@@ -99,6 +81,30 @@
 								</Border>
 							</StackPanel>
 							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedTargetPair}" PlaceholderText="No archive to replace in">
+								<ComboBox.ItemTemplate>
+									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
+										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
+											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
+										</StackPanel>
+									</DataTemplate>
+								</ComboBox.ItemTemplate>
+							</ComboBox>
+						</StackPanel>
+						<StackPanel Grid.Column="1" Spacing="4">
+							<StackPanel Orientation="Horizontal" Spacing="5">
+								<TextBlock Text="Take from" Classes="label" VerticalAlignment="Center"/>
+								<Border Width="14" Height="14" CornerRadius="7" Background="#333" BorderBrush="#666"
+									BorderThickness="1" VerticalAlignment="Center" Cursor="Help">
+									<ToolTip.Tip>
+										<TextBlock MaxWidth="300" TextWrapping="Wrap"
+											Text="Read-only input for this replace. Replacer copies Things or Sprites from this pair's ID range — the source archive itself is never modified."/>
+									</ToolTip.Tip>
+									<TextBlock Text="i" FontSize="9" FontWeight="Bold" Foreground="#AAA"
+										HorizontalAlignment="Center" VerticalAlignment="Center"/>
+								</Border>
+							</StackPanel>
+							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedSourcePair}" PlaceholderText="No archive to copy from">
 								<ComboBox.ItemTemplate>
 									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
 										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
@@ -159,6 +165,52 @@
 						HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,8"/>
 				</StackPanel>
 			</ScrollViewer>
+
+			<Border Grid.Column="1" Background="#1A1A1A" BorderBrush="#3C3C3C" BorderThickness="1,0,0,0">
+				<Grid RowDefinitions="Auto,Auto,*">
+					<TextBlock Text="{Binding PreviewCaption}" Classes="label" Margin="10,10,10,4"/>
+					<Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="8,0,8,6">
+						<TextBlock Text="Now" FontSize="10" Foreground="#888" HorizontalAlignment="Center"/>
+						<Image Grid.Column="1" Source="/Assets/Icons/arrow-circle-right.png" Width="14" Height="14" Margin="4,0"
+							VerticalAlignment="Center" Stretch="Uniform"/>
+						<TextBlock Grid.Column="2" Text="After" FontSize="10" Foreground="#888" HorizontalAlignment="Center"/>
+					</Grid>
+					<ListBox Grid.Row="2" ItemsSource="{Binding PreviewRows}" Background="Transparent" BorderThickness="0"
+						Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+						<ListBox.Styles>
+							<Style Selector="ListBoxItem">
+								<Setter Property="Padding" Value="6,4"/>
+								<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							</Style>
+						</ListBox.Styles>
+						<ListBox.ItemTemplate>
+							<DataTemplate x:DataType="vm:ReplacementPreviewRowViewModel">
+								<Grid ColumnDefinitions="*,Auto,*">
+									<StackPanel Spacing="2" HorizontalAlignment="Center">
+										<Border Width="40" Height="40" Background="#111" CornerRadius="3" ClipToBounds="True">
+											<common:IntegerScaledImage Source="{Binding CurrentPreview}" Width="40" Height="40"/>
+										</Border>
+										<TextBlock Text="{Binding IdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
+										<TextBlock Text="{Binding CurrentHint}" FontSize="9" Foreground="#777" HorizontalAlignment="Center"
+											IsVisible="{Binding !HasCurrent}"/>
+									</StackPanel>
+									<Image Grid.Column="1" Source="/Assets/Icons/arrow-circle-right.png" Width="14" Height="14"
+										Margin="6,12,6,0" VerticalAlignment="Top" Stretch="Uniform"/>
+									<StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Center">
+										<Border Width="40" Height="40" Background="#111" CornerRadius="3" ClipToBounds="True">
+											<common:IntegerScaledImage Source="{Binding IncomingPreview}" Width="40" Height="40"/>
+										</Border>
+										<TextBlock Text="{Binding IdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
+										<TextBlock Text="{Binding IncomingHint}" FontSize="9" Foreground="#777" HorizontalAlignment="Center"
+											IsVisible="{Binding !HasIncoming}"/>
+									</StackPanel>
+								</Grid>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</Grid>
+			</Border>
+			</Grid>
 
 			<Border Name="ResizeLeft" Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
 			<Border Name="ResizeRight" Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
