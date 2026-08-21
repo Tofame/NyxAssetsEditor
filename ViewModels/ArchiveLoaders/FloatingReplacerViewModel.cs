@@ -39,16 +39,19 @@ public sealed class ReplacementPreviewRowViewModel : ViewModelBase
 	private bool _currentRequested;
 	private bool _incomingRequested;
 
-	public ReplacementPreviewRowViewModel(FloatingReplacerViewModel owner, uint id, bool hasCurrent, bool hasIncoming)
+	public ReplacementPreviewRowViewModel(FloatingReplacerViewModel owner, uint currentId, uint incomingId, bool hasCurrent, bool hasIncoming)
 	{
 		_owner = owner;
-		Id = id;
+		CurrentId = currentId;
+		IncomingId = incomingId;
 		HasCurrent = hasCurrent;
 		HasIncoming = hasIncoming;
 	}
 
-	public uint Id { get; }
-	public string IdText => $"#{Id}";
+	public uint CurrentId { get; }
+	public uint IncomingId { get; }
+	public string CurrentIdText => $"#{CurrentId}";
+	public string IncomingIdText => $"#{IncomingId}";
 	public bool HasCurrent { get; }
 	public bool HasIncoming { get; }
 	public string CurrentHint => HasCurrent ? string.Empty : "none";
@@ -61,7 +64,7 @@ public sealed class ReplacementPreviewRowViewModel : ViewModelBase
 			if (_currentPreview == null && !_currentRequested && HasCurrent)
 			{
 				_currentRequested = true;
-				_currentPreview = _owner.RenderPreview(targetSide: true, Id);
+				_currentPreview = _owner.RenderPreview(targetSide: true, CurrentId);
 			}
 			return _currentPreview;
 		}
@@ -74,7 +77,7 @@ public sealed class ReplacementPreviewRowViewModel : ViewModelBase
 			if (_incomingPreview == null && !_incomingRequested && HasIncoming)
 			{
 				_incomingRequested = true;
-				_incomingPreview = _owner.RenderPreview(targetSide: false, Id);
+				_incomingPreview = _owner.RenderPreview(targetSide: false, IncomingId);
 			}
 			return _incomingPreview;
 		}
@@ -104,6 +107,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private ThingKind _selectedThingKind = ThingKind.Item;
 	private decimal? _fromId = 100;
 	private decimal? _toId = 100;
+	private decimal? _targetOffset = 0;
 	private bool _keepDiscardedSprites = true;
 	private string _statusText = "Select two different archive pairs and an ID range.";
 	private bool _hasError;
@@ -192,6 +196,26 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		get => _toId;
 		set => SetDraftId(ref _toId, value, nameof(ToId), raisingFrom: false);
 	}
+
+	public decimal? TargetOffset
+	{
+		get => _targetOffset;
+		set
+		{
+			if (value != null && value != decimal.Truncate(value.Value))
+			{
+				OnPropertyChanged(nameof(TargetOffset));
+				return;
+			}
+			if (SetProperty(ref _targetOffset, value))
+				NotifyInputsChanged();
+		}
+	}
+
+	public string MappedTargetRangeText { get; private set; } = string.Empty;
+
+	public decimal SourceMinId { get; private set; } = 1;
+	public decimal SourceMaxId { get; private set; } = 1;
 
 	public decimal TargetMinId { get; private set; } = 1;
 	public decimal TargetMaxId { get; private set; } = 1;
@@ -301,7 +325,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	[RelayCommand(CanExecute = nameof(CanReplace))]
 	private void Replace()
 	{
-		if (SelectedSourcePair == null || SelectedTargetPair == null || !TryGetValidRange(out var fromId, out var toId))
+		if (SelectedSourcePair == null || SelectedTargetPair == null || !TryGetValidRange(out var fromId, out var toId, out var offset))
 			return;
 
 		var request = new AssetReplacementRequest(
@@ -311,7 +335,8 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			IsThingsMode ? SelectedThingKind : null,
 			fromId,
 			toId,
-			AddMissingTargetIds: true);
+			AddMissingTargetIds: true,
+			TargetOffset: offset);
 		var batch = AssetReplacementService.Prepare(request);
 		if (!batch.CanApply)
 		{
@@ -395,7 +420,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 
 	public void CommitIdField(bool fromField)
 	{
-		if (!TryGetTargetBounds(out var min, out var max))
+		if (!TryGetSourceBounds(out var min, out var max))
 			return;
 
 		if (fromField)
@@ -483,13 +508,52 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		NotifyInputsChanged();
 	}
 
-	private bool TryGetValidRange(out uint from, out uint to)
+	private bool TryGetValidRange(out uint from, out uint to) =>
+		TryGetValidRange(out from, out to, out _);
+
+	private bool TryGetValidRange(out uint from, out uint to, out int offset)
 	{
 		from = 0;
 		to = 0;
-		if (!TryGetTargetBounds(out var min, out var max))
+		offset = 0;
+		if (!TryGetSourceBounds(out var sourceMin, out var sourceMax))
 			return false;
-		return IsIdInBounds(_fromId, min, max, out from) && IsIdInBounds(_toId, min, max, out to) && to >= from;
+		if (!IsIdInBounds(_fromId, sourceMin, sourceMax, out from) || !IsIdInBounds(_toId, sourceMin, sourceMax, out to) || to < from)
+			return false;
+		if (!TryReadOffset(out offset))
+			return false;
+		if (!TryMapTargetId(from, offset, out var targetFrom) || !TryMapTargetId(to, offset, out var targetTo))
+			return false;
+		if (!TryGetTargetBounds(out var targetMin, out _))
+			return false;
+		return targetFrom >= targetMin && targetTo >= targetMin;
+	}
+
+	private bool TryReadOffset(out int offset)
+	{
+		offset = 0;
+		if (_targetOffset == null)
+		{
+			offset = 0;
+			return true;
+		}
+		if (_targetOffset != decimal.Truncate(_targetOffset.Value)
+			|| _targetOffset < int.MinValue || _targetOffset > int.MaxValue)
+			return false;
+		offset = (int)_targetOffset.Value;
+		return true;
+	}
+
+	private static bool TryMapTargetId(uint sourceId, int offset, out uint targetId)
+	{
+		var mapped = (long)sourceId + offset;
+		if (mapped < 1 || mapped > uint.MaxValue)
+		{
+			targetId = 0;
+			return false;
+		}
+		targetId = (uint)mapped;
+		return true;
 	}
 
 	private static bool IsIdInBounds(decimal? value, uint min, uint max, out uint id)
@@ -516,7 +580,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private void ClampRangeToTarget()
 	{
 		RefreshTargetBounds();
-		if (!TryGetTargetBounds(out var min, out var max))
+		if (!TryGetSourceBounds(out var min, out var max))
 			return;
 		_syncingRange = true;
 		try
@@ -546,33 +610,50 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 			TargetMinId = 1;
 			TargetMaxId = uint.MaxValue;
 		}
+		if (TryGetSourceBounds(out var sourceMin, out var sourceMax))
+		{
+			SourceMinId = sourceMin;
+			SourceMaxId = sourceMax;
+		}
+		else
+		{
+			SourceMinId = 1;
+			SourceMaxId = uint.MaxValue;
+		}
 		OnPropertyChanged(nameof(TargetMinId));
 		OnPropertyChanged(nameof(TargetMaxId));
+		OnPropertyChanged(nameof(SourceMinId));
+		OnPropertyChanged(nameof(SourceMaxId));
 	}
 
-	private bool TryGetTargetBounds(out uint min, out uint max)
+	private bool TryGetSourceBounds(out uint min, out uint max) =>
+		TryGetPairBounds(SelectedSourcePair?.Pair, out min, out max);
+
+	private bool TryGetTargetBounds(out uint min, out uint max) =>
+		TryGetPairBounds(SelectedTargetPair?.Pair, out min, out max);
+
+	private bool TryGetPairBounds(LinkedArchivePair? pair, out uint min, out uint max)
 	{
 		min = 1;
 		max = uint.MaxValue;
-		var target = SelectedTargetPair?.Pair;
-		if (target == null)
+		if (pair == null)
 			return false;
 
 		if (IsSpritesMode)
 		{
-			if (!target.SpritePanel.IsArchiveLoaded)
+			if (!pair.SpritePanel.IsArchiveLoaded)
 				return false;
-			var count = target.SpritePanel.Loader.SpriteCount;
+			var count = pair.SpritePanel.Loader.SpriteCount;
 			min = 1;
 			max = count == 0 ? 1u : count;
 			return true;
 		}
 
-		var catalog = target.ThingsPanel.Catalog;
+		var catalog = pair.ThingsPanel.Catalog;
 		if (catalog == null)
 			return false;
 
-		var things = target.ThingsPanel.EnumerateThings(SelectedThingKind);
+		var things = pair.ThingsPanel.EnumerateThings(SelectedThingKind);
 		if (things.Count > 0)
 		{
 			min = things.Min(thing => thing.Id);
@@ -632,7 +713,17 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		HasError = false;
 		StatusText = ArchivePairs.Count < 2
 			? "Load at least two linked archive pairs to use Replacer."
-			: $"Ready to replace IDs {FromId}-{ToId}.";
+			: TryGetValidRange(out var fromId, out var toId, out var offset)
+				&& TryMapTargetId(fromId, offset, out var targetFrom)
+				&& TryMapTargetId(toId, offset, out var targetTo)
+				? $"Ready to copy IDs {fromId}-{toId} onto target IDs {targetFrom}-{targetTo}."
+				: $"Ready to replace IDs {FromId}-{ToId}.";
+		MappedTargetRangeText = TryGetValidRange(out fromId, out toId, out offset)
+			&& TryMapTargetId(fromId, offset, out targetFrom)
+			&& TryMapTargetId(toId, offset, out targetTo)
+			? $"Writes to {targetFrom}–{targetTo}"
+			: string.Empty;
+		OnPropertyChanged(nameof(MappedTargetRangeText));
 	}
 
 	public WriteableBitmap? RenderPreview(bool targetSide, uint id)
@@ -676,7 +767,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		if (SelectedSourcePair == null
 			|| SelectedTargetPair == null
 			|| ReferenceEquals(SelectedSourcePair.Pair, SelectedTargetPair.Pair)
-			|| !TryGetValidRange(out var fromId, out var toId))
+			|| !TryGetValidRange(out var fromId, out var toId, out var offset))
 		{
 			PreviewCaption = "Preview";
 			OnPropertyChanged(nameof(PreviewCaption));
@@ -687,12 +778,15 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		var count = (int)Math.Min(total, MaxPreviewRows);
 		for (var i = 0; i < count; i++)
 		{
-			var id = fromId + (uint)i;
+			var sourceId = fromId + (uint)i;
+			if (!TryMapTargetId(sourceId, offset, out var targetId))
+				continue;
 			PreviewRows.Add(new ReplacementPreviewRowViewModel(
 				this,
-				id,
-				AssetExists(SelectedTargetPair.Pair, id),
-				AssetExists(SelectedSourcePair.Pair, id)));
+				targetId,
+				sourceId,
+				AssetExists(SelectedTargetPair.Pair, targetId),
+				AssetExists(SelectedSourcePair.Pair, sourceId)));
 		}
 
 		PreviewCaption = total > MaxPreviewRows

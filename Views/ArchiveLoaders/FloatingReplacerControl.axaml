@@ -132,14 +132,20 @@
 						</StackPanel>
 					</Grid>
 
-					<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
 						<StackPanel Spacing="4">
 							<TextBlock Text="From ID" Classes="label"/>
-							<NumericUpDown x:Name="FromIdInput" Value="{Binding FromId}" Minimum="0" Maximum="{Binding TargetMaxId}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Classes.invalid="{Binding FromIdInvalid}"/>
+							<NumericUpDown x:Name="FromIdInput" Value="{Binding FromId}" Minimum="0" Maximum="{Binding SourceMaxId}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Classes.invalid="{Binding FromIdInvalid}"/>
 						</StackPanel>
 						<StackPanel Grid.Column="1" Spacing="4">
 							<TextBlock Text="To ID (inclusive)" Classes="label"/>
-							<NumericUpDown x:Name="ToIdInput" Value="{Binding ToId}" Minimum="0" Maximum="{Binding TargetMaxId}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Classes.invalid="{Binding ToIdInvalid}"/>
+							<NumericUpDown x:Name="ToIdInput" Value="{Binding ToId}" Minimum="0" Maximum="{Binding SourceMaxId}" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Classes.invalid="{Binding ToIdInvalid}"/>
+						</StackPanel>
+						<StackPanel Grid.Column="2" Spacing="4">
+							<TextBlock Text="Target offset" Classes="label"/>
+							<NumericUpDown Value="{Binding TargetOffset}" Increment="1" FormatString="0" ParsingNumberStyle="Integer"
+								ToolTip.Tip="Added to each Take from ID to choose the Replace in ID. 0 keeps the same IDs. Example: 100–200 with offset 100 writes 200–300."/>
+							<TextBlock Text="{Binding MappedTargetRangeText}" FontSize="10" Foreground="#888"/>
 						</StackPanel>
 					</Grid>
 
@@ -190,7 +196,7 @@
 										<Border Width="40" Height="40" Background="#111" CornerRadius="3" ClipToBounds="True">
 											<common:IntegerScaledImage Source="{Binding CurrentPreview}" Width="40" Height="40"/>
 										</Border>
-										<TextBlock Text="{Binding IdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
+										<TextBlock Text="{Binding CurrentIdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
 										<TextBlock Text="{Binding CurrentHint}" FontSize="9" Foreground="#777" HorizontalAlignment="Center"
 											IsVisible="{Binding !HasCurrent}"/>
 									</StackPanel>
@@ -200,7 +206,7 @@
 										<Border Width="40" Height="40" Background="#111" CornerRadius="3" ClipToBounds="True">
 											<common:IntegerScaledImage Source="{Binding IncomingPreview}" Width="40" Height="40"/>
 										</Border>
-										<TextBlock Text="{Binding IdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
+										<TextBlock Text="{Binding IncomingIdText}" FontSize="10" Foreground="#BBB" HorizontalAlignment="Center"/>
 										<TextBlock Text="{Binding IncomingHint}" FontSize="9" Foreground="#777" HorizontalAlignment="Center"
 											IsVisible="{Binding !HasIncoming}"/>
 									</StackPanel>

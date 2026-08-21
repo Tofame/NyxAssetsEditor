@@ -25,7 +25,8 @@ public sealed record AssetReplacementRequest(
 	ThingKind? ThingKind,
 	uint FromId,
 	uint ToId,
-	bool AddMissingTargetIds);
+	bool AddMissingTargetIds,
+	int TargetOffset = 0);
 
 public sealed record ReplacementSkippedId(uint Id, string Reason);
 
@@ -169,6 +170,9 @@ public static class AssetReplacementService
 			return Invalid(request, "IDs must be greater than zero.");
 		if (request.FromId > request.ToId)
 			return Invalid(request, "From ID must be less than or equal to To ID.");
+		if (!TryMapTargetId(request.FromId, request.TargetOffset, out _)
+			|| !TryMapTargetId(request.ToId, request.TargetOffset, out _))
+			return Invalid(request, "The target offset maps the ID range outside valid IDs.");
 		if (request.Mode == AssetReplacementMode.Things && request.ThingKind == null)
 			return Invalid(request, "Select a Thing category.");
 		if (!request.SourcePair.SpritePanel.IsArchiveLoaded || !request.TargetPair.SpritePanel.IsArchiveLoaded)
@@ -335,48 +339,53 @@ public static class AssetReplacementService
 		var discarded = new Dictionary<uint, byte[]>();
 		var skipped = new List<ReplacementSkippedId>();
 
-		ForEachId(request.FromId, request.ToId, id =>
+		ForEachId(request.FromId, request.ToId, sourceId =>
 		{
-			if (!IsValidSourceSprite(request.SourcePair.SpritePanel, id))
+			if (!TryMapTargetId(sourceId, request.TargetOffset, out var targetId))
 			{
-				skipped.Add(new(id, "Source sprite does not exist."));
+				skipped.Add(new(sourceId, "Target offset maps this ID outside the valid range."));
 				return;
 			}
-			if (!TargetUsesExtendedSpriteIds(request.TargetPair.SpritePanel) && id > ushort.MaxValue)
+			if (!IsValidSourceSprite(request.SourcePair.SpritePanel, sourceId))
+			{
+				skipped.Add(new(sourceId, "Source sprite does not exist."));
+				return;
+			}
+			if (!TargetUsesExtendedSpriteIds(request.TargetPair.SpritePanel) && targetId > ushort.MaxValue)
 			{
 				var targetSprites = request.TargetPair.SpritePanel;
-				skipped.Add(new(id,
+				skipped.Add(new(sourceId,
 					$"Raw Sprite replacement preserves IDs, but the target archive was detected as legacy " +
 					$"(16-bit sprite IDs, signature 0x{targetSprites.Loader.SprSignature:X8}). " +
-					$"Source sprite #{id} would require target sprite #{id}; the highest supported target ID is #65535. " +
+					$"Source sprite #{sourceId} would require target sprite #{targetId}; the highest supported target ID is #65535. " +
 					$"The target currently reports {targetSprites.Loader.SpriteCount} sprite(s)."));
 				return;
 			}
 
 			try
 			{
-				var rgba = request.SourcePair.SpritePanel.Loader.LoadSpritePixels(id);
+				var rgba = request.SourcePair.SpritePanel.Loader.LoadSpritePixels(sourceId);
 				if (rgba.Length != SpritePixelCodec.RgbaBufferLength)
 				{
-					skipped.Add(new(id, "Source sprite data is incomplete."));
+					skipped.Add(new(sourceId, "Source sprite data is incomplete."));
 					return;
 				}
 				rgba = rgba.ToArray();
-				if (IsValidTargetSprite(request.TargetPair.SpritePanel, id))
+				if (IsValidTargetSprite(request.TargetPair.SpritePanel, targetId))
 				{
-					var existing = request.TargetPair.SpritePanel.Loader.LoadSpritePixels(id);
+					var existing = request.TargetPair.SpritePanel.Loader.LoadSpritePixels(targetId);
 					if (existing.AsSpan().SequenceEqual(rgba))
 					{
-						skipped.Add(new(id, "Source and target pixels are identical."));
+						skipped.Add(new(sourceId, "Source and target pixels are identical."));
 						return;
 					}
-					discarded[id] = existing.ToArray();
+					discarded[targetId] = existing.ToArray();
 				}
-				pixels[id] = rgba;
+				pixels[targetId] = rgba;
 			}
 			catch (Exception ex)
 			{
-				skipped.Add(new(id, $"Source sprite could not be read: {ex.Message}"));
+				skipped.Add(new(sourceId, $"Source sprite could not be read: {ex.Message}"));
 			}
 		});
 
@@ -397,12 +406,17 @@ public static class AssetReplacementService
 		var nextTargetId = ThingExchangeHelper.GetNextAppendId(targetCatalog, kind);
 		var nextTargetSpriteId = request.TargetPair.SpritePanel.Loader.SpriteCount + 1;
 		var pixelsToTargetId = new Dictionary<SpritePixelKey, uint>();
-		ForEachId(request.FromId, request.ToId, id =>
+		ForEachId(request.FromId, request.ToId, sourceId =>
 		{
-			var rawSourceThing = TryGetThing(sourceCatalog, kind, id);
+			if (!TryMapTargetId(sourceId, request.TargetOffset, out var targetId))
+			{
+				skipped.Add(new(sourceId, "Target offset maps this ID outside the valid range."));
+				return;
+			}
+			var rawSourceThing = TryGetThing(sourceCatalog, kind, sourceId);
 			if (rawSourceThing == null)
 			{
-				skipped.Add(new(id, "Source Thing does not exist."));
+				skipped.Add(new(sourceId, "Source Thing does not exist."));
 				return;
 			}
 			if (!TryCreateTargetCompatibleThing(
@@ -412,19 +426,19 @@ public static class AssetReplacementService
 				out var compatibilityWarnings,
 				out var compatibilityError))
 			{
-				skipped.Add(new(id, compatibilityError));
+				skipped.Add(new(sourceId, compatibilityError));
 				return;
 			}
-			var targetThing = TryGetThing(targetCatalog, kind, id);
+			var targetThing = TryGetThing(targetCatalog, kind, targetId);
 			var addsTargetThing = targetThing == null;
 			if (addsTargetThing && !request.AddMissingTargetIds)
 			{
-				skipped.Add(new(id, "Target Thing does not exist."));
+				skipped.Add(new(sourceId, "Target Thing does not exist."));
 				return;
 			}
-			if (addsTargetThing && id != nextTargetId)
+			if (addsTargetThing && targetId != nextTargetId)
 			{
-				skipped.Add(new(id, $"Target Thing cannot be added until missing target ID #{nextTargetId} is included and replaceable."));
+				skipped.Add(new(sourceId, $"Target Thing cannot be added until missing target ID #{nextTargetId} is included and replaceable."));
 				return;
 			}
 			ThingType replacementThing;
@@ -438,12 +452,13 @@ public static class AssetReplacementService
 				request.TargetPair.SpritePanel,
 				nextTargetSpriteId,
 				proposedPixelsToTargetId,
+				targetId,
 				out proposedNextTargetSpriteId,
 				out replacementThing,
 				out thingPixels,
 				out var reason))
 			{
-				skipped.Add(new(id, reason));
+				skipped.Add(new(sourceId, reason));
 				return;
 			}
 
@@ -453,7 +468,7 @@ public static class AssetReplacementService
 				{
 					if (proposedNextTargetSpriteId == uint.MaxValue)
 					{
-						skipped.Add(new(id, "The target Sprite archive cannot be extended further."));
+						skipped.Add(new(sourceId, "The target Sprite archive cannot be extended further."));
 						return;
 					}
 
@@ -484,7 +499,7 @@ public static class AssetReplacementService
 							$"and this Thing needs {appendedSpriteCount} more, which would require IDs through #{highestRequiredSpriteId}."
 						: $"This replace would write sprite #{highestRequiredSpriteId}. " +
 							$"The archive reports {targetSprites.Loader.SpriteCount} sprite(s); check that the correct client version and Sprite file were loaded.";
-					skipped.Add(new(id,
+					skipped.Add(new(sourceId,
 						$"The target Sprite archive was detected as legacy (16-bit sprite IDs, signature 0x{targetSprites.Loader.SprSignature:X8}), " +
 						$"so its highest supported sprite ID is #65535. {capacityDetails}"));
 					return;
@@ -492,12 +507,12 @@ public static class AssetReplacementService
 			}
 
 			foreach (var warning in compatibilityWarnings)
-				warnings.Add($"#{id}: {warning}");
+				warnings.Add($"#{sourceId}: {warning}");
 			if (targetThing != null)
 				AddFrameConversionWarning(
 					sourceThing,
 					targetThing,
-					id,
+					sourceId,
 					proposedNextTargetSpriteId - nextTargetSpriteId,
 					warnings);
 
@@ -761,6 +776,7 @@ public static class AssetReplacementService
 		FloatingSpriteLoaderViewModel targetSprites,
 		uint firstNewTargetSpriteId,
 		Dictionary<SpritePixelKey, uint> resolvedPixelsToTargetId,
+		uint assignThingId,
 		out uint nextTargetSpriteId,
 		out ThingType replacementThing,
 		out Dictionary<uint, byte[]> pixels,
@@ -783,7 +799,7 @@ public static class AssetReplacementService
 			return false;
 		}
 
-		replacementThing = CloneWithMappedSpriteIds(sourceThing, sourceThing.Id, mappedTargetIds);
+		replacementThing = CloneWithMappedSpriteIds(sourceThing, assignThingId, mappedTargetIds);
 		return true;
 	}
 
@@ -903,6 +919,18 @@ public static class AssetReplacementService
 		{
 			return null;
 		}
+	}
+
+	private static bool TryMapTargetId(uint sourceId, int offset, out uint targetId)
+	{
+		var mapped = (long)sourceId + offset;
+		if (mapped < 1 || mapped > uint.MaxValue)
+		{
+			targetId = 0;
+			return false;
+		}
+		targetId = (uint)mapped;
+		return true;
 	}
 
 	private static void ForEachId(uint fromId, uint toId, Action<uint> action)
