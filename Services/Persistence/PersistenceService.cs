@@ -78,6 +78,13 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool AddonRotateCloneDirectionEnabled { get; set; } = false;
 			public bool AllowRelocatingDirection { get; set; } = false;
 			public string DefaultLaunchSection { get; set; } = "Home";
+			public string LastAssetExportFormat { get; set; } = "png";
+			public string LastAssetExportDirectory { get; set; } = "";
+			public bool LastThingExportSkipWest { get; set; }
+			public bool ThingEditorShowAllDirections { get; set; }
+			public bool ThingEditorShowTimeframe { get; set; }
+			public bool ThingEditorAutoRotate { get; set; }
+			public int ThingEditorRotateSpeedMs { get; set; } = 500;
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
 
@@ -221,7 +228,14 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.AddonDuplicateFrameEnabled,
 							model.AddonRotateCloneDirectionEnabled,
 							model.AllowRelocatingDirection,
-							System.Enum.TryParse<SettingsViewModel.LaunchSection>(model.DefaultLaunchSection, true, out var section) ? section : SettingsViewModel.LaunchSection.Home);
+							System.Enum.TryParse<SettingsViewModel.LaunchSection>(model.DefaultLaunchSection, true, out var section) ? section : SettingsViewModel.LaunchSection.Home,
+							model.LastAssetExportFormat,
+							model.LastAssetExportDirectory,
+							model.LastThingExportSkipWest,
+							model.ThingEditorShowAllDirections,
+							model.ThingEditorShowTimeframe,
+							model.ThingEditorAutoRotate,
+							model.ThingEditorRotateSpeedMs);
 					}
 				}
 			}
@@ -273,6 +287,13 @@ namespace NyxAssetsEditor.Services.Persistence
 					AddonRotateCloneDirectionEnabled = SettingsViewModel.AddonRotateCloneDirectionEnabled,
 					AllowRelocatingDirection = SettingsViewModel.AllowRelocatingDirection,
 					DefaultLaunchSection = SettingsViewModel.DefaultLaunchSection.ToString(),
+					LastAssetExportFormat = SettingsViewModel.LastAssetExportFormat,
+					LastAssetExportDirectory = SettingsViewModel.LastAssetExportDirectory,
+					LastThingExportSkipWest = SettingsViewModel.LastThingExportSkipWest,
+					ThingEditorShowAllDirections = SettingsViewModel.ThingEditorShowAllDirections,
+					ThingEditorShowTimeframe = SettingsViewModel.ThingEditorShowTimeframe,
+					ThingEditorAutoRotate = SettingsViewModel.ThingEditorAutoRotate,
+					ThingEditorRotateSpeedMs = SettingsViewModel.ThingEditorRotateSpeedMs,
 					Slicer = _slicerState
 				};
 				string toml = TomlSerializer.Serialize(model);

@@ -251,6 +251,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		SettingsViewModel.ShowInformationBoxesChanged += OnShowInformationBoxesChanged;
 		SettingsViewModel.AddonSettingsChanged += OnAddonSettingsChanged;
 		LoadThing(thing);
+		ApplyRememberedViewState();
 		PanelWidth = 540;
 		ContentHeight = 680;
 		PositionX = source.PositionX + 40;
@@ -301,6 +302,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		RefreshAppearance();
 	}
 
+	private void ApplyRememberedViewState()
+	{
+		RotateSpeedMs = SettingsViewModel.ThingEditorRotateSpeedMs;
+		ShowTimeframe = SettingsViewModel.ThingEditorShowTimeframe;
+		if (IsOutfit)
+			ShowAllOutfitDirections = SettingsViewModel.ThingEditorShowAllDirections;
+		AutoRotate = SettingsViewModel.ThingEditorAutoRotate;
+	}
+
 	public FloatingThingsLoaderViewModel SourcePanel { get; }
 	public ThingType Thing => _thing;
 
@@ -333,6 +343,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _showAllOutfitDirections, value))
 			{
+				SettingsViewModel.ThingEditorShowAllDirections = value;
 				if (value)
 				{
 					ShowTimeframe = false;
@@ -351,6 +362,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _showTimeframe, value))
 			{
+				SettingsViewModel.ThingEditorShowTimeframe = value;
 				if (value)
 				{
 					ShowAllOutfitDirections = false;
@@ -370,6 +382,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _autoRotate, value))
 			{
+				SettingsViewModel.ThingEditorAutoRotate = value;
 				if (value)
 				{
 					ShowTimeframe = false;
@@ -388,6 +401,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _rotateSpeedMs, value))
 			{
+				SettingsViewModel.ThingEditorRotateSpeedMs = value;
 				if (AutoRotate)
 				{
 					StopRotateTimer();

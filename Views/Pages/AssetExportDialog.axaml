@@ -38,11 +38,11 @@
 						<TextBlock Text="Format" Foreground="#A0A0A0" FontSize="11"/>
 						<Border BorderBrush="#333333" BorderThickness="1" Padding="12" CornerRadius="4" Background="#181818">
 							<WrapPanel Orientation="Horizontal" Name="FormatPanel">
-								<RadioButton Name="PngRadio" Content="PNG" IsChecked="True" Margin="0,0,16,0" FontSize="11"/>
-								<RadioButton Name="BmpRadio" Content="BMP" Margin="0,0,16,0" FontSize="11"/>
-								<RadioButton Name="JpgRadio" Content="JPG" Margin="0,0,16,0" FontSize="11"/>
-								<RadioButton Name="ObdRadio" Content="OBD" Margin="0,0,16,0" FontSize="11"/>
-								<RadioButton Name="NyxRadio" Content="NYX Things" FontSize="11"/>
+								<RadioButton Name="PngRadio" GroupName="AssetExportFormat" Content="PNG" Margin="0,0,16,0" FontSize="11"/>
+								<RadioButton Name="BmpRadio" GroupName="AssetExportFormat" Content="BMP" Margin="0,0,16,0" FontSize="11"/>
+								<RadioButton Name="JpgRadio" GroupName="AssetExportFormat" Content="JPG" Margin="0,0,16,0" FontSize="11"/>
+								<RadioButton Name="ObdRadio" GroupName="AssetExportFormat" Content="OBD" Margin="0,0,16,0" FontSize="11"/>
+								<RadioButton Name="NyxRadio" GroupName="AssetExportFormat" Content="NYX Things" FontSize="11"/>
 							</WrapPanel>
 						</Border>
 					</StackPanel>

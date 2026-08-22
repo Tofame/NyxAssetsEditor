@@ -3,12 +3,16 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.Views.Pages;
 
 public partial class AssetExportDialog : Window
 {
 	private static string _lastExportDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+	private static string _lastThingsFormat = "png";
+	private static string _lastSpritesFormat = "png";
+	private static bool _formatsSeeded;
 	private readonly bool _showThingsFormats;
 
 	public bool IsConfirmed { get; private set; }
@@ -37,7 +41,11 @@ public partial class AssetExportDialog : Window
 	{
 		_showThingsFormats = showThingsFormats;
 		NameInput.Text = defaultName;
-		PathInput.Text = _lastExportDirectory;
+		PathInput.Text = string.IsNullOrWhiteSpace(SettingsViewModel.LastAssetExportDirectory)
+			? _lastExportDirectory
+			: SettingsViewModel.LastAssetExportDirectory;
+		if (Directory.Exists(PathInput.Text))
+			_lastExportDirectory = PathInput.Text;
 
 		if (!showThingsFormats)
 		{
@@ -45,24 +53,91 @@ public partial class AssetExportDialog : Window
 			NyxRadio.IsVisible = false;
 		}
 
+		SeedFormatsFromSettings();
+		SubscribeFormatChanges();
+		ApplyRememberedFormat(CurrentRememberedFormat);
+		if (SkipWestCheckBox != null)
+		{
+			SkipWestCheckBox.IsChecked = showThingsFormats && SettingsViewModel.LastThingExportSkipWest;
+			SkipWestCheckBox.IsCheckedChanged += (_, _) => RememberCurrentChoices(ExportFormat);
+		}
+
 		PathInput.TextChanged += (_, _) => UpdateExportEnabled();
 		UpdateExportEnabled();
-		SubscribeFormatChanges();
 		UpdateSkipWestVisibility();
+	}
+
+	private string CurrentRememberedFormat => SettingsViewModel.NormalizeAssetExportFormat(
+		_showThingsFormats ? _lastThingsFormat : _lastSpritesFormat, _showThingsFormats);
+
+	private static void SeedFormatsFromSettings()
+	{
+		if (_formatsSeeded)
+			return;
+		_lastThingsFormat = SettingsViewModel.NormalizeAssetExportFormat(SettingsViewModel.LastAssetExportFormat, true);
+		_lastSpritesFormat = SettingsViewModel.NormalizeAssetExportFormat(SettingsViewModel.LastAssetExportFormat, false);
+		_formatsSeeded = true;
+	}
+
+	private void ApplyRememberedFormat(string format)
+	{
+		var radio = format switch
+		{
+			"bmp" => BmpRadio,
+			"jpg" => JpgRadio,
+			"obd" => ObdRadio,
+			"nyx-thing" => NyxRadio,
+			_ => PngRadio
+		};
+		if (radio != null)
+			radio.IsChecked = true;
 	}
 
 	private void SubscribeFormatChanges()
 	{
-		if (PngRadio != null) PngRadio.IsCheckedChanged += OnFormatChanged;
-		if (BmpRadio != null) BmpRadio.IsCheckedChanged += OnFormatChanged;
-		if (JpgRadio != null) JpgRadio.IsCheckedChanged += OnFormatChanged;
-		if (ObdRadio != null) ObdRadio.IsCheckedChanged += OnFormatChanged;
-		if (NyxRadio != null) NyxRadio.IsCheckedChanged += OnFormatChanged;
+		HookFormatRadio(PngRadio);
+		HookFormatRadio(BmpRadio);
+		HookFormatRadio(JpgRadio);
+		HookFormatRadio(ObdRadio);
+		HookFormatRadio(NyxRadio);
 	}
+
+	private void HookFormatRadio(RadioButton? radio)
+	{
+		if (radio == null)
+			return;
+		radio.IsCheckedChanged += OnFormatChanged;
+		radio.Click += OnFormatClicked;
+	}
+
+	private void OnFormatClicked(object? sender, RoutedEventArgs e) => RememberFromRadio(sender);
 
 	private void OnFormatChanged(object? sender, RoutedEventArgs e)
 	{
 		UpdateSkipWestVisibility();
+		RememberFromRadio(sender);
+	}
+
+	private void RememberFromRadio(object? sender)
+	{
+		if (sender is not RadioButton radio || radio.IsChecked != true)
+			return;
+		var format = radio == BmpRadio ? "bmp"
+			: radio == JpgRadio ? "jpg"
+			: radio == ObdRadio ? "obd"
+			: radio == NyxRadio ? "nyx-thing"
+			: "png";
+		RememberCurrentChoices(format);
+	}
+
+	private void RememberCurrentChoices(string format)
+	{
+		format = SettingsViewModel.NormalizeAssetExportFormat(format, _showThingsFormats);
+		if (_showThingsFormats)
+			_lastThingsFormat = format;
+		else
+			_lastSpritesFormat = format;
+		SettingsViewModel.RememberAssetExport(format, ExportPath, SkipWestDirection, _showThingsFormats);
 	}
 
 	private void UpdateSkipWestVisibility()
@@ -107,6 +182,7 @@ public partial class AssetExportDialog : Window
 
 		IsConfirmed = true;
 		_lastExportDirectory = ExportPath;
+		RememberCurrentChoices(ExportFormat);
 		Close();
 	}
 

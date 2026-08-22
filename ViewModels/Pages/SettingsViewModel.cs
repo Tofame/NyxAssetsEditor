@@ -641,6 +641,101 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static string _lastAssetExportFormat = "png";
+		public static string LastAssetExportFormat
+		{
+			get => _lastAssetExportFormat;
+			private set => _lastAssetExportFormat = value;
+		}
+
+		private static string _lastAssetExportDirectory = "";
+		public static string LastAssetExportDirectory
+		{
+			get => _lastAssetExportDirectory;
+			private set => _lastAssetExportDirectory = value;
+		}
+
+		private static bool _lastThingExportSkipWest;
+		public static bool LastThingExportSkipWest
+		{
+			get => _lastThingExportSkipWest;
+			private set => _lastThingExportSkipWest = value;
+		}
+
+		private static bool _thingEditorShowAllDirections;
+		public static bool ThingEditorShowAllDirections
+		{
+			get => _thingEditorShowAllDirections;
+			set
+			{
+				if (_thingEditorShowAllDirections == value) return;
+				_thingEditorShowAllDirections = value;
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		private static bool _thingEditorShowTimeframe;
+		public static bool ThingEditorShowTimeframe
+		{
+			get => _thingEditorShowTimeframe;
+			set
+			{
+				if (_thingEditorShowTimeframe == value) return;
+				_thingEditorShowTimeframe = value;
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		private static bool _thingEditorAutoRotate;
+		public static bool ThingEditorAutoRotate
+		{
+			get => _thingEditorAutoRotate;
+			set
+			{
+				if (_thingEditorAutoRotate == value) return;
+				_thingEditorAutoRotate = value;
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		private static int _thingEditorRotateSpeedMs = 500;
+		public static int ThingEditorRotateSpeedMs
+		{
+			get => _thingEditorRotateSpeedMs;
+			set
+			{
+				var clamped = Math.Clamp(value, 50, 5000);
+				if (_thingEditorRotateSpeedMs == clamped) return;
+				_thingEditorRotateSpeedMs = clamped;
+				PersistenceService.SaveSettings();
+			}
+		}
+
+		public static string NormalizeAssetExportFormat(string? format, bool thingsFormats)
+		{
+			var normalized = (format ?? "png").Trim().ToLowerInvariant();
+			if (normalized is "png" or "bmp" or "jpg" or "jpeg")
+				return normalized == "jpeg" ? "jpg" : normalized;
+			if (thingsFormats && normalized is "obd" or "nyx-thing")
+				return normalized;
+			return "png";
+		}
+
+		public static void RememberAssetExport(string format, string directory, bool skipWest, bool thingsFormats)
+		{
+			format = NormalizeAssetExportFormat(format, thingsFormats);
+			var changed = _lastAssetExportFormat != format
+				|| _lastThingExportSkipWest != skipWest
+				|| (!string.IsNullOrWhiteSpace(directory) && _lastAssetExportDirectory != directory);
+			_lastAssetExportFormat = format;
+			if (!string.IsNullOrWhiteSpace(directory))
+				_lastAssetExportDirectory = directory;
+			if (thingsFormats)
+				_lastThingExportSkipWest = skipWest;
+			if (changed)
+				PersistenceService.SaveSettings();
+		}
+
 		public int SelectedDefaultLaunchSectionIndex
 		{
 			get => (int)DefaultLaunchSection;
@@ -762,7 +857,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			bool addonDuplicateFrameEnabled = false,
 			bool addonRotateCloneDirectionEnabled = false,
 			bool allowRelocatingDirection = false,
-			LaunchSection defaultLaunchSection = LaunchSection.Home)
+			LaunchSection defaultLaunchSection = LaunchSection.Home,
+			string? lastAssetExportFormat = null,
+			string? lastAssetExportDirectory = null,
+			bool lastThingExportSkipWest = false,
+			bool thingEditorShowAllDirections = false,
+			bool thingEditorShowTimeframe = false,
+			bool thingEditorAutoRotate = false,
+			int thingEditorRotateSpeedMs = 500)
 		{
 			DefaultPageSize = defaultPageSize;
 			MaxRecentCombinations = maxRecentCombinations;
@@ -807,6 +909,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_addonRotateCloneDirectionEnabled = addonRotateCloneDirectionEnabled;
 			_allowRelocatingDirection = allowRelocatingDirection;
 			_defaultLaunchSection = defaultLaunchSection;
+			_lastAssetExportFormat = NormalizeAssetExportFormat(lastAssetExportFormat, thingsFormats: true);
+			_lastAssetExportDirectory = lastAssetExportDirectory ?? "";
+			_lastThingExportSkipWest = lastThingExportSkipWest;
+			_thingEditorShowAllDirections = thingEditorShowAllDirections;
+			_thingEditorShowTimeframe = thingEditorShowTimeframe;
+			_thingEditorAutoRotate = thingEditorAutoRotate;
+			_thingEditorRotateSpeedMs = Math.Clamp(thingEditorRotateSpeedMs, 50, 5000);
 		}
 
 		public int SelectedThingIdOffset
