@@ -792,11 +792,16 @@ namespace NyxAssetsEditor.ViewModels.Pages
 
 			if (!newWindow)
 			{
+				var alreadyOpen = ActivePanels.OfType<FloatingThingEditorViewModel>()
+					.Any(p => ReferenceEquals(p.SourcePanel, source) && p.ThingId == thingId);
+				if (alreadyOpen)
+					return;
+
 				var existing = ActivePanels.OfType<FloatingThingEditorViewModel>()
 					.FirstOrDefault(p => ReferenceEquals(p.SourcePanel, source));
 				if (existing != null)
 				{
-					if (existing.IsDirty && existing.ThingId != thingId)
+					if (existing.IsDirty)
 					{
 						var tcs = new System.Threading.Tasks.TaskCompletionSource<FloatingThingEditorViewModel.PromptResult>();
 						existing.ShowPrompt(
