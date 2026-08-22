@@ -213,7 +213,8 @@
 							<ListBox.ItemTemplate>
 								<DataTemplate x:DataType="vm:ThingFinderResultViewModel">
 									<Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,3"
-										ToolTip.Tip="{Binding MatchDetails}" ContextRequested="OnResultContextRequested">
+										ToolTip.Tip="{Binding MatchDetails}" ContextRequested="OnResultContextRequested"
+										DoubleTapped="OnResultDoubleTapped">
 										<Grid ColumnDefinitions="Auto,Auto,Auto,*">
 											<Border Width="{Binding $parent[UserControl].DataContext.SourcePanel.ListBorderWidthHeight}"
 												Height="{Binding $parent[UserControl].DataContext.SourcePanel.ListBorderWidthHeight}"
@@ -252,7 +253,8 @@
 									<Border Classes="result-tile" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4"
 											Width="{Binding $parent[UserControl].DataContext.SourcePanel.GridTileWidth}"
 											Height="{Binding $parent[UserControl].DataContext.SourcePanel.GridTileHeight}"
-											ToolTip.Tip="{Binding MatchDetails}" ContextRequested="OnResultContextRequested">
+											ToolTip.Tip="{Binding MatchDetails}" ContextRequested="OnResultContextRequested"
+											DoubleTapped="OnResultDoubleTapped">
 										<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 											<common:IntegerScaledImage Source="{Binding PreviewImage}"
 												   Width="{Binding $parent[UserControl].DataContext.SourcePanel.AssetDisplaySize}"

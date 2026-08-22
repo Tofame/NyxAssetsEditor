@@ -206,6 +206,7 @@ public sealed class ThingFinderResultViewModel : IDisposable
 public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposable, NyxAssetsEditor.Services.Things.IThingFilterOwner
 {
 	private readonly AssetsViewModel _parent;
+	public AssetsViewModel Parent => _parent;
 	private readonly DispatcherTimer _filterTimer = new() { Interval = TimeSpan.FromMilliseconds(175) };
 	private readonly List<ThingType> _filteredThings = new();
 	private readonly List<string> _extraPropertyKeys = new();
