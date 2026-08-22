@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Avalonia;
+using Avalonia.Platform.Storage;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -91,5 +93,33 @@ public partial class FloatingThingFinderControl : UserControl
 
 		menu.Open(control);
 		e.Handled = true;
+	}
+
+	private void OnDragOver(object? sender, DragEventArgs e)
+	{
+		var files = e.DataTransfer.TryGetFiles()?.ToList();
+		var valid = files is { Count: 1 } && files[0].TryGetLocalPath() is { } path;
+		e.DragEffects = valid ? DragDropEffects.Copy : DragDropEffects.None;
+		e.Handled = true;
+	}
+
+	private async void OnDrop(object? sender, DragEventArgs e)
+	{
+		e.Handled = true;
+		if (DataContext is not FloatingThingFinderViewModel vm) return;
+		var files = e.DataTransfer.TryGetFiles()?.ToList();
+		if (files is { Count: 1 } && files[0].TryGetLocalPath() is { } path)
+		{
+			try
+			{
+				using var stream = System.IO.File.OpenRead(path);
+				var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+				await vm.LoadSpriteFromBitmapAsync(bitmap);
+			}
+			catch (Exception ex)
+			{
+				vm.SearchBySpriteStatus = $"Error loading file: {ex.Message}";
+			}
+		}
 	}
 }

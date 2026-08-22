@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using Avalonia.Input.Platform;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -251,6 +253,27 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 				OnPropertyChanged(nameof(IsMissilesKind));
 				RefreshExtraPropertyKeys();
 				LoadFields();
+
+				if (_targetSpritePixels != null)
+				{
+					var loader = newPanel.GetActiveSpriteLoader();
+					if (loader != null)
+					{
+						_ = Task.Run(async () =>
+						{
+							SearchBySpriteStatus = "Scanning new sprite archive...";
+							var matched = await FindMatchingSpriteIdsAsync(_targetSpritePixels, loader);
+							_matchingSpriteIds = new HashSet<uint>(matched);
+							SearchBySpriteStatus = $"Found {matched.Count} matching sprites in archive.";
+							ScheduleFilter();
+						});
+					}
+					else
+					{
+						_matchingSpriteIds = new HashSet<uint>();
+						SearchBySpriteStatus = "No active sprite loader to scan.";
+					}
+				}
 			}
 			_currentPage = 1;
 			ScheduleFilter();
@@ -267,6 +290,187 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 			string.Equals(p.SpritePath, currentSprite, StringComparison.OrdinalIgnoreCase) && string.Equals(p.ThingsPath, currentThings, StringComparison.OrdinalIgnoreCase))
 			?? ArchivePairs.FirstOrDefault();
 	}
+
+	[ObservableProperty]
+	private WriteableBitmap? _pastedSpriteImage;
+
+	[ObservableProperty]
+	private string _searchBySpriteStatus = "No sprite loaded. Drag an image here or Paste.";
+
+	private byte[]? _targetSpritePixels;
+	private HashSet<uint>? _matchingSpriteIds;
+
+	[ObservableProperty]
+	private bool _isPropertiesExpanded = true;
+
+	[ObservableProperty]
+	private bool _isFlagsExpanded = true;
+
+	[ObservableProperty]
+	private bool _isPatternsExpanded = true;
+
+	[ObservableProperty]
+	private bool _isCustomFlagsExpanded = true;
+
+	[ObservableProperty]
+	private bool _isFindBySpriteExpanded = true;
+
+	[RelayCommand]
+	private void TogglePropertiesExpanded() => IsPropertiesExpanded = !IsPropertiesExpanded;
+
+	[RelayCommand]
+	private void ToggleFlagsExpanded() => IsFlagsExpanded = !IsFlagsExpanded;
+
+	[RelayCommand]
+	private void TogglePatternsExpanded() => IsPatternsExpanded = !IsPatternsExpanded;
+
+	[RelayCommand]
+	private void ToggleCustomFlagsExpanded() => IsCustomFlagsExpanded = !IsCustomFlagsExpanded;
+
+	[RelayCommand]
+	private void ToggleFindBySpriteExpanded() => IsFindBySpriteExpanded = !IsFindBySpriteExpanded;
+
+	[RelayCommand]
+	private void ClearSpriteFilter()
+	{
+		_targetSpritePixels = null;
+		_matchingSpriteIds = null;
+		PastedSpriteImage = null;
+		SearchBySpriteStatus = "No sprite loaded. Drag an image here or Paste.";
+		ScheduleFilter();
+	}
+
+	public async Task LoadSpriteFromBitmapAsync(Avalonia.Media.Imaging.Bitmap bitmap)
+	{
+		SearchBySpriteStatus = "Processing image...";
+		try
+		{
+			var pixels = ProcessAndResizeBitmap(bitmap);
+			if (pixels != null)
+			{
+				_targetSpritePixels = pixels;
+				PastedSpriteImage = CreatePreviewFromPixels(pixels);
+				SearchBySpriteStatus = "Scanning sprite archive...";
+				
+				var loader = SourcePanel?.GetActiveSpriteLoader();
+				if (loader != null)
+				{
+					var matched = await FindMatchingSpriteIdsAsync(pixels, loader);
+					_matchingSpriteIds = new HashSet<uint>(matched);
+					SearchBySpriteStatus = $"Found {matched.Count} matching sprites in archive.";
+				}
+				else
+				{
+					_matchingSpriteIds = new HashSet<uint>();
+					SearchBySpriteStatus = "No active sprite loader to scan.";
+				}
+				ScheduleFilter();
+			}
+			else
+			{
+				SearchBySpriteStatus = "Failed to decode/resize image.";
+			}
+		}
+		catch (Exception ex)
+		{
+			SearchBySpriteStatus = $"Error: {ex.Message}";
+		}
+	}
+
+	[RelayCommand]
+	private async Task PasteSpriteFromClipboardAsync()
+	{
+		var clipboard = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+			? desktop.MainWindow?.Clipboard
+			: null;
+		if (clipboard == null) return;
+		try
+		{
+			var bitmap = await clipboard.TryGetBitmapAsync();
+			if (bitmap != null)
+			{
+				await LoadSpriteFromBitmapAsync(bitmap);
+			}
+			else
+			{
+				SearchBySpriteStatus = "No image found in clipboard.";
+			}
+		}
+		catch (Exception ex)
+		{
+			SearchBySpriteStatus = $"Error: {ex.Message}";
+		}
+	}
+
+	private byte[]? ProcessAndResizeBitmap(Avalonia.Media.Imaging.Bitmap bitmap)
+	{
+		try
+		{
+			using var ms = new System.IO.MemoryStream();
+			bitmap.Save(ms, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+			ms.Position = 0;
+
+			using var skBitmap = SkiaSharp.SKBitmap.Decode(ms);
+			if (skBitmap == null) return null;
+
+			var info = new SkiaSharp.SKImageInfo(32, 32, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
+			using var target = new SkiaSharp.SKBitmap(info);
+			using var canvas = new SkiaSharp.SKCanvas(target);
+			canvas.Clear(SkiaSharp.SKColors.Transparent);
+			canvas.DrawBitmap(skBitmap, new SkiaSharp.SKRect(0, 0, skBitmap.Width, skBitmap.Height), new SkiaSharp.SKRect(0, 0, 32, 32), SkiaSharp.SKSamplingOptions.Default);
+			return target.Bytes;
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private WriteableBitmap CreatePreviewFromPixels(byte[] pixels)
+	{
+		var dpi = new Avalonia.Vector(96, 96);
+		var bmp = new WriteableBitmap(new Avalonia.PixelSize(32, 32), dpi, Avalonia.Platform.PixelFormat.Rgba8888, Avalonia.Platform.AlphaFormat.Unpremul);
+		using (var buf = bmp.Lock())
+		{
+			System.Runtime.InteropServices.Marshal.Copy(pixels, 0, buf.Address, pixels.Length);
+		}
+		return bmp;
+	}
+
+	private async Task<List<uint>> FindMatchingSpriteIdsAsync(byte[] targetPixels, NyxAssetsEditor.Services.Archive.SpriteLoader loader)
+	{
+		return await Task.Run(() =>
+		{
+			var matches = new List<uint>();
+			uint count = loader.SpriteCount;
+			for (uint id = 1; id <= count; id++)
+			{
+				try
+				{
+					byte[] pixels = loader.LoadSpritePixels(id);
+					if (PixelsMatch(pixels, targetPixels))
+					{
+						matches.Add(id);
+					}
+				}
+				catch
+				{
+				}
+			}
+			return matches;
+		});
+	}
+
+	private static bool PixelsMatch(byte[] a, byte[] b)
+	{
+		if (a.Length != b.Length) return false;
+		for (int i = 0; i < a.Length; i++)
+		{
+			if (a[i] != b[i]) return false;
+		}
+		return true;
+	}
+
 	public ObservableCollection<ThingFinderFieldViewModel> PropertyFields { get; } = new();
 	public ObservableCollection<ThingFinderFieldViewModel> FlagFields { get; } = new();
 	public ObservableCollection<ThingFinderFieldViewModel> PatternFields { get; } = new();
@@ -566,9 +770,31 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 
 	private static bool IsAvailableForKind(string key, ThingKind kind)
 	{
-		if (ItemOnlyFields.Contains(key)) return kind == ThingKind.Item;
-		if (OutfitOnlyFields.Contains(key)) return kind == ThingKind.Outfit;
-		if (key == nameof(ThingType.BlockMissile)) return kind != ThingKind.Missile;
+		if (kind == ThingKind.Item)
+		{
+			if (OutfitOnlyFields.Contains(key)) return false;
+			return true;
+		}
+
+		var isSharedCommon = key is nameof(ThingType.HasOffset) or nameof(ThingType.OffsetX) or nameof(ThingType.OffsetY)
+			or nameof(ThingType.HasElevation) or nameof(ThingType.Elevation)
+			or nameof(ThingType.HasLight) or nameof(ThingType.LightLevel) or nameof(ThingType.LightColor);
+
+		if (isSharedCommon) return true;
+
+		if (kind == ThingKind.Outfit)
+		{
+			return key is nameof(ThingType.AnimateAlways) or nameof(ThingType.DontCenterOutfit);
+		}
+		if (kind == ThingKind.Effect)
+		{
+			return key is nameof(ThingType.AnimateAlways) or nameof(ThingType.BottomEffect);
+		}
+		if (kind == ThingKind.Missile)
+		{
+			return false;
+		}
+
 		return true;
 	}
 
@@ -603,6 +829,15 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		nameof(ThingType.MarketName), nameof(ThingType.MarketCategory), nameof(ThingType.MarketTradeAs),
 		nameof(ThingType.MarketShowAs), nameof(ThingType.MarketRestrictProfession),
 		nameof(ThingType.MarketRestrictLevel), nameof(ThingType.HasDefaultAction), nameof(ThingType.DefaultAction),
+		nameof(ThingType.IsGroundBorder), nameof(ThingType.IsOnBottom), nameof(ThingType.IsOnTop),
+		nameof(ThingType.IsContainer), nameof(ThingType.ForceUse), nameof(ThingType.MultiUse),
+		nameof(ThingType.IsFluidContainer), nameof(ThingType.IsFluid), nameof(ThingType.IsUnpassable),
+		nameof(ThingType.IsUnmoveable), nameof(ThingType.BlockPathfind), nameof(ThingType.FloorChange),
+		nameof(ThingType.NoMoveAnimation), nameof(ThingType.Pickupable), nameof(ThingType.Hangable),
+		nameof(ThingType.IsHorizontal), nameof(ThingType.IsVertical), nameof(ThingType.DontHide),
+		nameof(ThingType.IsTranslucent), nameof(ThingType.IsLyingObject), nameof(ThingType.IsFullGround),
+		nameof(ThingType.IgnoreLook), nameof(ThingType.Usable), nameof(ThingType.Wrappable),
+		nameof(ThingType.Unwrappable), nameof(ThingType.BottomEffect),
 	};
 
 	internal static readonly HashSet<string> OutfitOnlyFields = new(StringComparer.Ordinal)
@@ -695,11 +930,20 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		_filteredThings.Clear();
 		if (SourcePanel != null)
 		{
-			_filteredThings.AddRange(ThingFinderFilterService.Filter(
+			var filtered = ThingFinderFilterService.Filter(
 				SourcePanel.EnumerateThings(SelectedKind),
 				SelectedKind,
 				criteria,
-				FrameGroupIndex));
+				FrameGroupIndex);
+
+			if (_targetSpritePixels != null && _matchingSpriteIds != null)
+			{
+				filtered = filtered.Where(thing =>
+					thing.FrameGroups.Any(fg => fg.SpriteIds != null && fg.SpriteIds.Any(id => _matchingSpriteIds.Contains(id)))
+				).ToList();
+			}
+
+			_filteredThings.AddRange(filtered);
 		}
 
 		_currentPage = Math.Clamp(_currentPage, 1, Math.Max(1, TotalPages));
