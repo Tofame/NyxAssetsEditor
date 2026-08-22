@@ -32,23 +32,40 @@ public sealed class AssetImportPreviewItem : ViewModelBase
 	private readonly AssetImportKind _kind;
 	private readonly ClientDataReadOptions? _thingOptions;
 	private readonly SpriteRenderer _renderer;
+	private readonly HashSet<string>? _knownFingerprints;
 	private IImage? _preview;
 	private bool _previewRequested;
 	private string _details;
+	private bool _isDuplicate;
 
-	public AssetImportPreviewItem(string path, AssetImportKind kind, ClientDataReadOptions? thingOptions, SpriteRenderer renderer)
+	public AssetImportPreviewItem(
+		string path,
+		AssetImportKind kind,
+		ClientDataReadOptions? thingOptions,
+		SpriteRenderer renderer,
+		HashSet<string>? knownFingerprints = null)
 	{
 		Path = path;
 		FileName = System.IO.Path.GetFileName(path);
 		_kind = kind;
 		_thingOptions = thingOptions;
 		_renderer = renderer;
+		_knownFingerprints = knownFingerprints;
 		_details = System.IO.Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
+	}
+
+	private bool _isSelected = true;
+
+	public bool IsSelected
+	{
+		get => _isSelected;
+		set => SetProperty(ref _isSelected, value);
 	}
 
 	public string Path { get; }
 	public string FileName { get; }
 	public string Details => _details;
+	public bool IsDuplicate => _isDuplicate;
 
 	public IImage? Preview
 	{
@@ -78,16 +95,43 @@ public sealed class AssetImportPreviewItem : ViewModelBase
 				return;
 			var document = ThingExchangeHelper.LoadFromPath(Path, _thingOptions);
 			_details = $"{document.Thing.Kind} #{document.Thing.Id}";
-			OnPropertyChanged(nameof(Details));
 			var composed = ThingPreviewRenderer.RenderPreview(document.Thing, document.SpritesRgba);
 			if (composed != null)
 				_preview = _renderer.ConvertRgba(composed.Width, composed.Height, composed.Pixels);
+
+			MarkDuplicateIfKnown(document);
+			OnPropertyChanged(nameof(Details));
 		}
 		catch (Exception ex)
 		{
 			_details = ex.Message;
 			OnPropertyChanged(nameof(Details));
 		}
+	}
+
+	private void MarkDuplicateIfKnown(ThingDocument document)
+	{
+		if (_knownFingerprints == null)
+			return;
+
+		var fingerprint = ThingImportFingerprint.TryCreate(document.Thing, document.SpritesRgba);
+		if (fingerprint == null)
+			return;
+
+		if (!_knownFingerprints.Add(fingerprint))
+		{
+			_isDuplicate = true;
+			_isSelected = false;
+			_details += " — already present";
+			OnPropertyChanged(nameof(IsDuplicate));
+			OnPropertyChanged(nameof(IsSelected));
+		}
+	}
+
+	public void EnsureEvaluated()
+	{
+		if (!_previewRequested)
+			LoadPreview();
 	}
 
 	public void DisposePreview()
@@ -103,6 +147,7 @@ public partial class AssetImportDialog : Window
 	private static readonly Regex DigitPad = new(@"\d+", RegexOptions.Compiled);
 	private readonly AssetImportKind _kind;
 	private readonly ClientDataReadOptions? _thingOptions;
+	private readonly HashSet<string>? _knownFingerprints;
 	private readonly SpriteRenderer _renderer = new();
 
 	public bool IsConfirmed { get; private set; }
@@ -114,10 +159,14 @@ public partial class AssetImportDialog : Window
 		InitializeComponent();
 	}
 
-	public AssetImportDialog(AssetImportKind kind, ClientDataReadOptions? thingOptions = null) : this()
+	public AssetImportDialog(
+		AssetImportKind kind,
+		ClientDataReadOptions? thingOptions = null,
+		HashSet<string>? knownFingerprints = null) : this()
 	{
 		_kind = kind;
 		_thingOptions = thingOptions;
+		_knownFingerprints = knownFingerprints;
 		if (TitleText != null)
 			TitleText.Text = kind == AssetImportKind.Sprites ? "Import Sprites" : "Import Things";
 		if (PreviewList != null)
@@ -168,7 +217,10 @@ public partial class AssetImportDialog : Window
 	private void ScanFolder(string? folder)
 	{
 		foreach (var item in PreviewItems)
+		{
+			item.PropertyChanged -= OnPreviewItemPropertyChanged;
 			item.DisposePreview();
+		}
 		PreviewItems.Clear();
 
 		if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
@@ -197,15 +249,53 @@ public partial class AssetImportDialog : Window
 			.OrderBy(path => DigitPad.Replace(System.IO.Path.GetFileName(path), match => match.Value.PadLeft(10, '0')), StringComparer.OrdinalIgnoreCase)
 			.ToList();
 
+		var fingerprints = _knownFingerprints == null
+			? null
+			: new HashSet<string>(_knownFingerprints, StringComparer.Ordinal);
+
 		foreach (var path in matches)
-			PreviewItems.Add(new AssetImportPreviewItem(path, _kind, _thingOptions, _renderer));
+		{
+			var item = new AssetImportPreviewItem(path, _kind, _thingOptions, _renderer, fingerprints);
+			item.PropertyChanged += OnPreviewItemPropertyChanged;
+			if (_kind == AssetImportKind.Things)
+				item.EnsureEvaluated();
+			PreviewItems.Add(item);
+		}
 
 		SetStatus(matches.Count == 0
 			? (_kind == AssetImportKind.Sprites
 				? "No PNG/BMP/JPG/WebP files in this folder."
 				: "No JSON/OBD files in this folder.")
-			: $"{matches.Count} file(s)");
+			: $"{SelectedCount} of {matches.Count} selected");
 		UpdateImportEnabled();
+	}
+
+	private void OnPreviewItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(AssetImportPreviewItem.IsSelected))
+			RefreshSelectionStatus();
+	}
+
+	private int SelectedCount => PreviewItems.Count(item => item.IsSelected);
+
+	private void RefreshSelectionStatus()
+	{
+		if (PreviewItems.Count == 0)
+			SetStatus("Select a folder to preview files.");
+		else
+			SetStatus($"{SelectedCount} of {PreviewItems.Count} selected");
+		UpdateImportEnabled();
+	}
+
+	private void OnSelectAllClick(object? sender, RoutedEventArgs e) => SetAllSelected(true);
+
+	private void OnSelectNoneClick(object? sender, RoutedEventArgs e) => SetAllSelected(false);
+
+	private void SetAllSelected(bool selected)
+	{
+		foreach (var item in PreviewItems)
+			item.IsSelected = selected;
+		RefreshSelectionStatus();
 	}
 
 	private void SetStatus(string text)
@@ -219,15 +309,16 @@ public partial class AssetImportDialog : Window
 	private void UpdateImportEnabled()
 	{
 		if (ImportButton != null)
-			ImportButton.IsEnabled = PreviewItems.Count > 0;
+			ImportButton.IsEnabled = SelectedCount > 0;
 	}
 
 	private void OnImportClick(object? sender, RoutedEventArgs e)
 	{
-		if (PreviewItems.Count == 0)
+		var selected = PreviewItems.Where(item => item.IsSelected).Select(item => item.Path).ToList();
+		if (selected.Count == 0)
 			return;
 		IsConfirmed = true;
-		SelectedPaths = PreviewItems.Select(item => item.Path).ToList();
+		SelectedPaths = selected;
 		if (!string.IsNullOrWhiteSpace(PathInput?.Text) && Directory.Exists(PathInput.Text))
 			SettingsViewModel.RememberAssetImportDirectory(PathInput.Text);
 		Close();

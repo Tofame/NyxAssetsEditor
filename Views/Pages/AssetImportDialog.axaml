@@ -28,7 +28,13 @@
 					</StackPanel>
 
 					<StackPanel Spacing="4">
-						<TextBlock Name="PreviewLabel" Text="Preview" Foreground="#A0A0A0" FontSize="11"/>
+						<Grid ColumnDefinitions="*,Auto,Auto">
+							<TextBlock Name="PreviewLabel" Text="Preview" Foreground="#A0A0A0" FontSize="11" VerticalAlignment="Center"/>
+							<Button Grid.Column="1" Content="All" FontSize="10" Padding="8,3" Margin="0,0,4,0"
+								Background="#2A2A2A" BorderBrush="#444" Foreground="#CCC" Click="OnSelectAllClick"/>
+							<Button Grid.Column="2" Content="None" FontSize="10" Padding="8,3"
+								Background="#2A2A2A" BorderBrush="#444" Foreground="#CCC" Click="OnSelectNoneClick"/>
+						</Grid>
 						<Border BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Background="#181818" Height="280">
 							<ListBox Name="PreviewList" Background="Transparent" BorderThickness="0" Padding="6,6,2,6"
 								ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -41,11 +47,21 @@
 								</ListBox.Styles>
 								<ListBox.ItemTemplate>
 									<DataTemplate x:DataType="pages:AssetImportPreviewItem">
-										<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-											<Border Width="64" Height="64" Background="#111" CornerRadius="3" ClipToBounds="True">
-												<Image Source="{Binding Preview}" Width="64" Height="64" Stretch="Uniform"/>
-											</Border>
-											<StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+										<Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+											<CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center"/>
+											<Grid Grid.Column="1" Width="64" Height="64">
+												<Border Background="#111" CornerRadius="3" ClipToBounds="True">
+													<Image Source="{Binding Preview}" Width="64" Height="64" Stretch="Uniform"/>
+												</Border>
+												<Grid Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+													Margin="0,-2,-2,0" IsVisible="{Binding IsDuplicate}"
+													ToolTip.Tip="Already in this archive (same front frame)">
+													<Ellipse Width="16" Height="16" Fill="#E6B800"/>
+													<TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="#1A1400"
+														HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												</Grid>
+											</Grid>
+											<StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="1">
 												<TextBlock Text="{Binding FileName}" FontSize="11" Foreground="#EEE" TextTrimming="CharacterEllipsis"/>
 												<TextBlock Text="{Binding Details}" FontSize="10" Foreground="#888" TextTrimming="CharacterEllipsis"/>
 											</StackPanel>

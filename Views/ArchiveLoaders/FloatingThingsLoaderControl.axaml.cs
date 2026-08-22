@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NyxAssetsEditor.Services.Archive;
 using NyxAssetsEditor.Services.Exchange;
+using NyxAssetsEditor.Services.ImportExport;
 using NyxAssetsEditor.Services.Rendering;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 using NyxAssetsEditor.ViewModels.Common;
@@ -363,7 +364,33 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			var owner = topLevel as Window;
 			if (owner == null)
 				return;
-			var dialog = new AssetImportDialog(AssetImportKind.Things, vm.GetWriteOptions());
+
+			var knownFingerprints = ThingImportFingerprint.CreateSet();
+			var loader = vm.GetActiveSpriteLoader();
+			if (loader != null)
+			{
+				foreach (var kind in new[] { ThingKind.Item, ThingKind.Outfit, ThingKind.Effect, ThingKind.Missile })
+				{
+					foreach (var thing in vm.EnumerateThings(kind))
+					{
+						var fingerprint = ThingImportFingerprint.TryCreate(thing, id =>
+						{
+							try
+							{
+								return loader.LoadSpritePixels(id);
+							}
+							catch
+							{
+								return null;
+							}
+						});
+						if (fingerprint != null)
+							knownFingerprints.Add(fingerprint);
+					}
+				}
+			}
+
+			var dialog = new AssetImportDialog(AssetImportKind.Things, vm.GetWriteOptions(), knownFingerprints);
 			await dialog.ShowDialog(owner);
 			if (!dialog.IsConfirmed || dialog.SelectedPaths.Count == 0)
 				return;
