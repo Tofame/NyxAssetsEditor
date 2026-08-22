@@ -12,7 +12,7 @@ namespace NyxAssetsEditor.ViewModels.Shell;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-	private AssetsViewModel? _assetsViewModel;
+	private readonly AssetsViewModel _assetsViewModel;
 	private PaintViewModel? _paintViewModel;
 
 	[ObservableProperty]
