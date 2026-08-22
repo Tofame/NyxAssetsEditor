@@ -124,6 +124,18 @@ public static class SpritesheetSlicerService
 	public static SlicerImage Load(string path)
 	{
 		using var bitmap = SKBitmap.Decode(path) ?? throw new InvalidOperationException("The selected image could not be decoded.");
+		return LoadFromBitmap(bitmap);
+	}
+
+	public static SlicerImage LoadFromStream(Stream stream)
+	{
+		ArgumentNullException.ThrowIfNull(stream);
+		using var bitmap = SKBitmap.Decode(stream) ?? throw new InvalidOperationException("The clipboard image could not be decoded.");
+		return LoadFromBitmap(bitmap);
+	}
+
+	private static SlicerImage LoadFromBitmap(SKBitmap bitmap)
+	{
 		var info = new SKImageInfo(bitmap.Width, bitmap.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
 		using var converted = new SKBitmap(info);
 		using (var canvas = new SKCanvas(converted))
@@ -318,6 +330,67 @@ public static class SpritesheetSlicerService
 		}
 
 		return new SlicerImage(source.Width, source.Height, output);
+	}
+
+	public static (SlicerImage Image, SlicerGrid Grid) StackHorizontalFrames(
+		SlicerImage source,
+		SlicerGrid requestedGrid,
+		int frameBlockColumns,
+		int frameBlockRows,
+		int frames)
+	{
+		ArgumentNullException.ThrowIfNull(source);
+		if (frameBlockColumns <= 0) throw new ArgumentOutOfRangeException(nameof(frameBlockColumns));
+		if (frameBlockRows <= 0) throw new ArgumentOutOfRangeException(nameof(frameBlockRows));
+		if (frames < 2) throw new InvalidOperationException("Need at least two frames to restack.");
+
+		var grid = ClampGrid(requestedGrid, source.Width, source.Height);
+		var sourceThingColumns = checked(frameBlockColumns * frames);
+		var sourceThingRows = frameBlockRows;
+		if (grid.Columns <= 0 || grid.Rows <= 0 ||
+			grid.Columns % sourceThingColumns != 0 || grid.Rows % sourceThingRows != 0)
+			throw new InvalidOperationException(
+				$"The {grid.Columns}×{grid.Rows} selection is not a horizontal strip of {frames} frames of {frameBlockColumns}×{frameBlockRows} cells.");
+
+		var thingsAcross = grid.Columns / sourceThingColumns;
+		var thingsDown = grid.Rows / sourceThingRows;
+		var destThingRows = checked(frameBlockRows * frames);
+		var destColumns = checked(thingsAcross * frameBlockColumns);
+		var destRows = checked(thingsDown * destThingRows);
+		var destWidth = checked(destColumns * grid.CellSize);
+		var destHeight = checked(destRows * grid.CellSize);
+		var dest = new byte[checked(destWidth * destHeight * 4)];
+		var blockPixelWidth = checked(frameBlockColumns * grid.CellSize);
+		var blockPixelHeight = checked(frameBlockRows * grid.CellSize);
+
+		for (var thingRow = 0; thingRow < thingsDown; thingRow++)
+		for (var thingColumn = 0; thingColumn < thingsAcross; thingColumn++)
+		for (var frame = 0; frame < frames; frame++)
+		{
+			var sourceX = grid.X + (thingColumn * sourceThingColumns + frame * frameBlockColumns) * grid.CellSize;
+			var sourceY = grid.Y + thingRow * sourceThingRows * grid.CellSize;
+			var destX = thingColumn * frameBlockColumns * grid.CellSize;
+			var destY = (thingRow * destThingRows + frame * frameBlockRows) * grid.CellSize;
+			CopyRect(source, dest, destWidth, sourceX, sourceY, destX, destY, blockPixelWidth, blockPixelHeight);
+		}
+
+		return (new SlicerImage(destWidth, destHeight, dest), new SlicerGrid(0, 0, destColumns, destRows, grid.CellSize));
+	}
+
+	private static void CopyRect(
+		SlicerImage source, byte[] dest, int destWidth,
+		int sourceX, int sourceY, int destX, int destY, int width, int height)
+	{
+		if (sourceX < 0 || sourceY < 0 || destX < 0 || destY < 0 ||
+			sourceX + width > source.Width || sourceY + height > source.Height)
+			throw new ArgumentOutOfRangeException(nameof(sourceX), "The requested rectangle is outside the image.");
+
+		var bytesPerRow = checked(width * 4);
+		for (var row = 0; row < height; row++)
+			Buffer.BlockCopy(
+				source.Rgba, ((sourceY + row) * source.Width + sourceX) * 4,
+				dest, ((destY + row) * destWidth + destX) * 4,
+				bytesPerRow);
 	}
 
 	public static SlicerImage FillTransparentWithMagenta(SlicerImage source)

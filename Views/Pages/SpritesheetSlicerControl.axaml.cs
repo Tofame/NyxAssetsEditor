@@ -124,6 +124,13 @@ public partial class SpritesheetSlicerControl : UserControl
 		{
 			OnOpenClick(this, new RoutedEventArgs()); e.Handled = true; return;
 		}
+		if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.V && e.Source is not TextBox and not NumericUpDown)
+		{
+			if (ViewModel.PasteImageCommand.CanExecute(null))
+				ViewModel.PasteImageCommand.Execute(null);
+			e.Handled = true;
+			return;
+		}
 		if (e.Key == Key.Enter && e.Source is not TextBox and not NumericUpDown && ViewModel.CropCommand.CanExecute(null))
 		{
 			ViewModel.CropCommand.Execute(null); e.Handled = true; return;

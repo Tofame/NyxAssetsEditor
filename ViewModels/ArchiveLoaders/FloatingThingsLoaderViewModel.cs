@@ -916,6 +916,8 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				else ReloadThingsForSection(preserveCurrentPage: replaceExisting, goToLastPage: !replaceExisting);
 				spritePanel.CommitSlicerAppend(spriteCheckpoint);
 				EndThingTransaction(affected);
+				IsMinimized = false;
+				FocusReplacedThings(things, openEditorIfSingle: false);
 				return things.Select(t => t.Id).ToList();
 			}
 			catch
@@ -1568,7 +1570,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public IReadOnlyList<ThingItemViewModel> GetSelectedThings() =>
 			PagedThings.Where(t => t.IsSelected).OrderBy(t => t.Id).ToList();
 
-		private void FocusReplacedThings(IReadOnlyList<ThingType> things)
+		private void FocusReplacedThings(IReadOnlyList<ThingType> things, bool openEditorIfSingle = true)
 		{
 			if (things.Count == 0)
 				return;
@@ -1597,7 +1599,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			_selectionAnchor = pageItems[0];
 			NotifySelectionChanged();
 			ScrollToItemRequested?.Invoke(pageItems[0]);
-			if (things.Count == 1)
+			if (openEditorIfSingle && things.Count == 1)
 				_ = OpenThingEditor(pageItems[0]);
 		}
 

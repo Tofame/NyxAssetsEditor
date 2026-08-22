@@ -31,6 +31,25 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
+	public void LoadFromStream_PreservesDimensionsAndRgbPixels()
+	{
+		var info = new SkiaSharp.SKImageInfo(2, 1, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
+		using var bitmap = new SkiaSharp.SKBitmap(info);
+		bitmap.Erase(new SkiaSharp.SKColor(10, 20, 30, 255));
+		using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+		using var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+		using var stream = new MemoryStream(data.ToArray());
+
+		var loaded = SpritesheetSlicerService.LoadFromStream(stream);
+
+		Assert.Equal((2, 1), (loaded.Width, loaded.Height));
+		Assert.Equal(10, loaded.Rgba[0]);
+		Assert.Equal(20, loaded.Rgba[1]);
+		Assert.Equal(30, loaded.Rgba[2]);
+		Assert.Equal(255, loaded.Rgba[3]);
+	}
+
+	[Fact]
 	public void Slice_PreservesOutfitMaskChannelValues()
 	{
 		var mask = new byte[]
@@ -194,6 +213,46 @@ public class SpritesheetSlicerServiceTests
 			image, new SlicerGrid(2, 0, 1, 1, 2), SpritesheetSlicerService.FlipHorizontal);
 
 		Assert.Equal(new byte[] { 1, 2, 6, 5, 3, 4, 8, 7 }, RedChannel(transformed));
+	}
+
+	[Fact]
+	public void StackHorizontalFrames_MovesEachFrameBlockOntoTheNextRow()
+	{
+		var pixels = new byte[12 * 3 * 4];
+		for (var frame = 0; frame < 4; frame++)
+			pixels[(frame * 3) * 4] = (byte)(10 + frame);
+		var image = new SlicerImage(12, 3, pixels);
+
+		var stacked = SpritesheetSlicerService.StackHorizontalFrames(
+			image, new SlicerGrid(0, 0, 12, 3, 1), 3, 3, 4);
+
+		Assert.Equal((3, 12), (stacked.Image.Width, stacked.Image.Height));
+		Assert.Equal(new SlicerGrid(0, 0, 3, 12, 1), stacked.Grid);
+		Assert.Equal(10, stacked.Image.Rgba[0]);
+		Assert.Equal(11, stacked.Image.Rgba[(3 * 3) * 4]);
+		Assert.Equal(12, stacked.Image.Rgba[(6 * 3) * 4]);
+		Assert.Equal(13, stacked.Image.Rgba[(9 * 3) * 4]);
+	}
+
+	[Fact]
+	public void StackHorizontalFrames_KeepsSeparateThingsSideBySide()
+	{
+		var pixels = new byte[8 * 4];
+		pixels[0] = 1;
+		pixels[4] = 2;
+		pixels[8] = 3;
+		pixels[12] = 4;
+		pixels[16] = 5;
+		pixels[20] = 6;
+		pixels[24] = 7;
+		pixels[28] = 8;
+		var image = new SlicerImage(8, 1, pixels);
+
+		var stacked = SpritesheetSlicerService.StackHorizontalFrames(
+			image, new SlicerGrid(0, 0, 8, 1, 1), 1, 1, 4);
+
+		Assert.Equal((2, 4), (stacked.Image.Width, stacked.Image.Height));
+		Assert.Equal(new byte[] { 1, 5, 2, 6, 3, 7, 4, 8 }, RedChannel(stacked.Image));
 	}
 
 	[Fact]
@@ -708,6 +767,15 @@ public class SpritesheetThingBuilderTests
 		Assert.Equal(new uint[] { 200, 201 }, result.Things.Select(thing => thing.Id));
 		Assert.All(result.Things, thing => Assert.Equal(2, thing.FrameGroups.Count));
 		Assert.Equal(24, result.SpritePixels.Count);
+	}
+
+	[Fact]
+	public void Effect_VerticalFrames_StillRejectAHorizontalStrip()
+	{
+		var exception = Assert.Throws<InvalidOperationException>(() => SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
+			ThingKind.Effect, new SlicerGrid(0, 0, 12, 3, 32), Cells(12, 3), 100, 10,
+			3, 3, 1, 1, 1, 1, 4, 100, true, null, null)));
+		Assert.Contains("3×12", exception.Message);
 	}
 
 	private static IReadOnlyList<SlicerCell> Cells(int columns, int rows)

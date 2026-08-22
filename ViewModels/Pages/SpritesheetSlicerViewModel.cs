@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Input.Platform;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.Input;
 using NyxAssets.Things;
@@ -395,6 +396,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	public bool CanUndo => _history.CanUndo;
 	public bool CanRedo => _history.CanRedo;
 	public bool CanCrop => HasImage && Columns > 0 && Rows > 0;
+	public bool CanStackFramesVertically => CanCrop && TryGetHorizontalFrameBlocks(out _, out _, out _);
 	public bool CanImportSprites => SelectedTarget?.SpritePanel.IsArchiveLoaded == true && CroppedSprites.Count > 0;
 	public bool CanImportThing => CanCrop && GetLayoutStatus().Valid && SelectedTarget?.HasThings == true &&
 		(!ReplaceExisting || SelectedReplacement != null) &&
@@ -518,14 +520,51 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 			_history.Clear();
 			_sourcePath = path;
 			_state.LastOpenDirectory = Path.GetDirectoryName(path) ?? "";
-			ApplyImage(loaded, resetGrid: true, clearCropped: true);
-			OnPropertyChanged(nameof(SourceFileName));
-			if (loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
-				Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
-			else
-				Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Align the grid manually.");
+			ShowLoadedImage(loaded);
 		}
 		catch (Exception ex) { Status(true, ex.Message); }
+	}
+
+	[RelayCommand]
+	private async Task PasteImage()
+	{
+		try
+		{
+			var clipboard = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+				? desktop.MainWindow?.Clipboard
+				: null;
+			if (clipboard == null)
+			{
+				Status(true, "Clipboard is not available.");
+				return;
+			}
+
+			var bitmap = await clipboard.TryGetBitmapAsync();
+			if (bitmap == null)
+			{
+				Status(true, "No image found in clipboard.");
+				return;
+			}
+
+			using var stream = new MemoryStream();
+			bitmap.Save(stream, new PngBitmapEncoderOptions());
+			stream.Position = 0;
+			var loaded = SpritesheetSlicerService.LoadFromStream(stream);
+			_history.Clear();
+			_sourcePath = "clipboard";
+			ShowLoadedImage(loaded);
+		}
+		catch (Exception ex) { Status(true, ex.Message); }
+	}
+
+	private void ShowLoadedImage(SlicerImage loaded)
+	{
+		ApplyImage(loaded, resetGrid: true, clearCropped: true);
+		OnPropertyChanged(nameof(SourceFileName));
+		if (loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
+			Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
+		else
+			Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Align the grid manually.");
 	}
 
 	public void MoveGridTo(int x, int y)
@@ -682,6 +721,22 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	private void FlipHorizontal() => TransformSelection(SpritesheetSlicerService.FlipHorizontal, "Flip horizontally", "Flipped horizontally");
 	[RelayCommand(CanExecute = nameof(CanCrop))]
 	private void FlipVertical() => TransformSelection(SpritesheetSlicerService.FlipVertical, "Flip vertically", "Flipped vertically");
+
+	[RelayCommand(CanExecute = nameof(CanStackFramesVertically))]
+	private void StackFramesVertically()
+	{
+		if (_image == null || !TryGetHorizontalFrameBlocks(out var blockColumns, out var blockRows, out var frames)) return;
+		var grid = CurrentGrid();
+		try
+		{
+			var stacked = SpritesheetSlicerService.StackHorizontalFrames(_image, grid, blockColumns, blockRows, frames);
+			_history.Record(_image, grid, "Stack frames vertically");
+			ApplyImage(stacked.Image, resetGrid: true, clearCropped: false);
+			Status(false, $"Stacked {frames} frames vertically ({stacked.Grid.Columns}×{stacked.Grid.Rows} cells).");
+		}
+		catch (Exception ex) { Status(true, ex.Message); }
+	}
+
 	[RelayCommand(CanExecute = nameof(HasImage))]
 	private void MagentaFill() => TransformImage(SpritesheetSlicerService.FillTransparentWithMagenta, "Magenta fill", "Filled transparent pixels with magenta.");
 
@@ -828,7 +883,6 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	{
 		var group = thing.FrameGroups.FirstOrDefault();
 		if (group == null) return;
-		AutomaticCropSize = false;
 		ThingWidth = (int)(group.Width == 0 ? 1u : group.Width);
 		ThingHeight = (int)(group.Height == 0 ? 1u : group.Height);
 		ThingExactSize = (int)(group.ExactSize == 0 ? 32u : group.ExactSize);
@@ -869,6 +923,28 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 
 	private static int ClampLayoutDimension(long value) => value is > 0 and <= int.MaxValue ? (int)value : int.MaxValue;
 
+	private bool TryGetHorizontalFrameBlocks(out int frameBlockColumns, out int frameBlockRows, out int frames)
+	{
+		frameBlockColumns = 0;
+		frameBlockRows = 0;
+		frames = IsOutfit ? OutfitLayoutFrames : ThingFrames;
+		if (UsesCombinedLayout || ThingWidth <= 0 || ThingHeight <= 0 || frames < 2) return false;
+		var patternX = IsOutfit ? OutfitDirections : ThingPatternX;
+		try
+		{
+			frameBlockColumns = checked(ThingWidth * ThingLayers * patternX * ThingPatternZ);
+			frameBlockRows = checked(ThingHeight * ThingPatternY);
+			var sourceThingColumns = checked(frameBlockColumns * frames);
+			var sourceThingRows = frameBlockRows;
+			return sourceThingColumns > 0 && sourceThingRows > 0 &&
+				Columns % sourceThingColumns == 0 && Rows % sourceThingRows == 0;
+		}
+		catch (OverflowException)
+		{
+			return false;
+		}
+	}
+
 	private (bool Valid, string Message) GetLayoutStatus()
 	{
 		if (TryGetCombinedLayoutDimensions(out var combinedColumns, out var combinedRows))
@@ -902,7 +978,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		var sheetRows = ThingHeight * textureRows;
 		if (sheetColumns > int.MaxValue || sheetRows > int.MaxValue || Columns % sheetColumns != 0 || Rows % sheetRows != 0)
 			return (false, $"Each thing needs {sheetColumns} × {sheetRows} cells.");
-		var thingCount = (Columns / sheetColumns) * (Rows / sheetRows);
+		var thingCount = (Columns / (int)sheetColumns) * (Rows / (int)sheetRows);
 		if (ReplaceExisting && thingCount != 1)
 			return (false, "Replacement requires a selection containing exactly one thing.");
 		return (true, $"{thingCount} thing{(thingCount == 1 ? "" : "s")}, {sheetColumns} × {sheetRows} cells each.");
@@ -1010,8 +1086,8 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 
 	private void NotifyCommands()
 	{
-		OnPropertyChanged(nameof(CanCrop)); OnPropertyChanged(nameof(CanImportSprites)); OnPropertyChanged(nameof(CanImportThing)); OnPropertyChanged(nameof(CanExport));
-		CropCommand.NotifyCanExecuteChanged(); ImportSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
+		OnPropertyChanged(nameof(CanCrop)); OnPropertyChanged(nameof(CanStackFramesVertically)); OnPropertyChanged(nameof(CanImportSprites)); OnPropertyChanged(nameof(CanImportThing)); OnPropertyChanged(nameof(CanExport));
+		CropCommand.NotifyCanExecuteChanged(); StackFramesVerticallyCommand.NotifyCanExecuteChanged(); ImportSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
 		FindTemplateCommand.NotifyCanExecuteChanged(); FindReplacementCommand.NotifyCanExecuteChanged();
 		OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanRedo));
