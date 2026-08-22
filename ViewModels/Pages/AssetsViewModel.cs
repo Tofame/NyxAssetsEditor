@@ -352,8 +352,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 						pair.ThingsPanel.FilePath);
 
 					// Await sprite reload first so the link is available for things reload
-					await pair.SpritePanel.LoadArchiveAsync(pair.SpritePanel.FilePath);
-					await pair.ThingsPanel.LoadArchiveAsync(pair.ThingsPanel.FilePath, useLastLoadedSprite: false);
+					await pair.SpritePanel.LoadArchiveAsync(pair.SpritePanel.FilePath, preserveNavigation: true);
+					await pair.ThingsPanel.LoadArchiveAsync(pair.ThingsPanel.FilePath, useLastLoadedSprite: false, preserveNavigation: true);
 
 					pair.SpritePanel.HasSavedChanges = false;
 					pair.ThingsPanel.HasSavedChanges = false;
@@ -379,8 +379,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			ArchiveCompileService.CompilePair(pair.SpritePanel, pair.ThingsPanel, spriteOutputPath, thingsOutputPath);
 			pair.SpritePanel.FilePath = spriteOutputPath;
 			pair.ThingsPanel.FilePath = thingsOutputPath;
-			await pair.SpritePanel.LoadArchiveAsync(spriteOutputPath);
-			await pair.ThingsPanel.LoadArchiveAsync(thingsOutputPath, useLastLoadedSprite: false);
+			await pair.SpritePanel.LoadArchiveAsync(spriteOutputPath, preserveNavigation: true);
+			await pair.ThingsPanel.LoadArchiveAsync(thingsOutputPath, useLastLoadedSprite: false, preserveNavigation: true);
 			pair.SpritePanel.HasSavedChanges = false;
 			pair.ThingsPanel.HasSavedChanges = false;
 			RefreshCompileCommands();

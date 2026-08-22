@@ -80,6 +80,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSpritesOptimizer -= OnSpritesOptimizerRequested;
 					_viewModel.RequestShowInfo -= OnShowInfoRequested;
 					_viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+					_viewModel.CaptureListScrollY = null;
+					_viewModel.RestoreListScrollY = null;
 				}
 				_viewModel = DataContext as FloatingSpriteLoaderViewModel;
 				if (_viewModel != null)
@@ -90,6 +92,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					_viewModel.RequestSpritesOptimizer += OnSpritesOptimizerRequested;
 					_viewModel.RequestShowInfo += OnShowInfoRequested;
 					_viewModel.PropertyChanged += OnViewModelPropertyChanged;
+					_viewModel.CaptureListScrollY = CaptureListScrollY;
+					_viewModel.RestoreListScrollY = RestoreListScrollY;
 					_lastPage = _viewModel.CurrentPage;
 				}
 			};
@@ -137,6 +141,24 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				return;
 
 			Dispatcher.UIThread.Post(() => listBox.ScrollIntoView(item), DispatcherPriority.Loaded);
+		}
+
+		private ScrollViewer? GetActiveListScrollViewer()
+		{
+			var listBox = _viewModel?.IsGridView == true ? SpriteGridListBox : SpriteListListBox;
+			return listBox?.FindDescendantOfType<ScrollViewer>();
+		}
+
+		private double CaptureListScrollY() => GetActiveListScrollViewer()?.Offset.Y ?? 0;
+
+		private void RestoreListScrollY(double offsetY)
+		{
+			Dispatcher.UIThread.Post(() =>
+			{
+				var scrollViewer = GetActiveListScrollViewer();
+				if (scrollViewer != null)
+					scrollViewer.Offset = new Vector(scrollViewer.Offset.X, offsetY);
+			}, DispatcherPriority.Loaded);
 		}
 
 		private void OnSpritePointerPressed(object? sender, PointerPressedEventArgs e)
@@ -592,6 +614,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			if (e.PropertyName == nameof(FloatingSpriteLoaderViewModel.CurrentPage))
 			{
+				if (_viewModel.SuppressListScrollReset)
+					return;
 				int newPage = _viewModel.CurrentPage;
 				bool isBackwards = newPage < _lastPage;
 				_lastPage = newPage;

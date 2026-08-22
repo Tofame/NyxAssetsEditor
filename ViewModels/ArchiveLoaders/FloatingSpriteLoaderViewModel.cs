@@ -48,6 +48,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public bool CanCompile => IsArchiveLoaded && ParentViewModel != null && HasSavedChanges;
 
+		public Func<double>? CaptureListScrollY { get; set; }
+		public Action<double>? RestoreListScrollY { get; set; }
+		public bool SuppressListScrollReset { get; set; }
+
 		[RelayCommand(CanExecute = nameof(CanCompile))]
 		private async System.Threading.Tasks.Task Compile()
 		{
@@ -58,8 +62,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			try
 			{
 				bool compileThings = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && thingsPanel.HasSavedChanges;
-
-				var (savedPage, savedId) = SaveViewState();
 
 				if (compileThings)
 				{
@@ -72,10 +74,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						FilePath,
 						thingsPanel.FilePath);
 
-					await LoadArchiveAsync(FilePath);
+					await LoadArchiveAsync(FilePath, preserveNavigation: true);
 					HasSavedChanges = false;
 
-					await thingsPanel.LoadArchiveAsync(thingsPanel.FilePath, useLastLoadedSprite: false);
+					await thingsPanel.LoadArchiveAsync(thingsPanel.FilePath, useLastLoadedSprite: false, preserveNavigation: true);
 					thingsPanel.HasSavedChanges = false;
 				}
 				else
@@ -92,38 +94,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						Loader.WriteAssetsTo(FilePath);
 					}
 
-					await LoadArchiveAsync(FilePath);
+					await LoadArchiveAsync(FilePath, preserveNavigation: true);
 					HasSavedChanges = false;
 				}
-				RestoreViewState(savedPage, savedId);
 				ParentViewModel.RefreshCompileCommands();
 			}
 			catch (Exception ex)
 			{
 				ErrorMessage = $"Compile failed: {ex.Message}";
-			}
-		}
-
-		private (int page, uint spriteId) SaveViewState() =>
-			(_currentPage, SelectedSprite?.Id ?? 0);
-
-		private void RestoreViewState(int page, uint spriteId)
-		{
-			int maxPage = TotalPages;
-			int target = Math.Min(page, maxPage > 0 ? maxPage : 1);
-			if (_currentPage != target)
-			{
-				_currentPage = target;
-				OnPropertyChanged(nameof(CurrentPage));
-				OnPropertyChanged(nameof(HasNextPage));
-				OnPropertyChanged(nameof(HasPreviousPage));
-				UpdatePage();
-			}
-			if (spriteId != 0)
-			{
-				var item = PagedSprites.FirstOrDefault(s => s.Id == spriteId);
-				if (item != null)
-					SelectSprite(item);
 			}
 		}
 
@@ -370,7 +348,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public void LoadArchive(string path) => _ = LoadArchiveAsync(path);
 
-		public async Task LoadArchiveAsync(string path)
+		public async Task LoadArchiveAsync(string path, bool preserveNavigation = false)
 		{
 			_undoRedoStack?.Clear();
 			RefreshUndoRedoCommands();
@@ -454,13 +432,24 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				RemovedSpriteIds.Clear();
 				ModifiedSpriteIds.Clear();
 
+				var savedPage = _currentPage;
+				var savedIds = GetSelectedSprites().Select(s => s.Id).ToList();
+				var savedPrimary = SelectedSprite?.Id ?? 0u;
+				var savedAnchor = _selectionAnchor?.Id;
+				var savedScroll = CaptureListScrollY?.Invoke() ?? 0;
+
 				FilePath = path;
 				await Task.Run(() =>
 					Loader.OpenArchive(path, extendedSpriteIds: UseExtendedSpriteIds, transparentPixels: UseTransparentPixels))
 					.ConfigureAwait(true);
 				TotalSprites = Loader.SpriteCount;
-				CurrentPage = 1;
-				UpdatePage();
+				if (preserveNavigation)
+					RestoreSpriteNavigation(savedPage, savedIds, savedPrimary, savedAnchor, savedScroll);
+				else
+				{
+					CurrentPage = 1;
+					UpdatePage();
+				}
 				OnPropertyChanged(nameof(IsArchiveLoaded));
 				ImportSelectedSpritesCommand.NotifyCanExecuteChanged();
 				NewSpriteCommand.NotifyCanExecuteChanged();
@@ -538,6 +527,44 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			for (uint id = startId; id <= endId; id++)
 			{
 				PagedSprites.Add(new SpriteViewModel(id, this, Loader, _renderer));
+			}
+		}
+
+		private void RestoreSpriteNavigation(
+			int page,
+			IReadOnlyList<uint> selectedIds,
+			uint selectedId,
+			uint? anchorId,
+			double scrollY)
+		{
+			var maxPage = TotalPages;
+			var target = maxPage > 0 ? Math.Clamp(page, 1, maxPage) : 1;
+			SuppressListScrollReset = true;
+			try
+			{
+				if (_currentPage != target)
+				{
+					_currentPage = target;
+					OnPropertyChanged(nameof(CurrentPage));
+				}
+				OnPropertyChanged(nameof(HasNextPage));
+				OnPropertyChanged(nameof(HasPreviousPage));
+				UpdatePage();
+
+				foreach (var sprite in PagedSprites)
+					sprite.IsSelected = selectedIds.Contains(sprite.Id);
+				SelectedSprite = selectedId != 0
+					? PagedSprites.FirstOrDefault(s => s.Id == selectedId)
+					: PagedSprites.FirstOrDefault(s => s.IsSelected);
+				_selectionAnchor = anchorId is uint anchor
+					? PagedSprites.FirstOrDefault(s => s.Id == anchor)
+					: SelectedSprite;
+				NotifySelectionChanged();
+				RestoreListScrollY?.Invoke(scrollY);
+			}
+			finally
+			{
+				SuppressListScrollReset = false;
 			}
 		}
 

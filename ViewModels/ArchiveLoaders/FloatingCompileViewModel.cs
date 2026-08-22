@@ -149,8 +149,8 @@ public partial class FloatingCompileViewModel : PanelViewModelBase
 				pair.SpritePanel.FilePath,
 				pair.ThingsPanel.FilePath);
 
-			await pair.SpritePanel.LoadArchiveAsync(pair.SpritePanel.FilePath);
-			await pair.ThingsPanel.LoadArchiveAsync(pair.ThingsPanel.FilePath, useLastLoadedSprite: false);
+			await pair.SpritePanel.LoadArchiveAsync(pair.SpritePanel.FilePath, preserveNavigation: true);
+			await pair.ThingsPanel.LoadArchiveAsync(pair.ThingsPanel.FilePath, useLastLoadedSprite: false, preserveNavigation: true);
 
 			pair.SpritePanel.HasSavedChanges = false;
 			pair.ThingsPanel.HasSavedChanges = false;

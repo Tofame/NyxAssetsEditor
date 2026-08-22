@@ -324,6 +324,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public event EventHandler<ThingFileRequestEventArgs>? RequestThingFileDialog;
 		public event Action? CatalogChanged;
+		public Func<double>? CaptureListScrollY { get; set; }
+		public Action<double>? RestoreListScrollY { get; set; }
+		public bool SuppressListScrollReset { get; set; }
 
 		public ThingItemViewModel? SelectedThing { get; private set; }
 
@@ -1014,8 +1017,6 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			{
 				bool compileSprites = NyxAssetsEditor.ViewModels.Pages.SettingsViewModel.CompileLinkedPairTogether && LinkedSpritePanel.HasSavedChanges;
 
-				var (savedPage, savedId) = SaveViewState();
-
 				if (compileSprites)
 				{
 					ArchiveCompileService.BackupIfExists(LinkedSpritePanel.FilePath);
@@ -1027,10 +1028,10 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						LinkedSpritePanel.FilePath,
 						FilePath);
 
-					await LinkedSpritePanel.LoadArchiveAsync(LinkedSpritePanel.FilePath);
+					await LinkedSpritePanel.LoadArchiveAsync(LinkedSpritePanel.FilePath, preserveNavigation: true);
 					LinkedSpritePanel.HasSavedChanges = false;
 					
-					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
+					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false, preserveNavigation: true);
 					HasSavedChanges = false;
 				}
 				else
@@ -1052,38 +1053,14 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 						}
 					}
 
-					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false);
+					await LoadArchiveAsync(FilePath, useLastLoadedSprite: false, preserveNavigation: true);
 					HasSavedChanges = false;
 				}
-				RestoreViewState(savedPage, savedId);
 				_parentViewModel?.RefreshCompileCommands();
 			}
 			catch (Exception ex)
 			{
 				ErrorMessage = $"Compile failed: {ex.Message}";
-			}
-		}
-
-		private (int page, uint thingId) SaveViewState() =>
-			(_currentPage, SelectedThing?.Id ?? 0);
-
-		private void RestoreViewState(int page, uint thingId)
-		{
-			int maxPage = TotalPages;
-			int target = Math.Min(page, maxPage > 0 ? maxPage : 1);
-			if (_currentPage != target)
-			{
-				_currentPage = target;
-				OnPropertyChanged(nameof(CurrentPage));
-				OnPropertyChanged(nameof(HasNextPage));
-				OnPropertyChanged(nameof(HasPreviousPage));
-				UpdatePage();
-			}
-			if (thingId != 0)
-			{
-				var item = PagedThings.FirstOrDefault(t => t.Id == thingId);
-				if (item != null)
-					SelectThing(item);
 			}
 		}
 
@@ -1261,7 +1238,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 		public void LoadArchive(string path, bool useLastLoadedSprite = true) =>
 			_ = LoadArchiveAsync(path, useLastLoadedSprite);
 
-		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true)
+		public async Task LoadArchiveAsync(string path, bool useLastLoadedSprite = true, bool preserveNavigation = false)
 		{
 			_undoRedoStack?.Clear();
 			RefreshUndoRedoCommands();
@@ -1381,12 +1358,40 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			try
 			{
 				var options = GetWriteOptions();
+				var savedPage = _currentPage;
+				var savedIds = GetSelectedThings().Select(t => t.Id).ToList();
+				var savedPrimary = SelectedThing?.Id;
+				var savedAnchor = _selectionAnchor?.Id;
+				var savedScroll = CaptureListScrollY?.Invoke() ?? 0;
+
 				_catalog = await Task.Run(() => ReadCatalogFromFile(path, options)).ConfigureAwait(true);
 
-				_selectedSection = ThingKind.Item;
+				if (!preserveNavigation)
+					_selectedSection = ThingKind.Item;
 				NotifySectionProperties();
 				OnPropertyChanged(nameof(IsArchiveLoaded));
-				ReloadThingsForSection();
+				SuppressListScrollReset = preserveNavigation;
+				try
+				{
+					ReloadThingsForSection(preserveCurrentPage: preserveNavigation);
+					if (preserveNavigation)
+					{
+						if (_currentPage != savedPage && savedPage >= 1 && savedPage <= TotalPages)
+						{
+							_currentPage = savedPage;
+							OnPropertyChanged(nameof(CurrentPage));
+							OnPropertyChanged(nameof(HasNextPage));
+							OnPropertyChanged(nameof(HasPreviousPage));
+							UpdatePage();
+						}
+						RestorePagedSelection(savedIds, savedPrimary, savedAnchor);
+						RestoreListScrollY?.Invoke(savedScroll);
+					}
+				}
+				finally
+				{
+					SuppressListScrollReset = false;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -1438,12 +1443,15 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 				RequestShowWarning?.Invoke(this, ("Failed to Load .dat", ex.Message, infoBoxMessage, snippet));
 			}
 
-			_selectionAnchor = null;
-			SelectedThing = null;
-			if (_currentPage != 1)
-				CurrentPage = 1;
-			else
-				UpdatePage();
+			if (!preserveNavigation || _catalog == null)
+			{
+				_selectionAnchor = null;
+				SelectedThing = null;
+				if (_currentPage != 1)
+					CurrentPage = 1;
+				else
+					UpdatePage();
+			}
 
 			if (_catalog != null)
 			{
