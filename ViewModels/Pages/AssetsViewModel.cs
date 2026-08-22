@@ -46,6 +46,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public Action<double, double>? PositionLooktypeGeneratorHandler { get; set; }
 		public Action<double, double>? PositionReplacerHandler { get; set; }
 		public Action<double, double, FloatingSpriteLoaderViewModel?>? PositionSlicerHandler { get; set; }
+		public Action<PanelViewModelBase>? BringPanelToFrontHandler { get; set; }
 		public bool CanCompile => GetCompilePairs().Any() && GetCompilePairs().Any(p => p.ThingsPanel.HasSavedChanges || p.SpritePanel.HasSavedChanges);
 		public bool CanCompileAs => GetCompilePairs().Any();
 
@@ -714,17 +715,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			AddPanel(panel);
 		}
 
-		/// <summary>Raises a floating panel without moving its visual during input routing.</summary>
+		/// <summary>Requests activation from the view that owns the floating panel containers.</summary>
 		public void BringPanelToFront(PanelViewModelBase panel)
 		{
 			if (!panel.IsFloating)
 				return;
 
-			var highestZIndex = FloatingPanels.Count == 0
-				? 0
-				: FloatingPanels.Max(floatingPanel => floatingPanel.ZIndex);
-			if (panel.ZIndex <= highestZIndex)
-				panel.ZIndex = highestZIndex + 1;
+			BringPanelToFrontHandler?.Invoke(panel);
 		}
 
 		private void AddPanel(PanelViewModelBase panel)

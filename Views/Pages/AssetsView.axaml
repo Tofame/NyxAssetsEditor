@@ -227,26 +227,29 @@
 			</Grid>
 
 			<!-- Floating Panels Overlay Canvas Layer -->
-			<ItemsControl Classes="overlay" ItemsSource="{Binding FloatingPanels}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-				<ItemsControl.ItemsPanel>
+			<local:FloatingPanelItemsControl Name="FloatingPanelsHost"
+					Classes="overlay"
+					ItemsSource="{Binding FloatingPanels}"
+					HorizontalAlignment="Stretch"
+					VerticalAlignment="Stretch">
+				<local:FloatingPanelItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
 						<Canvas />
 					</ItemsPanelTemplate>
-				</ItemsControl.ItemsPanel>
-				<ItemsControl.Styles>
+				</local:FloatingPanelItemsControl.ItemsPanel>
+				<local:FloatingPanelItemsControl.Styles>
 					<Style Selector="ItemsControl.overlay > ContentPresenter" x:DataType="core:PanelViewModelBase">
 						<Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
 						<Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
-						<Setter Property="Canvas.ZIndex" Value="{Binding ZIndex}"/>
 						<Setter Property="IsVisible" Value="{Binding IsVisible}"/>
 					</Style>
-				</ItemsControl.Styles>
-				<ItemsControl.ItemTemplate>
+				</local:FloatingPanelItemsControl.Styles>
+				<local:FloatingPanelItemsControl.ItemTemplate>
 					<DataTemplate x:DataType="core:PanelViewModelBase">
 						<ContentControl Content="{Binding}" />
 					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-			</ItemsControl>
+				</local:FloatingPanelItemsControl.ItemTemplate>
+			</local:FloatingPanelItemsControl>
 		</Grid>
 	</Grid>
 </UserControl>

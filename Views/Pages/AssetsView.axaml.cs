@@ -26,6 +26,7 @@ namespace NyxAssetsEditor.Views.Pages
 				_viewModel.PositionLooktypeGeneratorHandler = null;
 				_viewModel.PositionReplacerHandler = null;
 				_viewModel.PositionSlicerHandler = null;
+				_viewModel.BringPanelToFrontHandler = null;
 			}
 
 			_viewModel = DataContext as AssetsViewModel;
@@ -36,6 +37,7 @@ namespace NyxAssetsEditor.Views.Pages
 				_viewModel.PositionLooktypeGeneratorHandler = PositionAndOpenLooktypeGenerator;
 				_viewModel.PositionReplacerHandler = PositionAndOpenReplacer;
 				_viewModel.PositionSlicerHandler = PositionAndOpenSlicer;
+				_viewModel.BringPanelToFrontHandler = FloatingPanelsHost.BringToFront;
 			}
 		}
 
