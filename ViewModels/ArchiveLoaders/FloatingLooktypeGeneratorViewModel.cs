@@ -19,13 +19,9 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
 public enum LooktypeColorPart { Head, Body, Legs, Feet }
 
-public sealed class LooktypeArchivePairViewModel
+public sealed class LooktypeArchivePairViewModel : ArchivePairViewModel
 {
-	public LinkedArchivePair Pair { get; }
-	public string SpritePath => Pair.SpritePanel.FilePath;
-	public string ThingsPath => Pair.ThingsPanel.FilePath;
-	public string DisplayName => $"{Pair.ThingsPanel.FileName} + {Pair.SpritePanel.FileName}";
-	public LooktypeArchivePairViewModel(LinkedArchivePair pair) => Pair = pair;
+	public LooktypeArchivePairViewModel(LinkedArchivePair pair) : base(pair) {}
 }
 
 public sealed class LooktypeColorCellViewModel : ObservableObject

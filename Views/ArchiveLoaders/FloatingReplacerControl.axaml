@@ -80,16 +80,7 @@
 										HorizontalAlignment="Center" VerticalAlignment="Center"/>
 								</Border>
 							</StackPanel>
-							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedTargetPair}" PlaceholderText="No archive to replace in">
-								<ComboBox.ItemTemplate>
-									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
-										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
-											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
-										</StackPanel>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
+							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedTargetPair}" PlaceholderText="No archive to replace in"/>
 						</StackPanel>
 						<StackPanel Grid.Column="1" Spacing="4">
 							<StackPanel Orientation="Horizontal" Spacing="5">
@@ -104,16 +95,7 @@
 										HorizontalAlignment="Center" VerticalAlignment="Center"/>
 								</Border>
 							</StackPanel>
-							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedSourcePair}" PlaceholderText="No archive to copy from">
-								<ComboBox.ItemTemplate>
-									<DataTemplate x:DataType="vm:ReplacementArchivePairViewModel">
-										<StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}" MaxWidth="265">
-											<TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-											<TextBlock Text="{Binding DetailsText}" FontSize="10" Foreground="#777" TextTrimming="CharacterEllipsis"/>
-										</StackPanel>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
+							<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedSourcePair}" PlaceholderText="No archive to copy from"/>
 						</StackPanel>
 					</Grid>
 

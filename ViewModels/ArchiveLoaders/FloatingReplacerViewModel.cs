@@ -15,20 +15,9 @@ using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
-public sealed class ReplacementArchivePairViewModel
+public sealed class ReplacementArchivePairViewModel : ArchivePairViewModel
 {
-	private readonly ArchivePairPathPresentation _presentation;
-
-	public ReplacementArchivePairViewModel(LinkedArchivePair pair)
-	{
-		Pair = pair;
-		_presentation = ArchivePairPathPresentation.Create(pair.SpritePanel.FilePath, pair.ThingsPanel.FilePath);
-	}
-
-	public LinkedArchivePair Pair { get; }
-	public string DisplayName => _presentation.DisplayName;
-	public string DetailsText => _presentation.DetailsText;
-	public string ToolTipText => _presentation.ToolTipText;
+	public ReplacementArchivePairViewModel(LinkedArchivePair pair) : base(pair) {}
 }
 
 public sealed class ReplacementPreviewRowViewModel : ViewModelBase

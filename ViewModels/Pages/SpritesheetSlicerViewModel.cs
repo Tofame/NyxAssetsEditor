@@ -19,12 +19,29 @@ namespace NyxAssetsEditor.ViewModels.Pages;
 
 public sealed class SlicerTargetViewModel
 {
+	private NyxAssetsEditor.ViewModels.Common.ArchivePairPathPresentation? _presentation;
+
 	public required FloatingSpriteLoaderViewModel SpritePanel { get; init; }
 	public FloatingThingsLoaderViewModel? ThingsPanel { get; init; }
 	public bool HasThings => ThingsPanel is { IsArchiveLoaded: true };
-	public string DisplayName => HasThings
-		? $"{SpritePanel.FileName} ↔ {ThingsPanel!.FileName}"
-		: $"{SpritePanel.FileName} (sprites only)";
+
+	public string DisplayName => Presentation.DisplayName;
+	public string DetailsText => Presentation.DetailsText;
+	public string ToolTipText => Presentation.ToolTipText;
+
+	private NyxAssetsEditor.ViewModels.Common.ArchivePairPathPresentation Presentation
+	{
+		get
+		{
+			if (_presentation == null)
+			{
+				_presentation = NyxAssetsEditor.ViewModels.Common.ArchivePairPathPresentation.Create(
+					SpritePanel.FilePath,
+					ThingsPanel?.FilePath);
+			}
+			return _presentation;
+		}
+	}
 }
 
 public sealed class SlicerThingChoiceViewModel

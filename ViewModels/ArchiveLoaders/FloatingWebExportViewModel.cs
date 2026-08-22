@@ -20,11 +20,9 @@ using NyxAssetsEditor.Services.Things;
 
 namespace NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
-public sealed class WebExportArchivePairViewModel
+public sealed class WebExportArchivePairViewModel : ArchivePairViewModel
 {
-	public LinkedArchivePair Pair { get; }
-	public string DisplayName => $"{Pair.ThingsPanel.FileName} + {Pair.SpritePanel.FileName}";
-	public WebExportArchivePairViewModel(LinkedArchivePair pair) => Pair = pair;
+	public WebExportArchivePairViewModel(LinkedArchivePair pair) : base(pair) {}
 }
 
 public partial class FloatingWebExportViewModel : PanelViewModelBase, IDisposable

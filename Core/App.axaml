@@ -4,11 +4,24 @@
              xmlns:local="using:NyxAssetsEditor"
              xmlns:loaders="using:NyxAssetsEditor.Views.ArchiveLoaders"
              xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
+             xmlns:pages="using:NyxAssetsEditor.ViewModels.Pages"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
+        <DataTemplate DataType="vm:ArchivePairViewModel">
+            <StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}">
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding DetailsText}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="pages:SlicerTargetViewModel">
+            <StackPanel Spacing="2" ToolTip.Tip="{Binding ToolTipText}">
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding DetailsText}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Resources>

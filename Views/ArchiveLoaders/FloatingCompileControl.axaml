@@ -41,7 +41,7 @@
 					<StackPanel Spacing="4">
 						<TextBlock Text="Select Archive Pair to Compile" Classes="label"/>
 						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" 
-								  DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair" HorizontalAlignment="Stretch"/>
+								  PlaceholderText="No compatible pair" HorizontalAlignment="Stretch"/>
 					</StackPanel>
 
 					<TextBlock Text="{Binding HasChangesSummary}" Foreground="#FFB84C" FontSize="11" FontWeight="SemiBold" 

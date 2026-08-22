@@ -44,7 +44,7 @@
 					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 					<StackPanel Spacing="10" Margin="0,0,6,0">
 						<TextBlock Text="Archive pair" Classes="label"/>
-						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" DisplayMemberBinding="{Binding DisplayName}" PlaceholderText="No compatible pair"/>
+						<ComboBox ItemsSource="{Binding ArchivePairs}" SelectedItem="{Binding SelectedArchivePair}" PlaceholderText="No compatible pair" HorizontalAlignment="Stretch"/>
 						<Separator/>
 						<Grid ColumnDefinitions="*,Auto">
 							<TextBlock Text="Preview" Foreground="#EEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
