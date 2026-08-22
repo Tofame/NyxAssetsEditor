@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -716,6 +717,9 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		// Ensure full array capacity before writing rotated sprites to target slots
 		ThingFrameGroupEditor.EnsureSpriteCapacity(fg);
 
+		// Same source cell (e.g. 3 frames pointing at anim2) -> reuse the rotated sprite IDs.
+		var reused = new Dictionary<(uint TargetPx, string Fingerprint), uint[]>();
+
 		for (uint frame = 0; frame < fg.Frames; frame++)
 		{
 			byte[] srcRgba = LoadCellRgba(fg, loader, SelectedLayer, srcPx, _viewPatternY, _viewPatternZ, frame);
@@ -725,15 +729,22 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				if (srcRgba[i] > 0) { hasContent = true; break; }
 			if (!hasContent) continue;
 
+			var fingerprint = FingerprintRgba(srcRgba);
+
 			for (uint targetPx = 0; targetPx < fg.PatternX; targetPx++)
 			{
 				if (targetPx == srcPx) continue;
 
-				// Calculate clockwise 90-degree rotation steps
+				var key = (targetPx, fingerprint);
+				if (reused.TryGetValue(key, out var existingIds))
+				{
+					AssignCellSpriteIds(fg, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, existingIds);
+					continue;
+				}
+
 				int steps = ((int)targetPx - (int)srcPx + 4) % 4;
 				byte[] rotated = SpriteTransformUtil.RotateRgba90(srcRgba, cellW, cellH, steps);
-
-				SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
+				reused[key] = SaveCellRgba(fg, linkedPanel, SelectedLayer, targetPx, _viewPatternY, _viewPatternZ, frame, rotated);
 			}
 		}
 
@@ -1337,11 +1348,38 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		return cellRgba;
 	}
 
-	private static void SaveCellRgba(ThingFrameGroup fg, FloatingSpriteLoaderViewModel linkedPanel, int layer, uint px, uint py, uint pz, uint frame, byte[] cellRgba)
+	private static string FingerprintRgba(byte[] rgba) => Convert.ToHexString(SHA256.HashData(rgba));
+
+	private static void AssignCellSpriteIds(ThingFrameGroup fg, int layer, uint px, uint py, uint pz, uint frame, uint[] spriteIds)
+	{
+		var i = 0;
+		for (uint innerW = 0; innerW < fg.Width; innerW++)
+		{
+			for (uint innerH = 0; innerH < fg.Height; innerH++)
+			{
+				if (i >= spriteIds.Length)
+					return;
+				try
+				{
+					var index = fg.GetSpriteIndex(innerW, innerH, (uint)layer, px, py, pz, frame);
+					if (index >= 0 && index < fg.SpriteIds.Length)
+						fg.SpriteIds[index] = spriteIds[i];
+				}
+				catch
+				{
+				}
+				i++;
+			}
+		}
+	}
+
+	private static uint[] SaveCellRgba(ThingFrameGroup fg, FloatingSpriteLoaderViewModel linkedPanel, int layer, uint px, uint py, uint pz, uint frame, byte[] cellRgba)
 	{
 		int tileEdge = SpritePixelCodec.SpriteEdgeLength; // 32
 		int cellW = (int)(fg.Width * tileEdge);
 		int cellH = (int)(fg.Height * tileEdge);
+		var newIds = new uint[fg.Width * fg.Height];
+		var i = 0;
 
 		for (uint innerW = 0; innerW < fg.Width; innerW++)
 		{
@@ -1360,6 +1398,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 				var newId = linkedPanel.Loader.AddNewSprite();
 				linkedPanel.Loader.SetSpritePixels(newId, tilePixels);
+				newIds[i++] = newId;
 
 				try
 				{
@@ -1375,6 +1414,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				}
 			}
 		}
+
+		return newIds;
 	}
 
 	private void GenerateMissileRotations(Direction8 sourceDir, bool isOrthogonal)
