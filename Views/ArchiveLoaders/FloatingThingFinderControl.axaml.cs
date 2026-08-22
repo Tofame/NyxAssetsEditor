@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Avalonia;
+using Avalonia.Platform.Storage;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -70,8 +72,9 @@ public partial class FloatingThingFinderControl : UserControl
 
 	private void OnResultContextRequested(object? sender, ContextRequestedEventArgs e)
 	{
-		if (sender is not Control control || control.DataContext is not ThingFinderResultViewModel result) return;
+		if (sender is not Control control || control.DataContext is not ThingFinderResultViewModel result || DataContext is not FloatingThingFinderViewModel vm) return;
 		var menu = new ContextMenu();
+		
 		var copy = new MenuItem { Header = "Copy ID" };
 		copy.Click += async (_, _) =>
 		{
@@ -79,17 +82,92 @@ public partial class FloatingThingFinderControl : UserControl
 			if (clipboard != null) await clipboard.SetTextAsync(result.DisplayedId.ToString());
 		};
 		menu.Items.Add(copy);
+		menu.Items.Add(new Separator());
+
+		var export = new MenuItem { Header = "Export..." };
+		export.Click += (_, _) =>
+		{
+			if (vm.SourcePanel != null)
+			{
+				vm.SourcePanel.RequestExportThing(new ThingItemViewModel(result.Thing.Id, vm.SourcePanel));
+			}
+		};
+
+		var openNew = new MenuItem { Header = "Open in new window" };
+		openNew.Click += async (_, _) =>
+		{
+			if (vm.SourcePanel != null)
+			{
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: true);
+			}
+		};
+
+		var edit = new MenuItem { Header = "Edit" };
+		edit.Click += async (_, _) =>
+		{
+			if (vm.SourcePanel != null)
+			{
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false);
+			}
+		};
+
+		menu.Items.Add(export);
+		menu.Items.Add(new Separator());
+		menu.Items.Add(openNew);
+		menu.Items.Add(edit);
 
 		var actions = result.GetContextActions();
-		if (actions.Count > 0) menu.Items.Add(new Separator());
-		foreach (var action in actions)
+		if (actions.Count > 0)
 		{
-			var item = new MenuItem { Header = action.Label };
-			item.Click += async (_, _) => await result.ExecuteContextActionAsync(action);
-			menu.Items.Add(item);
+			menu.Items.Add(new Separator());
+			foreach (var action in actions)
+			{
+				var item = new MenuItem { Header = action.Label };
+				item.Click += async (_, _) => await result.ExecuteContextActionAsync(action);
+				menu.Items.Add(item);
+			}
 		}
 
 		menu.Open(control);
 		e.Handled = true;
+	}
+
+	private void OnDragOver(object? sender, DragEventArgs e)
+	{
+		var files = e.DataTransfer.TryGetFiles()?.ToList();
+		var valid = files is { Count: 1 } && files[0].TryGetLocalPath() is { } path;
+		e.DragEffects = valid ? DragDropEffects.Copy : DragDropEffects.None;
+		e.Handled = true;
+	}
+
+	private async void OnDrop(object? sender, DragEventArgs e)
+	{
+		e.Handled = true;
+		if (DataContext is not FloatingThingFinderViewModel vm) return;
+		var files = e.DataTransfer.TryGetFiles()?.ToList();
+		if (files is { Count: 1 } && files[0].TryGetLocalPath() is { } path)
+		{
+			try
+			{
+				using var stream = System.IO.File.OpenRead(path);
+				var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+				await vm.LoadSpriteFromBitmapAsync(bitmap);
+			}
+			catch (Exception ex)
+			{
+				vm.SearchBySpriteStatus = $"Error loading file: {ex.Message}";
+			}
+		}
+	}
+
+	private async void OnResultDoubleTapped(object? sender, TappedEventArgs e)
+	{
+		if (DataContext is FloatingThingFinderViewModel vm && sender is Control control && control.DataContext is ThingFinderResultViewModel result)
+		{
+			if (vm.SourcePanel != null)
+			{
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false);
+			}
+		}
 	}
 }
