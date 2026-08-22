@@ -101,7 +101,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		private readonly FloatingThingEditorViewModel _vm;
 		public FlagVisibilityMap(FloatingThingEditorViewModel vm) => _vm = vm;
-		public bool this[string key] => _vm._loadedFlags.ContainsKey(key);
+		public bool this[string key] => _vm._loadedFlags.ContainsKey(key)
+			&& Services.Things.ThingFinderFilterService.IsPropertyAvailableForKind(key, _vm.Kind);
 	}
 
 	public class FlagLabelMap

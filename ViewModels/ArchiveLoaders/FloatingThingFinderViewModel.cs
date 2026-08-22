@@ -768,35 +768,8 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		&& descriptor.ValueKind == ThingFinderValueKind.Boolean
 		&& !PropertyBooleanFields.Contains(descriptor.Key);
 
-	private static bool IsAvailableForKind(string key, ThingKind kind)
-	{
-		if (kind == ThingKind.Item)
-		{
-			if (OutfitOnlyFields.Contains(key)) return false;
-			return true;
-		}
-
-		var isSharedCommon = key is nameof(ThingType.HasOffset) or nameof(ThingType.OffsetX) or nameof(ThingType.OffsetY)
-			or nameof(ThingType.HasElevation) or nameof(ThingType.Elevation)
-			or nameof(ThingType.HasLight) or nameof(ThingType.LightLevel) or nameof(ThingType.LightColor);
-
-		if (isSharedCommon) return true;
-
-		if (kind == ThingKind.Outfit)
-		{
-			return key is nameof(ThingType.AnimateAlways) or nameof(ThingType.DontCenterOutfit);
-		}
-		if (kind == ThingKind.Effect)
-		{
-			return key is nameof(ThingType.AnimateAlways) or nameof(ThingType.BottomEffect);
-		}
-		if (kind == ThingKind.Missile)
-		{
-			return false;
-		}
-
-		return true;
-	}
+	private static bool IsAvailableForKind(string key, ThingKind kind) =>
+		ThingFinderFilterService.IsPropertyAvailableForKind(key, kind);
 
 	private static ThingFinderFieldDescriptor RenameForEditor(ThingFinderFieldDescriptor descriptor)
 	{
