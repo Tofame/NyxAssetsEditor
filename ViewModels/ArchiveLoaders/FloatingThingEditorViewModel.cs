@@ -333,7 +333,29 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _showAllOutfitDirections, value))
 			{
+				if (value)
+				{
+					ShowTimeframe = false;
+				}
 				OnPropertyChanged(nameof(ShowOutfitDirections));
+				RefreshAppearance();
+			}
+		}
+	}
+
+	private bool _showTimeframe;
+	public bool ShowTimeframe
+	{
+		get => _showTimeframe;
+		set
+		{
+			if (SetProperty(ref _showTimeframe, value))
+			{
+				if (value)
+				{
+					ShowAllOutfitDirections = false;
+					AutoRotate = false;
+				}
 				RefreshAppearance();
 			}
 		}
@@ -348,6 +370,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			if (SetProperty(ref _autoRotate, value))
 			{
+				if (value)
+				{
+					ShowTimeframe = false;
+				}
 				if (value) StartRotateTimer();
 				else StopRotateTimer();
 			}
@@ -781,7 +807,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			slot.Value.PatternX,
 			slot.Value.PatternY,
 			_viewPatternZ,
-			(uint)SelectedFrame);
+			ShowTimeframe ? slot.Value.Frame : (uint)SelectedFrame);
 
 		if (index >= fg.SpriteIds.Length)
 			return;
@@ -1722,6 +1748,12 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		{
 			rgba = ThingAppearanceRenderer.RenderOutfitDirectionGrid(Thing, loader, options);
 			w = (int)(fg.Width * edge) * 4;
+			h = (int)(fg.Height * edge);
+		}
+		else if (ShowTimeframe)
+		{
+			rgba = ThingAppearanceRenderer.RenderTimeframeGrid(Thing, loader, options);
+			w = (int)(fg.Width * edge) * (int)(fg.Frames == 0 ? 1 : fg.Frames);
 			h = (int)(fg.Height * edge);
 		}
 		else if (ShowPatternGrid)
@@ -2914,7 +2946,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			slot.PatternX,
 			slot.PatternY,
 			_viewPatternZ,
-			(uint)SelectedFrame);
+			ShowTimeframe ? slot.Frame : (uint)SelectedFrame);
 
 		if (index >= fg.SpriteIds.Length)
 			return 0;

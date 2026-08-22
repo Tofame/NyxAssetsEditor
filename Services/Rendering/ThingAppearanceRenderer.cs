@@ -256,6 +256,73 @@ public static class ThingAppearanceRenderer
 		return canvas;
 	}
 
+	public static byte[]? RenderTimeframeGrid(ThingType thing, SpriteLoader loader, ThingAppearanceOptions options)
+	{
+		if (thing.FrameGroups.Count == 0)
+			return null;
+
+		var groupIndex = Math.Clamp(options.FrameGroupIndex, 0, thing.FrameGroups.Count - 1);
+		var fg = thing.FrameGroups[groupIndex];
+		if (fg.Width == 0 || fg.Height == 0)
+			return null;
+
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+		var cellW = (int)(fg.Width * edge);
+		var cellH = (int)(fg.Height * edge);
+		var totalFrames = fg.Frames;
+		if (totalFrames == 0)
+			totalFrames = 1;
+
+		var canvasW = (int)(cellW * totalFrames);
+		var canvasH = cellH;
+		var canvas = new byte[canvasW * canvasH * 4];
+
+		for (uint f = 0; f < totalFrames; f++)
+		{
+			var cellOptions = new ThingAppearanceOptions
+			{
+				FrameGroupIndex = options.FrameGroupIndex,
+				Layer = options.Layer,
+				Frame = (int)f,
+				PatternX = options.PatternX,
+				PatternY = options.PatternY,
+				PatternZ = options.PatternZ,
+				ShowGrid = false,
+				ShowCropSize = false,
+			};
+			var offsetX = (int)(f * cellW);
+			var offsetY = 0;
+			DrawFrameGroupCell(canvas, canvasW, canvasH, fg, loader, cellOptions, offsetX, offsetY);
+
+			if (options.ShowCropSize && fg.ExactSize > 0)
+				DrawCropRect(canvas, canvasW, canvasH, (int)fg.ExactSize, cellW, cellH, offsetX, offsetY);
+		}
+
+		var (borderColor, borderWidth) = UsesGrid(options)
+			? GetActiveGridStyle(options)
+			: (new SKColor(90, 90, 90, 220), 1);
+
+		for (int i = 1; i < totalFrames; i++)
+		{
+			DrawVerticalLine(canvas, canvasW, canvasH, cellW * i, 0, canvasH, borderColor, borderWidth);
+		}
+
+		if (UsesGrid(options))
+		{
+			var (gridColor, gridLineWidth) = GetActiveGridStyle(options);
+			for (int f = 0; f < totalFrames; f++)
+			{
+				var offsetX = f * cellW;
+				var offsetY = 0;
+				DrawGrid(canvas, canvasW, canvasH, edge, (int)fg.Width, (int)fg.Height, offsetX, offsetY, cellW, cellH, gridColor, gridLineWidth);
+			}
+		}
+
+		DrawHighlight(canvas, canvasW, canvasH, options);
+
+		return canvas;
+	}
+
 	public static byte[]? RenderDragPreviewOverlay(
 		int canvasW,
 		int canvasH,

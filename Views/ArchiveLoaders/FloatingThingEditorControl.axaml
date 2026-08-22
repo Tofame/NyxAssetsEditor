@@ -2,6 +2,7 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:vm="using:NyxAssetsEditor.ViewModels.ArchiveLoaders"
 			 xmlns:local="using:NyxAssetsEditor.Views.ArchiveLoaders"
+			 xmlns:sys="clr-namespace:System;assembly=System.Runtime"
 			 x:Class="NyxAssetsEditor.Views.ArchiveLoaders.FloatingThingEditorControl"
 			 x:DataType="vm:FloatingThingEditorViewModel"
 			 Name="RootEditorControl"
@@ -137,7 +138,19 @@
 							<!-- Appearance -->
 							<Border Background="#1E1E1E" CornerRadius="6" Padding="12" BorderBrush="#353535" BorderThickness="1">
 								<StackPanel Spacing="8">
-									<TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
+									<!-- Appearance header with options bar aligned horizontally -->
+									<StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center" Margin="0,0,0,4">
+										<TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+										<CheckBox Content="Show Timeframe" IsChecked="{Binding ShowTimeframe}" FontSize="10" Foreground="#AAA" Height="18" Padding="4,0,0,0" Margin="0" VerticalAlignment="Center"/>
+										<CheckBox Content="Show All Directions" IsChecked="{Binding ShowAllOutfitDirections}" IsVisible="{Binding IsOutfit}" FontSize="10" Foreground="#AAA" Height="18" Padding="4,0,0,0" Margin="0" VerticalAlignment="Center"/>
+										<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsOutfit}">
+											<CheckBox Content="Auto Rotate" IsChecked="{Binding AutoRotate}" FontSize="10" Foreground="#AAA" Height="18" Padding="4,0,0,0" Margin="0" VerticalAlignment="Center"/>
+											<StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding AutoRotate}" VerticalAlignment="Center">
+												<TextBlock Text="Speed (ms):" Foreground="#888" FontSize="10" VerticalAlignment="Center" Margin="4,0,2,0"/>
+												<NumericUpDown Value="{Binding RotateSpeedMs}" Minimum="50" Maximum="5000" Increment="50" Width="70" Height="22" Padding="4,0" FontSize="10" ShowButtonSpinner="False" VerticalAlignment="Center"/>
+											</StackPanel>
+										</StackPanel>
+									</StackPanel>
 
 									<!-- Outfit directions -->
 									<Grid IsVisible="{Binding ShowOutfitDirections}" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" HorizontalAlignment="Center" Width="120">
@@ -155,60 +168,50 @@
 										</Button>
 									</Grid>
 
-									<Grid>
-										<!-- Left controls panel (only for outfit) -->
-										<StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,0" Spacing="8" IsVisible="{Binding IsOutfit}" Width="130">
-											<CheckBox Content="Show All Directions" IsChecked="{Binding ShowAllOutfitDirections}" FontSize="10" Foreground="#AAA" Height="18" Padding="4,0,0,0" Margin="0"/>
-											<StackPanel Spacing="4" IsVisible="{Binding !ShowAllOutfitDirections}">
-												<CheckBox Content="Auto Rotate" IsChecked="{Binding AutoRotate}" FontSize="10" Foreground="#AAA" Height="18" Padding="4,0,0,0" Margin="0"/>
-												<Grid ColumnDefinitions="Auto,*" IsVisible="{Binding AutoRotate}" Margin="0,2,0,0">
-													<TextBlock Text="Speed (ms):" Foreground="#888" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
-													<NumericUpDown Grid.Column="1" Value="{Binding RotateSpeedMs}" Minimum="50" Maximum="5000" Increment="50" Height="22" Padding="4,0" FontSize="10" ShowButtonSpinner="False"/>
-												</Grid>
-											</StackPanel>
-										</StackPanel>
+									<!-- Preview (centered) -->
+									<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
+										<!-- Direction headers (only when ShowAllOutfitDirections is true) -->
+										<Grid ColumnDefinitions="*,*,*,*" Width="{Binding AppearancePixelWidth}" IsVisible="{Binding ShowAllOutfitDirections}" Margin="8,0,8,4">
+											<TextBlock Text="N" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+											<TextBlock Grid.Column="1" Text="E" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+											<TextBlock Grid.Column="2" Text="S" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+											<TextBlock Grid.Column="3" Text="W" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+										</Grid>
 
-										<!-- Preview (centered) -->
-										<StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
-											<!-- Direction headers (only when ShowAllOutfitDirections is true) -->
-											<Grid ColumnDefinitions="*,*,*,*" Width="{Binding AppearancePixelWidth}" IsVisible="{Binding ShowAllOutfitDirections}" Margin="8,0,8,4">
-												<TextBlock Text="N" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
-												<TextBlock Grid.Column="1" Text="E" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
-												<TextBlock Grid.Column="2" Text="S" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
-												<TextBlock Grid.Column="3" Text="W" Foreground="#888" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
-											</Grid>
-
-											<ScrollViewer HorizontalScrollBarVisibility="Auto"
-														  VerticalScrollBarVisibility="Auto"
-														  MaxHeight="360"
-														  MaxWidth="480">
-												<Border x:Name="AppearanceDropTarget"
-														DragDrop.AllowDrop="True"
-														DragDrop.DragEnter="OnAppearanceDragEnter"
-														DragDrop.DragLeave="OnAppearanceDragLeave"
-														DragDrop.DragOver="OnAppearanceDragOver"
-														DragDrop.Drop="OnAppearanceDrop"
-														Focusable="True"
-														Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
-														HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
-													<Border.ContextMenu>
-														<ContextMenu>
-															<MenuItem Header="Set Sprite ID..." Command="{Binding OpenSetSpriteIdPromptCommand}"/>
-															<MenuItem Header="Clear" Command="{Binding ClearSelectedSlotCommand}"/>
-															<Separator/>
-															<MenuItem Header="Copy Sprite ID" Command="{Binding CopySelectedSlotCommand}" InputGesture="Ctrl+C"/>
-															<MenuItem Header="Paste Sprite ID" Command="{Binding PasteSelectedSlotCommand}" InputGesture="Ctrl+V" IsEnabled="{Binding CanPasteSpriteId}"/>
-														</ContextMenu>
-													</Border.ContextMenu>
-													<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
-														   HorizontalAlignment="Center" VerticalAlignment="Center"
-														   PointerMoved="OnAppearancePointerMoved"
-														   PointerExited="OnAppearancePointerExited"
-														   PointerPressed="OnAppearancePointerPressed"/>
-												</Border>
-											</ScrollViewer>
-										</StackPanel>
-									</Grid>
+										<ScrollViewer HorizontalScrollBarVisibility="Auto"
+													  VerticalScrollBarVisibility="Auto"
+													  MaxHeight="360"
+													  MaxWidth="480">
+											<ScrollViewer.Resources>
+												<sys:Double x:Key="ScrollBarSize">10</sys:Double>
+												<sys:Double x:Key="ScrollBarExpandedSize">10</sys:Double>
+											</ScrollViewer.Resources>
+											<Border x:Name="AppearanceDropTarget"
+													DragDrop.AllowDrop="True"
+													DragDrop.DragEnter="OnAppearanceDragEnter"
+													DragDrop.DragLeave="OnAppearanceDragLeave"
+													DragDrop.DragOver="OnAppearanceDragOver"
+													DragDrop.Drop="OnAppearanceDrop"
+													Focusable="True"
+													Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
+													HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
+												<Border.ContextMenu>
+													<ContextMenu>
+														<MenuItem Header="Set Sprite ID..." Command="{Binding OpenSetSpriteIdPromptCommand}"/>
+														<MenuItem Header="Clear" Command="{Binding ClearSelectedSlotCommand}"/>
+														<Separator/>
+														<MenuItem Header="Copy Sprite ID" Command="{Binding CopySelectedSlotCommand}" InputGesture="Ctrl+C"/>
+														<MenuItem Header="Paste Sprite ID" Command="{Binding PasteSelectedSlotCommand}" InputGesture="Ctrl+V" IsEnabled="{Binding CanPasteSpriteId}"/>
+													</ContextMenu>
+												</Border.ContextMenu>
+												<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
+													   HorizontalAlignment="Center" VerticalAlignment="Center"
+													   PointerMoved="OnAppearancePointerMoved"
+													   PointerExited="OnAppearancePointerExited"
+													   PointerPressed="OnAppearancePointerPressed"/>
+											</Border>
+										</ScrollViewer>
+									</StackPanel>
 
 									<!-- Bottom controls panel (missile buttons left-aligned at bottom, OB sliders right-aligned) -->
 									<Grid Margin="0,4,0,0">

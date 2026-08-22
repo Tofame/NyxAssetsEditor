@@ -7,7 +7,7 @@ using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
 namespace NyxAssetsEditor.Services.Rendering;
 
-public readonly record struct ThingAppearanceSlot(uint InnerW, uint InnerH, uint PatternX, uint PatternY);
+public readonly record struct ThingAppearanceSlot(uint InnerW, uint InnerH, uint PatternX, uint PatternY, uint Frame = 0);
 
 public static class ThingAppearanceDropTarget
 {
@@ -25,15 +25,18 @@ public static class ThingAppearanceDropTarget
 		var edge = SpritePixelCodec.SpriteEdgeLength;
 
 		if (vm.IsMissile)
-			return ResolveMissile(fg, edge, dropX, dropY, imageWidth, imageHeight);
+			return ResolveMissile(fg, edge, dropX, dropY, imageWidth, imageHeight, (uint)vm.SelectedFrame);
 
 		if (vm.IsOutfit && vm.ShowAllOutfitDirections)
-			return ResolveOutfitDirectionGrid(fg, edge, dropX, dropY, imageWidth, imageHeight);
+			return ResolveOutfitDirectionGrid(fg, edge, dropX, dropY, imageWidth, imageHeight, (uint)vm.SelectedFrame);
+
+		if (vm.ShowTimeframe)
+			return ResolveTimeframeGrid(fg, edge, dropX, dropY, imageWidth, imageHeight, vm.ViewPatternXIndex, vm.ViewPatternYIndex);
 
 		if (vm.ShowPatternGrid)
-			return ResolvePatternGrid(fg, edge, dropX, dropY, imageWidth, imageHeight);
+			return ResolvePatternGrid(fg, edge, dropX, dropY, imageWidth, imageHeight, (uint)vm.SelectedFrame);
 
-		return ResolveSingleTile(fg, edge, dropX, dropY, imageWidth, imageHeight, vm.ViewPatternXIndex, vm.ViewPatternYIndex);
+		return ResolveSingleTile(fg, edge, dropX, dropY, imageWidth, imageHeight, vm.ViewPatternXIndex, vm.ViewPatternYIndex, (uint)vm.SelectedFrame);
 	}
 
 	private static ThingAppearanceSlot? ResolveOutfitDirectionGrid(
@@ -42,7 +45,8 @@ public static class ThingAppearanceDropTarget
 		double dropX,
 		double dropY,
 		int imageWidth,
-		int imageHeight)
+		int imageHeight,
+		uint frame)
 	{
 		var cellW = fg.Width * edge;
 		var cellH = fg.Height * edge;
@@ -53,7 +57,33 @@ public static class ThingAppearanceDropTarget
 		var localX = dropX - col * cellW;
 		var localY = dropY;
 
-		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, col, 0);
+		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, col, 0, frame);
+	}
+
+	private static ThingAppearanceSlot? ResolveTimeframeGrid(
+		ThingFrameGroup fg,
+		int edge,
+		double dropX,
+		double dropY,
+		int imageWidth,
+		int imageHeight,
+		int patternX,
+		int patternY)
+	{
+		var cellW = fg.Width * edge;
+		var cellH = fg.Height * edge;
+		if (cellW <= 0 || cellH <= 0)
+			return null;
+
+		var totalFrames = fg.Frames;
+		if (totalFrames == 0)
+			totalFrames = 1;
+
+		var frame = (uint)Math.Clamp((int)(dropX / cellW), 0, (int)totalFrames - 1);
+		var localX = dropX - frame * cellW;
+		var localY = dropY;
+
+		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, patternX, patternY, frame);
 	}
 
 	private static ThingAppearanceSlot? ResolveMissile(
@@ -62,7 +92,8 @@ public static class ThingAppearanceDropTarget
 		double dropX,
 		double dropY,
 		int imageWidth,
-		int imageHeight)
+		int imageHeight,
+		uint frame)
 	{
 		var cellW = imageWidth / 3.0;
 		var cellH = imageHeight / 3.0;
@@ -93,7 +124,7 @@ public static class ThingAppearanceDropTarget
 
 		var innerW = (uint)Math.Clamp(fg.Width - 1 - (int)(Math.Clamp(localX, 0, cellW - 1) / edge), 0, (int)fg.Width - 1);
 		var innerH = (uint)Math.Clamp(fg.Height - 1 - (int)(Math.Clamp(localY, 0, cellH - 1) / edge), 0, (int)fg.Height - 1);
-		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY);
+		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY, frame);
 	}
 
 	private static ThingAppearanceSlot? ResolvePatternGrid(
@@ -102,7 +133,8 @@ public static class ThingAppearanceDropTarget
 		double dropX,
 		double dropY,
 		int imageWidth,
-		int imageHeight)
+		int imageHeight,
+		uint frame)
 	{
 		var cellW = fg.Width * edge;
 		var cellH = fg.Height * edge;
@@ -113,7 +145,7 @@ public static class ThingAppearanceDropTarget
 		var patternY = (uint)Math.Clamp((int)(dropY / cellH), 0, Math.Max(0, (int)fg.PatternY - 1));
 		var localX = dropX - patternX * cellW;
 		var localY = dropY - patternY * cellH;
-		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, (int)patternX, (int)patternY);
+		return ResolveSingleTile(fg, edge, localX, localY, (int)cellW, (int)cellH, (int)patternX, (int)patternY, frame);
 	}
 
 	private static ThingAppearanceSlot? ResolveSingleTile(
@@ -124,7 +156,8 @@ public static class ThingAppearanceDropTarget
 		int cellWidth,
 		int cellHeight,
 		int patternX,
-		int patternY)
+		int patternY,
+		uint frame = 0)
 	{
 		if (fg.Width == 0 || fg.Height == 0)
 			return null;
@@ -134,6 +167,6 @@ public static class ThingAppearanceDropTarget
 
 		var innerW = (uint)Math.Clamp(fg.Width - 1 - (int)(clampedX / edge), 0, (int)fg.Width - 1);
 		var innerH = (uint)Math.Clamp(fg.Height - 1 - (int)(clampedY / edge), 0, (int)fg.Height - 1);
-		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY);
+		return new ThingAppearanceSlot(innerW, innerH, (uint)patternX, (uint)patternY, frame);
 	}
 }

@@ -38,6 +38,11 @@ public static class ThingAppearanceSlotGeometry
 			cellOffsetX = (int)(slot.PatternX * cellW);
 			cellOffsetY = 0;
 		}
+		else if (vm.ShowTimeframe)
+		{
+			cellOffsetX = (int)(slot.Frame * cellW);
+			cellOffsetY = 0;
+		}
 		else if (vm.ShowPatternGrid)
 		{
 			cellOffsetX = (int)(slot.PatternX * cellW);
