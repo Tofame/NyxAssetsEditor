@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using NyxAssets.Things.Frames;
 using NyxAssetsEditor.Services.DragDrop;
 using NyxAssetsEditor.ViewModels.ArchiveLoaders;
 
@@ -17,6 +18,9 @@ public partial class FloatingThingEditorControl : UserControl
 {
 	private static readonly IBrush AppearanceDropBorderDefault = new SolidColorBrush(Color.Parse("#444444"));
 	private static readonly IBrush AppearanceDropBorderActive = new SolidColorBrush(Color.Parse("#3A7BD5"));
+
+	private static readonly DataFormat<string> DirectionFormat =
+		DataFormat.CreateInProcessFormat<string>("nyxassets-editor.direction");
 
 	private FloatingThingEditorViewModel? _vm;
 	private bool _pushingPatternValues;
@@ -450,5 +454,55 @@ public partial class FloatingThingEditorControl : UserControl
 		while (visual != null && visual is not Canvas)
 			visual = Avalonia.VisualTree.VisualExtensions.GetVisualParent(visual);
 		return visual as Canvas;
+	}
+
+	private async void OnDirectionPointerPressed(object? sender, PointerPressedEventArgs e)
+	{
+		if (DataContext is not FloatingThingEditorViewModel vm || !ViewModels.Pages.SettingsViewModel.AllowRelocatingDirection)
+			return;
+
+		if (sender is Control control && control.Tag is string dirStr && Enum.TryParse<Direction4>(dirStr, out var dir))
+		{
+			var dragData = new DataTransfer();
+			dragData.Add(DataTransferItem.Create(DirectionFormat, dir.ToString()));
+
+			await DragDrop.DoDragDropAsync(e, dragData, DragDropEffects.Copy | DragDropEffects.Move);
+		}
+	}
+
+	private void OnDirectionDragOver(object? sender, DragEventArgs e)
+	{
+		if (!ViewModels.Pages.SettingsViewModel.AllowRelocatingDirection)
+		{
+			e.DragEffects = DragDropEffects.None;
+			e.Handled = true;
+			return;
+		}
+
+		if (e.DataTransfer.Contains(DirectionFormat))
+		{
+			e.DragEffects = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? DragDropEffects.Move : DragDropEffects.Copy;
+			e.Handled = true;
+		}
+	}
+
+	private void OnDirectionDrop(object? sender, DragEventArgs e)
+	{
+		if (DataContext is not FloatingThingEditorViewModel vm || !ViewModels.Pages.SettingsViewModel.AllowRelocatingDirection)
+			return;
+
+		if (sender is Control control && control.Tag is string targetDirStr && Enum.TryParse<Direction4>(targetDirStr, out var targetDir))
+		{
+			if (e.DataTransfer.Contains(DirectionFormat))
+			{
+				var sourceDirStr = e.DataTransfer.TryGetValue(DirectionFormat);
+				if (sourceDirStr != null && Enum.TryParse<Direction4>(sourceDirStr, out var sourceDir) && sourceDir != targetDir)
+				{
+					bool shiftHeld = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+					vm.RelocateDirection(sourceDir, targetDir, shiftHeld);
+					e.Handled = true;
+				}
+			}
+		}
 	}
 }

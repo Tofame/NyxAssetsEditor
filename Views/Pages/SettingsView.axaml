@@ -323,6 +323,14 @@
 								   FontStyle="Italic" FontSize="11" Foreground="#666666"
 								   VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
 					</StackPanel>
+
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock Text="Allow relocating direction:" VerticalAlignment="Center" Foreground="#CCCCCC" Width="220"/>
+						<CheckBox IsChecked="{Binding AllowRelocatingDirectionSetting}"/>
+						<TextBlock Text="Allows drag-and-drop on the outfit direction buttons to duplicate or relocate (hold Shift) direction sprites."
+								   FontStyle="Italic" FontSize="11" Foreground="#666666"
+								   VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 		</StackPanel>

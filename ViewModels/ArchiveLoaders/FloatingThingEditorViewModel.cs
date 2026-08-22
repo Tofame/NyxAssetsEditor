@@ -1131,6 +1131,49 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	[RelayCommand]
 	private void SetDirectionWest() => SetOutfitDirection(Direction4.West);
 
+	public void RelocateDirection(Direction4 sourceDir, Direction4 targetDir, bool shiftHeld)
+	{
+		var fg = CurrentFrameGroup;
+		if (fg == null || fg.Width == 0 || fg.Height == 0)
+			return;
+
+		var srcPatternX = (uint)sourceDir;
+		var tgtPatternX = (uint)targetDir;
+
+		for (uint layer = 0; layer < fg.Layers; layer++)
+		{
+			for (uint py = 0; py < fg.PatternY; py++)
+			{
+				for (uint pz = 0; pz < fg.PatternZ; pz++)
+				{
+					for (uint frame = 0; frame < fg.Frames; frame++)
+					{
+						for (uint w = 0; w < fg.Width; w++)
+						{
+							for (uint h = 0; h < fg.Height; h++)
+							{
+								var srcIndex = fg.GetSpriteIndex(w, h, layer, srcPatternX, py, pz, frame);
+								var tgtIndex = fg.GetSpriteIndex(w, h, layer, tgtPatternX, py, pz, frame);
+
+								if (srcIndex < fg.SpriteIds.Length && tgtIndex < fg.SpriteIds.Length)
+								{
+									fg.SpriteIds[tgtIndex] = fg.SpriteIds[srcIndex];
+									if (shiftHeld)
+									{
+										fg.SpriteIds[srcIndex] = 0;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		ApplyToCatalog();
+		RefreshAppearance();
+	}
+
 	[RelayCommand]
 	private void SetMissileDirection(string direction)
 	{

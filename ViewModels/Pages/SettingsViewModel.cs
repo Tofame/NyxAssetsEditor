@@ -606,6 +606,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		private static bool _allowRelocatingDirection = false;
+		public static bool AllowRelocatingDirection
+		{
+			get => _allowRelocatingDirection;
+			set
+			{
+				if (_allowRelocatingDirection == value) return;
+				_allowRelocatingDirection = value;
+				AddonSettingsChanged?.Invoke();
+				PersistenceService.SaveSettings();
+			}
+		}
+
 		public static event Action? AddonSettingsChanged;
 
 		public enum LaunchSection
@@ -696,6 +709,19 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			}
 		}
 
+		public bool AllowRelocatingDirectionSetting
+		{
+			get => AllowRelocatingDirection;
+			set
+			{
+				if (AllowRelocatingDirection != value)
+				{
+					AllowRelocatingDirection = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public static event Action<int>? DefaultPageSizeChanged;
 		public static event Action<uint>? ThingIdOffsetChanged;
 		public static event Action<uint>? ClientVersionChanged;
@@ -735,6 +761,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			bool offsetPreviewCenterOutfits = false,
 			bool addonDuplicateFrameEnabled = false,
 			bool addonRotateCloneDirectionEnabled = false,
+			bool allowRelocatingDirection = false,
 			LaunchSection defaultLaunchSection = LaunchSection.Home)
 		{
 			DefaultPageSize = defaultPageSize;
@@ -778,6 +805,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_offsetPreviewCenterOutfits = offsetPreviewCenterOutfits;
 			_addonDuplicateFrameEnabled = addonDuplicateFrameEnabled;
 			_addonRotateCloneDirectionEnabled = addonRotateCloneDirectionEnabled;
+			_allowRelocatingDirection = allowRelocatingDirection;
 			_defaultLaunchSection = defaultLaunchSection;
 		}
 

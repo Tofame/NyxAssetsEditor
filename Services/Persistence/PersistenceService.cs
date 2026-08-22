@@ -76,6 +76,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool OffsetPreviewCenterOutfits { get; set; } = false;
 			public bool AddonDuplicateFrameEnabled { get; set; } = false;
 			public bool AddonRotateCloneDirectionEnabled { get; set; } = false;
+			public bool AllowRelocatingDirection { get; set; } = false;
 			public string DefaultLaunchSection { get; set; } = "Home";
 			public SlicerStateModel Slicer { get; set; } = new();
 		}
@@ -219,6 +220,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.OffsetPreviewCenterOutfits,
 							model.AddonDuplicateFrameEnabled,
 							model.AddonRotateCloneDirectionEnabled,
+							model.AllowRelocatingDirection,
 							System.Enum.TryParse<SettingsViewModel.LaunchSection>(model.DefaultLaunchSection, true, out var section) ? section : SettingsViewModel.LaunchSection.Home);
 					}
 				}
@@ -269,6 +271,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					OffsetPreviewCenterOutfits = SettingsViewModel.OffsetPreviewCenterOutfits,
 					AddonDuplicateFrameEnabled = SettingsViewModel.AddonDuplicateFrameEnabled,
 					AddonRotateCloneDirectionEnabled = SettingsViewModel.AddonRotateCloneDirectionEnabled,
+					AllowRelocatingDirection = SettingsViewModel.AllowRelocatingDirection,
 					DefaultLaunchSection = SettingsViewModel.DefaultLaunchSection.ToString(),
 					Slicer = _slicerState
 				};
