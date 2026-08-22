@@ -80,6 +80,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string DefaultLaunchSection { get; set; } = "Home";
 			public string LastAssetExportFormat { get; set; } = "png";
 			public string LastAssetExportDirectory { get; set; } = "";
+			public string LastAssetImportDirectory { get; set; } = "";
 			public bool LastThingExportSkipWest { get; set; }
 			public bool ThingEditorShowAllDirections { get; set; }
 			public bool ThingEditorShowTimeframe { get; set; }
@@ -231,6 +232,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							System.Enum.TryParse<SettingsViewModel.LaunchSection>(model.DefaultLaunchSection, true, out var section) ? section : SettingsViewModel.LaunchSection.Home,
 							model.LastAssetExportFormat,
 							model.LastAssetExportDirectory,
+							model.LastAssetImportDirectory,
 							model.LastThingExportSkipWest,
 							model.ThingEditorShowAllDirections,
 							model.ThingEditorShowTimeframe,
@@ -289,6 +291,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					DefaultLaunchSection = SettingsViewModel.DefaultLaunchSection.ToString(),
 					LastAssetExportFormat = SettingsViewModel.LastAssetExportFormat,
 					LastAssetExportDirectory = SettingsViewModel.LastAssetExportDirectory,
+					LastAssetImportDirectory = SettingsViewModel.LastAssetImportDirectory,
 					LastThingExportSkipWest = SettingsViewModel.LastThingExportSkipWest,
 					ThingEditorShowAllDirections = SettingsViewModel.ThingEditorShowAllDirections,
 					ThingEditorShowTimeframe = SettingsViewModel.ThingEditorShowTimeframe,

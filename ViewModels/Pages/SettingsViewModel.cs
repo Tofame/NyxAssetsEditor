@@ -648,6 +648,9 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			private set => _lastAssetExportFormat = value;
 		}
 
+		private static string _lastAssetImportDirectory = "";
+		public static string LastAssetImportDirectory => _lastAssetImportDirectory;
+
 		private static string _lastAssetExportDirectory = "";
 		public static string LastAssetExportDirectory
 		{
@@ -734,6 +737,14 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				_lastThingExportSkipWest = skipWest;
 			if (changed)
 				PersistenceService.SaveSettings();
+		}
+
+		public static void RememberAssetImportDirectory(string directory)
+		{
+			if (string.IsNullOrWhiteSpace(directory) || _lastAssetImportDirectory == directory)
+				return;
+			_lastAssetImportDirectory = directory;
+			PersistenceService.SaveSettings();
 		}
 
 		public int SelectedDefaultLaunchSectionIndex
@@ -860,6 +871,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			LaunchSection defaultLaunchSection = LaunchSection.Home,
 			string? lastAssetExportFormat = null,
 			string? lastAssetExportDirectory = null,
+			string? lastAssetImportDirectory = null,
 			bool lastThingExportSkipWest = false,
 			bool thingEditorShowAllDirections = false,
 			bool thingEditorShowTimeframe = false,
@@ -911,6 +923,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_defaultLaunchSection = defaultLaunchSection;
 			_lastAssetExportFormat = NormalizeAssetExportFormat(lastAssetExportFormat, thingsFormats: true);
 			_lastAssetExportDirectory = lastAssetExportDirectory ?? "";
+			_lastAssetImportDirectory = lastAssetImportDirectory ?? "";
 			_lastThingExportSkipWest = lastThingExportSkipWest;
 			_thingEditorShowAllDirections = thingEditorShowAllDirections;
 			_thingEditorShowTimeframe = thingEditorShowTimeframe;

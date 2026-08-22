@@ -361,19 +361,14 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			if (e.Format == "append")
 			{
-				var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-				{
-					Title = "Import Images as New Sprites",
-					AllowMultiple = true,
-					FileTypeFilter = FilePickerFilters.OpenImages
-				});
-
-				if (files == null || files.Count == 0)
+				var dialog = new AssetImportDialog(AssetImportKind.Sprites);
+				await dialog.ShowDialog(window);
+				if (!dialog.IsConfirmed || dialog.SelectedPaths.Count == 0)
 					return;
 
 				try
 				{
-					vm.ImportFiles(files.Select(f => f.Path.LocalPath));
+					vm.ImportFiles(dialog.SelectedPaths);
 				}
 				catch (Exception ex)
 				{

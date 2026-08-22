@@ -334,38 +334,53 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			if (replace && targets.Count == 0)
 				return;
 
-			var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+			if (replace)
 			{
-				Title = replace ? "Replace Thing from File" : "Import Things from Files",
-				AllowMultiple = !replace,
-				FileTypeFilter = FilePickerFilters.OpenThingExchange,
-			});
+				var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+				{
+					Title = "Replace Thing from File",
+					AllowMultiple = false,
+					FileTypeFilter = FilePickerFilters.OpenThingExchange,
+				});
 
-			if (files == null || files.Count == 0)
-				return;
+				if (files == null || files.Count == 0)
+					return;
 
-			try
-			{
-				if (replace)
+				try
 				{
 					var path = files[0].Path.LocalPath;
 					var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
 					foreach (var target in targets)
 						vm.ApplyImportedDocument(document, target.Id, replaceExisting: true);
 				}
-				else
+				catch (Exception ex)
 				{
-					// Sort files alphanumerically (natural sort) by filename so that order is respected
-					var sortedFiles = files.OrderBy(f => 
-						System.Text.RegularExpressions.Regex.Replace(f.Name ?? "", @"\d+", m => m.Value.PadLeft(10, '0'))
-					).ToList();
+					System.Diagnostics.Debug.WriteLine($"Failed to import thing: {ex.Message}");
+				}
+				return;
+			}
 
-					foreach (var file in sortedFiles)
+			var owner = topLevel as Window;
+			if (owner == null)
+				return;
+			var dialog = new AssetImportDialog(AssetImportKind.Things, vm.GetWriteOptions());
+			await dialog.ShowDialog(owner);
+			if (!dialog.IsConfirmed || dialog.SelectedPaths.Count == 0)
+				return;
+
+			try
+			{
+				foreach (var path in dialog.SelectedPaths)
+				{
+					try
 					{
-						var path = file.Path.LocalPath;
 						var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
 						var assignId = ThingExchangeHelper.GetNextAppendId(vm.Catalog, document.Thing.Kind);
 						vm.ApplyImportedDocument(document, assignId, replaceExisting: false);
+					}
+					catch (Exception ex)
+					{
+						System.Diagnostics.Debug.WriteLine($"Failed to import {path}: {ex.Message}");
 					}
 				}
 			}

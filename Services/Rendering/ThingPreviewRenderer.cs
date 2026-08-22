@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NyxAssets.Sprites;
 using NyxAssetsEditor.Services.Archive;
@@ -38,11 +39,28 @@ public static class ThingPreviewRenderer
 		return ResizeToSpriteEdge(preview.Pixels, preview.Width, preview.Height);
 	}
 
-	/// <summary>
-	/// Renders the selected frame at its native tile dimensions. Viewer controls
-	/// use this path so a large thing is not downscaled and then enlarged again.
-	/// </summary>
-	public static ThingPreviewFrame? RenderPreview(ThingType thing, SpriteLoader loader, int frameIndex = 0)
+	public static ThingPreviewFrame? RenderPreview(ThingType thing, SpriteLoader loader, int frameIndex = 0) =>
+		RenderPreview(thing, id =>
+		{
+			try
+			{
+				return loader.LoadSpritePixels(id);
+			}
+			catch
+			{
+				return null;
+			}
+		}, frameIndex);
+
+	public static ThingPreviewFrame? RenderPreview(
+		ThingType thing,
+		IReadOnlyDictionary<uint, byte[]>? spritesRgba,
+		int frameIndex = 0) =>
+		RenderPreview(thing, id =>
+			spritesRgba != null && spritesRgba.TryGetValue(id, out var pixels) ? pixels : null,
+		frameIndex);
+
+	public static ThingPreviewFrame? RenderPreview(ThingType thing, Func<uint, byte[]?> loadPixels, int frameIndex = 0)
 	{
 		if (thing.FrameGroups.Count == 0)
 			return null;
@@ -70,15 +88,9 @@ public static class ThingPreviewRenderer
 			if (slot.SpriteId == 0)
 				continue;
 
-			byte[] pixels;
-			try
-			{
-				pixels = loader.LoadSpritePixels(slot.SpriteId);
-			}
-			catch
-			{
+			var pixels = loadPixels(slot.SpriteId);
+			if (pixels == null || pixels.Length != SpritePixelCodec.RgbaBufferLength)
 				continue;
-			}
 
 			// Match ThingSpriteSheetExporter inner-tile placement (Asset Editor origin).
 			var innerX = (int)((fg.Width - slot.InnerWidth - 1) * edge);
