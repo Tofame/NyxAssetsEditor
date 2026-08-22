@@ -173,7 +173,7 @@
 			</ScrollViewer>
 
 			<Border Grid.Column="1" Background="#1A1A1A" BorderBrush="#3C3C3C" BorderThickness="1,0,0,0">
-				<Grid RowDefinitions="Auto,Auto,*">
+				<Grid RowDefinitions="Auto,Auto,*,Auto">
 					<TextBlock Text="{Binding PreviewCaption}" Classes="label" Margin="10,10,10,4"/>
 					<Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="8,0,8,6">
 						<TextBlock Text="Now" FontSize="10" Foreground="#888" HorizontalAlignment="Center"/>
@@ -181,8 +181,10 @@
 							VerticalAlignment="Center" Stretch="Uniform"/>
 						<TextBlock Grid.Column="2" Text="After" FontSize="10" Foreground="#888" HorizontalAlignment="Center"/>
 					</Grid>
-					<ListBox Grid.Row="2" ItemsSource="{Binding PreviewRows}" Background="Transparent" BorderThickness="0"
-						Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+					<ListBox x:Name="PreviewListBox" Grid.Row="2" ItemsSource="{Binding PreviewRows}" Background="Transparent" BorderThickness="0"
+						Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						PointerWheelChanged="OnPreviewListBoxPointerWheelChanged"
+						PointerPressed="OnPreviewListBoxPointerPressed">
 						<ListBox.Styles>
 							<Style Selector="ListBoxItem">
 								<Setter Property="Padding" Value="6,4"/>
@@ -214,9 +216,32 @@
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
+					<Grid Grid.Row="3" ColumnDefinitions="24,24,*,24,24" ColumnSpacing="4" Margin="8,6,8,8" IsVisible="{Binding IsPreviewPagingVisible}">
+						<Button Grid.Column="0" Command="{Binding FirstPreviewPageCommand}" IsEnabled="{Binding HasPreviousPreviewPage}" Width="24" Height="24" Padding="0" ToolTip.Tip="First Page">
+							<Image Source="/Assets/Icons/arrow_m_left2.png" Width="12" Height="12"/>
+						</Button>
+						<Button Grid.Column="1" Command="{Binding PreviousPreviewPageCommand}" IsEnabled="{Binding HasPreviousPreviewPage}" Width="24" Height="24" Padding="0" ToolTip.Tip="Previous Page">
+							<Image Source="/Assets/Icons/arrow_m_left.png" Width="12" Height="12"/>
+						</Button>
+						<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+							<TextBox Text="{Binding PreviewCurrentPage, Mode=TwoWay}" Width="52" Height="22" Padding="2,1" FontSize="10" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#1E1E1E" BorderThickness="0" CornerRadius="4" Foreground="#E0E0E0" ToolTip.Tip="Current page"/>
+							<TextBlock Text="/" Foreground="#888888" FontSize="10" VerticalAlignment="Center"/>
+							<TextBlock Text="{Binding PreviewTotalPages}" Width="52" TextAlignment="Center" TextTrimming="CharacterEllipsis" FontWeight="Bold" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center" ToolTip.Tip="Total pages"/>
+						</StackPanel>
+						<Button Grid.Column="3" Command="{Binding NextPreviewPageCommand}" IsEnabled="{Binding HasNextPreviewPage}" Width="24" Height="24" Padding="0" ToolTip.Tip="Next Page">
+							<Image Source="/Assets/Icons/arrow_m_right.png" Width="12" Height="12"/>
+						</Button>
+						<Button Grid.Column="4" Command="{Binding LastPreviewPageCommand}" IsEnabled="{Binding HasNextPreviewPage}" Width="24" Height="24" Padding="0" ToolTip.Tip="Last Page">
+							<Image Source="/Assets/Icons/arrow_m_right2.png" Width="12" Height="12"/>
+						</Button>
+					</Grid>
 				</Grid>
 			</Border>
 			</Grid>
+
+			<Canvas Name="AutoScrollCanvas" Grid.RowSpan="2" IsHitTestVisible="False" Background="Transparent" ZIndex="100">
+				<Image Name="AutoScrollIndicator" Source="/Assets/Icons/mouse-scroll.png" Width="32" Height="32" IsVisible="False"/>
+			</Canvas>
 
 			<Border Name="ResizeLeft" Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>
 			<Border Name="ResizeRight" Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding ShowResizeHandles}" Cursor="SizeWestEast"/>

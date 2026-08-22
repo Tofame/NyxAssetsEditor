@@ -96,7 +96,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 {
 	public const double DefaultPanelWidth = 860;
 	public const double DefaultContentHeight = 540;
-	private const int MaxPreviewRows = 400;
+	private const int PreviewPageSize = 50;
 	private readonly AssetsViewModel _parent;
 	private readonly SpriteRenderer _renderer = new();
 	private readonly List<AppliedReplacementTransaction> _undoHistory = new();
@@ -116,6 +116,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	private bool _toIdInvalid;
 	private int _fromIdShakeNonce;
 	private int _toIdShakeNonce;
+	private int _previewCurrentPage = 1;
 	private DispatcherTimer? _fromIdInvalidTimer;
 	private DispatcherTimer? _toIdInvalidTimer;
 
@@ -132,6 +133,36 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	public ObservableCollection<ReplacementPreviewRowViewModel> PreviewRows { get; } = new();
 	public Array ThingKinds { get; } = Enum.GetValues<ThingKind>();
 	public string PreviewCaption { get; private set; } = "Preview";
+
+	public int PreviewCurrentPage
+	{
+		get => _previewCurrentPage;
+		set
+		{
+			if (value < 1) value = 1;
+			var maxPage = PreviewTotalPages;
+			if (value > maxPage && maxPage > 0) value = maxPage;
+
+			if (SetProperty(ref _previewCurrentPage, value))
+			{
+				RefreshPreviewRows(resetPage: false);
+				NotifyPreviewPagingChanged();
+			}
+		}
+	}
+
+	public int PreviewTotalPages
+	{
+		get
+		{
+			var totalRows = GetPreviewTotalRows();
+			return totalRows == 0 ? 0 : (int)((totalRows + PreviewPageSize - 1) / PreviewPageSize);
+		}
+	}
+
+	public bool HasPreviousPreviewPage => PreviewCurrentPage > 1;
+	public bool HasNextPreviewPage => PreviewCurrentPage < PreviewTotalPages;
+	public bool IsPreviewPagingVisible => PreviewTotalPages > 1;
 
 	public ReplacementArchivePairViewModel? SelectedSourcePair
 	{
@@ -368,7 +399,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 				}
 			}
 		}
-		RefreshPreviewRows();
+		RefreshPreviewRows(resetPage: false);
 	}
 
 	[RelayCommand(CanExecute = nameof(CanUndo))]
@@ -387,7 +418,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		HasError = false;
 		StatusText = "Undid the last replacement.";
 		NotifyHistoryChanged();
-		RefreshPreviewRows();
+		RefreshPreviewRows(resetPage: false);
 	}
 
 	[RelayCommand(CanExecute = nameof(CanRedo))]
@@ -406,7 +437,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		HasError = false;
 		StatusText = "Redid the last replacement.";
 		NotifyHistoryChanged();
-		RefreshPreviewRows();
+		RefreshPreviewRows(resetPage: false);
 	}
 
 	private bool CanUndo() => _undoHistory.Count > 0;
@@ -416,6 +447,38 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 	{
 		UndoCommand.NotifyCanExecuteChanged();
 		RedoCommand.NotifyCanExecuteChanged();
+	}
+
+	[RelayCommand]
+	private void NextPreviewPage()
+	{
+		if (HasNextPreviewPage)
+			PreviewCurrentPage++;
+	}
+
+	[RelayCommand]
+	private void PreviousPreviewPage()
+	{
+		if (HasPreviousPreviewPage)
+			PreviewCurrentPage--;
+	}
+
+	[RelayCommand]
+	private void FirstPreviewPage() => PreviewCurrentPage = 1;
+
+	[RelayCommand]
+	private void LastPreviewPage() => PreviewCurrentPage = PreviewTotalPages;
+
+	private void NotifyPreviewPagingChanged()
+	{
+		OnPropertyChanged(nameof(PreviewTotalPages));
+		OnPropertyChanged(nameof(HasPreviousPreviewPage));
+		OnPropertyChanged(nameof(HasNextPreviewPage));
+		OnPropertyChanged(nameof(IsPreviewPagingVisible));
+		FirstPreviewPageCommand.NotifyCanExecuteChanged();
+		PreviousPreviewPageCommand.NotifyCanExecuteChanged();
+		NextPreviewPageCommand.NotifyCanExecuteChanged();
+		LastPreviewPageCommand.NotifyCanExecuteChanged();
 	}
 
 	public void CommitIdField(bool fromField)
@@ -709,7 +772,7 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		RefreshTargetBounds();
 		OnPropertyChanged(nameof(CanReplace));
 		ReplaceCommand.NotifyCanExecuteChanged();
-		RefreshPreviewRows();
+		RefreshPreviewRows(resetPage: true);
 		HasError = false;
 		StatusText = ArchivePairs.Count < 2
 			? "Load at least two linked archive pairs to use Replacer."
@@ -758,7 +821,18 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		}
 	}
 
-	private void RefreshPreviewRows()
+	private long GetPreviewTotalRows()
+	{
+		if (SelectedSourcePair == null
+			|| SelectedTargetPair == null
+			|| ReferenceEquals(SelectedSourcePair.Pair, SelectedTargetPair.Pair)
+			|| !TryGetValidRange(out var fromId, out var toId, out _))
+			return 0;
+
+		return (long)toId - fromId + 1;
+	}
+
+	private void RefreshPreviewRows(bool resetPage)
 	{
 		foreach (var row in PreviewRows)
 			row.DisposePreviews();
@@ -771,14 +845,36 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 		{
 			PreviewCaption = "Preview";
 			OnPropertyChanged(nameof(PreviewCaption));
+			if (_previewCurrentPage != 1)
+			{
+				_previewCurrentPage = 1;
+				OnPropertyChanged(nameof(PreviewCurrentPage));
+			}
+			NotifyPreviewPagingChanged();
 			return;
 		}
 
-		var total = toId - fromId + 1;
-		var count = (int)Math.Min(total, MaxPreviewRows);
+		var total = (long)toId - fromId + 1;
+		var totalPages = PreviewTotalPages;
+		if (resetPage)
+		{
+			if (_previewCurrentPage != 1)
+			{
+				_previewCurrentPage = 1;
+				OnPropertyChanged(nameof(PreviewCurrentPage));
+			}
+		}
+		else if (totalPages > 0 && _previewCurrentPage > totalPages)
+		{
+			_previewCurrentPage = totalPages;
+			OnPropertyChanged(nameof(PreviewCurrentPage));
+		}
+
+		var start = (long)(PreviewCurrentPage - 1) * PreviewPageSize;
+		var count = (int)Math.Min(PreviewPageSize, total - start);
 		for (var i = 0; i < count; i++)
 		{
-			var sourceId = fromId + (uint)i;
+			var sourceId = fromId + (uint)(start + i);
 			if (!TryMapTargetId(sourceId, offset, out var targetId))
 				continue;
 			PreviewRows.Add(new ReplacementPreviewRowViewModel(
@@ -789,10 +885,13 @@ public partial class FloatingReplacerViewModel : PanelViewModelBase
 				AssetExists(SelectedSourcePair.Pair, sourceId)));
 		}
 
-		PreviewCaption = total > MaxPreviewRows
-			? $"Preview (first {MaxPreviewRows} of {total})"
+		var firstVisible = start + 1;
+		var lastVisible = start + count;
+		PreviewCaption = totalPages > 1
+			? $"Preview ({firstVisible}-{lastVisible} of {total})"
 			: $"Preview ({total})";
 		OnPropertyChanged(nameof(PreviewCaption));
+		NotifyPreviewPagingChanged();
 	}
 
 	private bool AssetExists(LinkedArchivePair pair, uint id)
