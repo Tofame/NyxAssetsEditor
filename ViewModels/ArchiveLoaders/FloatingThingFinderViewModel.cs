@@ -172,7 +172,7 @@ public sealed class ThingFinderResultViewModel : IDisposable
 	private bool _previewRequested;
 
 	public ThingType Thing { get; }
-	public uint DisplayedId => _owner.SourcePanel.GetDisplayedId(Thing.Kind, Thing.Id);
+	public uint DisplayedId => _owner.SourcePanel?.GetDisplayedId(Thing.Kind, Thing.Id) ?? Thing.Id;
 	public string MatchDetails { get; }
 
 	public WriteableBitmap? PreviewImage
@@ -182,7 +182,7 @@ public sealed class ThingFinderResultViewModel : IDisposable
 			if (!_previewRequested)
 			{
 				_previewRequested = true;
-				_previewImage = _owner.SourcePanel.GetPreviewForThing(Thing);
+				_previewImage = _owner.SourcePanel?.GetPreviewForThing(Thing);
 			}
 			return _previewImage;
 		}
@@ -219,8 +219,54 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	private string _confirmationMessage = string.Empty;
 	private string _confirmationButtonText = "Confirm";
 
-	public FloatingThingsLoaderViewModel SourcePanel { get; }
-	public string Title => $"Thing Finder — {SourcePanel.FileName}";
+	private FloatingThingsLoaderViewModel? _sourcePanel;
+	public FloatingThingsLoaderViewModel? SourcePanel => _sourcePanel;
+	public string Title => "Thing Finder";
+
+	public ObservableCollection<LooktypeArchivePairViewModel> ArchivePairs { get; } = new();
+
+	private LooktypeArchivePairViewModel? _selectedArchivePair;
+	public LooktypeArchivePairViewModel? SelectedArchivePair
+	{
+		get => _selectedArchivePair;
+		set
+		{
+			var oldPanel = _sourcePanel;
+			if (!SetProperty(ref _selectedArchivePair, value)) return;
+			if (oldPanel != null)
+			{
+				oldPanel.CatalogChanged -= OnSourceCatalogChanged;
+			}
+			var newPanel = value?.Pair.ThingsPanel;
+			_sourcePanel = newPanel;
+			OnPropertyChanged(nameof(SourcePanel));
+			if (newPanel != null)
+			{
+				newPanel.CatalogChanged += OnSourceCatalogChanged;
+				_selectedKind = newPanel.SelectedSection;
+				OnPropertyChanged(nameof(SelectedKind));
+				OnPropertyChanged(nameof(IsItemsKind));
+				OnPropertyChanged(nameof(IsOutfitsKind));
+				OnPropertyChanged(nameof(IsEffectsKind));
+				OnPropertyChanged(nameof(IsMissilesKind));
+				RefreshExtraPropertyKeys();
+				LoadFields();
+			}
+			_currentPage = 1;
+			ScheduleFilter();
+		}
+	}
+
+	public void RefreshArchivePairs(string? preferredSpritePath = null, string? preferredThingsPath = null)
+	{
+		var currentSprite = preferredSpritePath ?? SelectedArchivePair?.SpritePath;
+		var currentThings = preferredThingsPath ?? SelectedArchivePair?.ThingsPath;
+		ArchivePairs.Clear();
+		foreach (var pair in _parent.GetCompilePairs()) ArchivePairs.Add(new LooktypeArchivePairViewModel(pair));
+		SelectedArchivePair = ArchivePairs.FirstOrDefault(p =>
+			string.Equals(p.SpritePath, currentSprite, StringComparison.OrdinalIgnoreCase) && string.Equals(p.ThingsPath, currentThings, StringComparison.OrdinalIgnoreCase))
+			?? ArchivePairs.FirstOrDefault();
+	}
 	public ObservableCollection<ThingFinderFieldViewModel> PropertyFields { get; } = new();
 	public ObservableCollection<ThingFinderFieldViewModel> FlagFields { get; } = new();
 	public ObservableCollection<ThingFinderFieldViewModel> PatternFields { get; } = new();
@@ -337,14 +383,13 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	public FloatingThingFinderViewModel(AssetsViewModel parent, FloatingThingsLoaderViewModel sourcePanel)
 	{
 		_parent = parent;
-		SourcePanel = sourcePanel;
 		_selectedKind = sourcePanel.SelectedSection;
 		PanelWidth = 1040;
 		ContentHeight = 650;
 		DockState = "Floating";
 		IsDefaultPosition = true;
 		_filterTimer.Tick += OnFilterTimerTick;
-		SourcePanel.CatalogChanged += OnSourceCatalogChanged;
+		RefreshArchivePairs(null, sourcePanel.FilePath);
 		RefreshExtraPropertyKeys();
 		LoadFields();
 		ApplyFilter();
@@ -402,7 +447,7 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	private void CancelContextAction() => ClearConfirmation();
 
 	public IReadOnlyList<ThingFinderContextAction> GetContextActions(ThingType thing) =>
-		_parent.GetThingFinderContextActions(SourcePanel, thing);
+		SourcePanel == null ? Array.Empty<ThingFinderContextAction>() : _parent.GetThingFinderContextActions(SourcePanel, thing);
 
 	public async Task RequestContextActionAsync(ThingFinderContextAction action)
 	{
@@ -435,6 +480,11 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 
 	private void RefreshExtraPropertyKeys()
 	{
+		if (SourcePanel == null)
+		{
+			_extraPropertyKeys.Clear();
+			return;
+		}
 		var keys = SourcePanel.EnumerateThings(SelectedKind)
 			.SelectMany(thing => thing.ExtraProperties.Keys)
 			.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -643,11 +693,14 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	{
 		var criteria = GetCriteria();
 		_filteredThings.Clear();
-		_filteredThings.AddRange(ThingFinderFilterService.Filter(
-			SourcePanel.EnumerateThings(SelectedKind),
-			SelectedKind,
-			criteria,
-			FrameGroupIndex));
+		if (SourcePanel != null)
+		{
+			_filteredThings.AddRange(ThingFinderFilterService.Filter(
+				SourcePanel.EnumerateThings(SelectedKind),
+				SelectedKind,
+				criteria,
+				FrameGroupIndex));
+		}
 
 		_currentPage = Math.Clamp(_currentPage, 1, Math.Max(1, TotalPages));
 		OnPropertyChanged(nameof(CurrentPage));
@@ -698,7 +751,10 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	{
 		_filterTimer.Stop();
 		_filterTimer.Tick -= OnFilterTimerTick;
-		SourcePanel.CatalogChanged -= OnSourceCatalogChanged;
+		if (SourcePanel != null)
+		{
+			SourcePanel.CatalogChanged -= OnSourceCatalogChanged;
+		}
 		DisposeResults();
 	}
 }

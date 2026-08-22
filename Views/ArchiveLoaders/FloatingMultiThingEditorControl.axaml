@@ -9,8 +9,12 @@
    <Border Grid.Row="0" Name="TitleBar" Background="#2D2D2D" Height="36" Padding="12,0,6,0">
     <Grid ColumnDefinitions="*,Auto,Auto">
      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#E0E0E0" VerticalAlignment="Center"/>
-     <Button Grid.Column="1" Command="{Binding ToggleMinimizeCommand}" Content="—" Width="28" Height="24" Background="Transparent" BorderThickness="0"/>
-     <Button Grid.Column="2" Command="{Binding RequestEditorCloseCommand}" Content="×" Width="28" Height="24" Background="Transparent" BorderThickness="0"/>
+     <Button Grid.Column="1" Command="{Binding ToggleMinimizeCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="0,0,4,0" ToolTip.Tip="Minimize">
+      <Image Source="/Assets/Icons/action_minimize.png" Width="14" Height="14"/>
+     </Button>
+     <Button Grid.Column="2" Command="{Binding RequestEditorCloseCommand}" Width="28" Height="24" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="Close">
+      <Image Source="/Assets/Icons/action_close.png" Width="14" Height="14"/>
+     </Button>
     </Grid>
    </Border>
 

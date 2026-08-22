@@ -184,6 +184,8 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				export.RefreshArchivePairs();
 			foreach (var replacer in ActivePanels.OfType<FloatingReplacerViewModel>())
 				replacer.RefreshArchivePairs();
+			foreach (var finder in ActivePanels.OfType<FloatingThingFinderViewModel>())
+				finder.RefreshArchivePairs();
 			foreach (var slicer in ActivePanels.OfType<SpritesheetSlicerViewModel>())
 				slicer.RefreshTargets();
 		}
@@ -748,13 +750,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			NyxAssets.Things.ThingKind? selectedKind = null)
 		{
 			if (!source.IsArchiveLoaded) return;
-			var existing = ActivePanels.OfType<FloatingThingFinderViewModel>()
-				.FirstOrDefault(panel => ReferenceEquals(panel.SourcePanel, source));
+			var existing = ActivePanels.OfType<FloatingThingFinderViewModel>().FirstOrDefault();
 			if (existing != null)
 			{
-				if (selectedKind.HasValue) existing.SelectedKind = selectedKind.Value;
 				existing.IsVisible = true;
 				existing.IsMinimized = false;
+				existing.RefreshArchivePairs(null, source.FilePath);
+				if (selectedKind.HasValue) existing.SelectedKind = selectedKind.Value;
 				if (existing.IsFloating)
 					Avalonia.Threading.Dispatcher.UIThread.Post(() => BringPanelToFront(existing));
 				return;
