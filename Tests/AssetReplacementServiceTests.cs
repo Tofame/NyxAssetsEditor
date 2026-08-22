@@ -248,20 +248,46 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task SpriteRange_CopiesIntersectionOnly()
+	public async Task SpriteRange_AppendsMissingTargetIdsAndSkipsIdenticalPixels()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
 		var expected = SolidPixels(44);
-		source.SpritePanel.Loader.SetSpritePixels(1, expected);
+		var identical = SolidPixels(8);
+		source.SpritePanel.Loader.SetSpritePixels(1, identical);
+		target.SpritePanel.Loader.SetSpritePixels(1, identical);
+		source.SpritePanel.Loader.SetSpritePixels(2, expected);
 
 		var batch = AssetReplacementService.Prepare(new AssetReplacementRequest(
 			source, target, AssetReplacementMode.Sprites, null, 1, 2, AddMissingTargetIds: false));
 		var result = AssetReplacementService.Apply(batch);
 
 		Assert.True(result.Succeeded);
-		Assert.Single(result.Skipped);
-		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Single(batch.Skipped);
+		Assert.Equal(1u, batch.Skipped[0].Id);
+		Assert.Empty(batch.DiscardedSpritePixels);
+		Assert.Equal(identical, target.SpritePanel.Loader.LoadSpritePixels(1));
+		Assert.Equal(expected, target.SpritePanel.Loader.LoadSpritePixels(2));
+	}
+
+	[Fact]
+	public async Task SpriteRange_RecordsDiscardedTargetPixelsWhenTheyDiffer()
+	{
+		var source = await CreatePair(spriteCount: 1);
+		var target = await CreatePair(spriteCount: 1);
+		var incoming = SolidPixels(44);
+		var discarded = SolidPixels(9);
+		source.SpritePanel.Loader.SetSpritePixels(1, incoming);
+		target.SpritePanel.Loader.SetSpritePixels(1, discarded);
+
+		var batch = AssetReplacementService.Prepare(new AssetReplacementRequest(
+			source, target, AssetReplacementMode.Sprites, null, 1, 1, AddMissingTargetIds: false));
+
+		Assert.True(batch.CanApply);
+		Assert.Equal(discarded, batch.DiscardedSpritePixels[1]);
+		var result = AssetReplacementService.Apply(batch);
+		Assert.True(result.Succeeded);
+		Assert.Equal(incoming, target.SpritePanel.Loader.LoadSpritePixels(1));
 	}
 
 	[Fact]
