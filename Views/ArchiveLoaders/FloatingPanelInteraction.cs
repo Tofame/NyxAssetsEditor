@@ -2,7 +2,6 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using NyxAssetsEditor.ViewModels.Core;
 using NyxAssetsEditor.ViewModels.Pages;
@@ -46,9 +45,6 @@ public sealed class FloatingPanelInteraction
 		_titleBar.PointerMoved += OnTitleBarPointerMoved;
 		_titleBar.PointerReleased += OnTitleBarPointerReleased;
 		_host.AttachedToVisualTree += OnAttachedToVisualTree;
-		// Child controls often handle PointerPressed themselves. Listen for handled
-		// events as well so clicking anywhere in the panel updates its z-order.
-		_host.AddHandler(InputElement.PointerPressedEvent, OnPanelPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
 
 		if (bottomBar != null)
 		{
@@ -66,16 +62,6 @@ public sealed class FloatingPanelInteraction
 	}
 
 	private PanelViewModelBase? Vm => _host.DataContext as PanelViewModelBase;
-
-	private void OnPanelPointerPressed(object? sender, PointerPressedEventArgs e)
-	{
-		if (Vm is not { IsFloating: true } vm)
-			return;
-
-		var assetsView = _host.FindAncestorOfType<Pages.AssetsView>();
-		if (assetsView?.DataContext is AssetsViewModel parentVm)
-			parentVm.BringPanelToFront(vm);
-	}
 
 	private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
 	{
