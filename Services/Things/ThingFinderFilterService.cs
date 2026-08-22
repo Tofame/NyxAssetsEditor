@@ -80,6 +80,9 @@ public static class ThingFinderFilterService
 		(nameof(ThingFrameGroup.Frames), "Animations"),
 	};
 
+	private static readonly HashSet<string> PatternFieldNames = new(
+		SupportedPatternFields.Select(field => field.Name), StringComparer.Ordinal);
+
 	private static readonly IReadOnlyDictionary<string, ThingFinderNumericMetadata> NumericOverrides =
 		new Dictionary<string, ThingFinderNumericMetadata>(StringComparer.Ordinal)
 		{
@@ -352,6 +355,8 @@ public static class ThingFinderFilterService
 
 	public static bool IsPropertyAvailableForKind(string key, ThingKind kind)
 	{
+		if (PatternFieldNames.Contains(key)) return true;
+
 		if (kind == ThingKind.Item)
 		{
 			return key is not nameof(ThingType.DontCenterOutfit);

@@ -502,6 +502,8 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 	public bool IsMissilesKind => SelectedKind == ThingKind.Missile;
 
 	public bool HasExtraPropertyFields => ExtraPropertyFields.Count > 0;
+	public bool HasFlagFields => FlagFields.Count > 0;
+	public bool HasPropertyFields => PropertyFields.Count > 0;
 
 	public int FrameGroupIndex
 	{
@@ -716,13 +718,16 @@ public partial class FloatingThingFinderViewModel : PanelViewModelBase, IDisposa
 		Replace(PatternFields, fields.Where(field => field.Descriptor.Source == ThingFinderFieldSource.Pattern));
 		Replace(ExtraPropertyFields, fields.Where(field => field.Descriptor.Source == ThingFinderFieldSource.ExtraProperty));
 		OnPropertyChanged(nameof(HasExtraPropertyFields));
+		OnPropertyChanged(nameof(HasFlagFields));
+		OnPropertyChanged(nameof(HasPropertyFields));
 	}
 
 	private List<ThingFinderFieldViewModel> CreateFields(ThingKind kind)
 	{
 		var fields = _availableFields
 			.Where(descriptor => descriptor.Source != ThingFinderFieldSource.ExtraProperty)
-			.Where(descriptor => IsAvailableForKind(descriptor.Key, kind))
+			.Where(descriptor => descriptor.Source == ThingFinderFieldSource.Pattern
+				|| IsAvailableForKind(descriptor.Key, kind))
 			.OrderBy(GetFieldOrder)
 			.ThenBy(descriptor => descriptor.DisplayName, StringComparer.OrdinalIgnoreCase)
 			.Select(descriptor => new ThingFinderFieldViewModel(this, RenameForEditor(descriptor)))

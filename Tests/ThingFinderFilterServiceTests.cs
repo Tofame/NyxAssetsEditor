@@ -129,6 +129,18 @@ public sealed class ThingFinderFilterServiceTests
 		Assert.False(ThingFinderFilterService.Matches(floor, Extra("article", ThingFinderOperator.Exists), 0));
 	}
 
+	[Theory]
+	[InlineData(ThingKind.Item)]
+	[InlineData(ThingKind.Outfit)]
+	[InlineData(ThingKind.Effect)]
+	[InlineData(ThingKind.Missile)]
+	public void PatternFieldsAreAvailableForEveryKind(ThingKind kind)
+	{
+		Assert.True(ThingFinderFilterService.IsPropertyAvailableForKind(nameof(ThingFrameGroup.Width), kind));
+		Assert.True(ThingFinderFilterService.IsPropertyAvailableForKind(nameof(ThingFrameGroup.PatternX), kind));
+		Assert.True(ThingFinderFilterService.IsPropertyAvailableForKind(nameof(ThingFrameGroup.Frames), kind));
+	}
+
 	[Fact]
 	public void PatternCriteriaUseChosenFrameGroupAndRejectMissingGroup()
 	{
