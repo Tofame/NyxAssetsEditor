@@ -26,7 +26,7 @@ public sealed class LooktypeInterchangeServiceTests
 	};
 
 	[Fact]
-	public void LuaRoundTripPreservesAppearanceFields()
+	public void Positive_LuaRoundTrip_PreservesAppearanceFields()
 	{
 		var exported = LooktypeInterchangeService.ExportLua(Sample());
 		var imported = LooktypeInterchangeService.ImportLua(exported);
@@ -45,7 +45,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void XmlRoundTripPreservesItemModeAndCorpse()
+	public void Positive_XmlRoundTrip_PreservesItemModeAndCorpse()
 	{
 		var profile = Sample();
 		profile.AppearanceKind = LooktypeAppearanceKind.Item;
@@ -61,7 +61,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void PreviewMetadataIsOnlyExportedWhenEnabled()
+	public void Positive_PreviewMetadata_IsOnlyExportedWhenEnabled()
 	{
 		var profile = Sample();
 		Assert.DoesNotContain("nyx-preview", LooktypeInterchangeService.ExportLua(profile));
@@ -80,7 +80,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void ImportsWrappedXmlAndClampsByteFields()
+	public void Positive_ImportsWrappedXmlAndClampsByteFields()
 	{
 		var imported = LooktypeInterchangeService.ImportXml(
 			"<npc><look type=\"130\" head=\"999\" body=\"2\" legs=\"3\" feet=\"4\" addons=\"999\"/></npc>");
@@ -94,7 +94,7 @@ public sealed class LooktypeInterchangeServiceTests
 	[Theory]
 	[InlineData("monster.outfit = { lookType = getOutfitId() }")]
 	[InlineData("monster.outfit = { lookType = 128 + getOutfitId() }")]
-	public void LuaImporterRejectsExecutableExpressions(string text)
+	public void Negative_LuaImporter_RejectsExecutableExpressions(string text)
 	{
 		var imported = LooktypeInterchangeService.ImportLua(text);
 
@@ -103,7 +103,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void ImportsCommonCorpseSyntaxes()
+	public void Positive_ImportsCommonCorpseSyntaxes()
 	{
 		var lua = LooktypeInterchangeService.ImportLua(
 			"monster.outfit = { lookType = 128 }\nmonster.corpse = 3058");
@@ -117,7 +117,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void LuaImportAcceptsAnyOutfitTableOwner()
+	public void Positive_LuaImport_AcceptsAnyOutfitTableOwner()
 	{
 		var imported = LooktypeInterchangeService.ImportLua(
 			"dragon.outfit = { lookType = 39, lookHead = 12 }\ndragon.corpse = 2881");
@@ -129,7 +129,7 @@ public sealed class LooktypeInterchangeServiceTests
 	}
 
 	[Fact]
-	public void BothAppearanceIdsPreferOutfitWithWarning()
+	public void Positive_BothAppearanceIds_PrefersOutfitWithWarning()
 	{
 		var imported = LooktypeInterchangeService.ImportLua(
 			"creature.outfit = { lookType = 128, lookTypeEx = 2160 }");

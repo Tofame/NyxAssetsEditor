@@ -9,7 +9,7 @@ namespace NyxAssetsEditor.Tests;
 public sealed class ThingFrameGroupEditorTests
 {
 	[Fact]
-	public void IncreaseFrames_PreservesExistingSpriteIdsByCoordinate()
+	public void Positive_IncreaseFrames_PreservesExistingSpriteIdsByCoordinate()
 	{
 		// PatternX=4 so flat Array.Copy would scramble after Frames change
 		var group = OutfitWalkGroup(frames: 2, patternX: 4);
@@ -33,7 +33,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void DecreaseFrames_KeepsLeadingFramesAndDropsTrailing()
+	public void Positive_DecreaseFrames_KeepsLeadingFramesAndDropsTrailing()
 	{
 		var group = OutfitWalkGroup(frames: 4, patternX: 4);
 		FillDistinctIds(group);
@@ -56,7 +56,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void IncreaseThenDecreaseFrames_RoundTripsLeadingSpriteIds()
+	public void Positive_IncreaseThenDecreaseFrames_RoundTripsLeadingSpriteIds()
 	{
 		var group = OutfitWalkGroup(frames: 3, patternX: 4);
 		FillDistinctIds(group);
@@ -76,7 +76,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void RemapDoesNotFlatCopy_RegressionAgainstScrambledLayout()
+	public void Positive_RemapDoesNotFlatCopy_RegressionAgainstScrambledLayout()
 	{
 		// With Frames outermost, bumping Frames from 1→2 doubles capacity.
 		// Flat prefix copy would put old dir1 id where new frame0/dir1 should be OK
@@ -100,7 +100,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void IdleAndWalkGroups_RemapIndependentlyWhenFramesChange()
+	public void Positive_IdleAndWalkGroups_RemapIndependentlyWhenFramesChange()
 	{
 		var idle = OutfitWalkGroup(frames: 1, patternX: 4);
 		idle.GroupTypeId = 0;
@@ -125,7 +125,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void EnsureFrameTimings_IncreasePreservesAndPads()
+	public void Positive_EnsureFrameTimings_IncreasePreservesAndPads()
 	{
 		var group = OutfitWalkGroup(frames: 2, patternX: 1);
 		group.IsAnimation = true;
@@ -147,7 +147,7 @@ public sealed class ThingFrameGroupEditorTests
 	}
 
 	[Fact]
-	public void EnsureFrameTimings_DecreaseKeepsLeadingAndDropToOneClears()
+	public void Positive_EnsureFrameTimings_DecreaseKeepsLeadingAndDropToOneClears()
 	{
 		var group = OutfitWalkGroup(frames: 3, patternX: 1);
 		group.IsAnimation = true;

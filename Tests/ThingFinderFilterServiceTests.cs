@@ -8,7 +8,7 @@ namespace NyxAssetsEditor.Tests;
 public sealed class ThingFinderFilterServiceTests
 {
 	[Fact]
-	public void EmptyCriteriaReturnsOnlySelectedKindInIdOrder()
+	public void Positive_EmptyCriteria_ReturnsOnlySelectedKindInIdOrder()
 	{
 		var things = new[] { Thing(9, ThingKind.Outfit), Thing(101, ThingKind.Item), Thing(100, ThingKind.Item) };
 
@@ -18,7 +18,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void UntouchedControlsDoNotCreateCriteria()
+	public void Negative_UntouchedControls_DoNotCreateCriteria()
 	{
 		var boolean = new ThingFinderFieldDescriptor(nameof(ThingType.IsGround), "Is Ground",
 			ThingFinderFieldSource.Thing, ThingFinderValueKind.Boolean);
@@ -31,7 +31,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void EnabledBooleanFieldsAndCustomFlagsCreateExpectedCriteria()
+	public void Positive_EnabledBooleanFieldsAndCustomFlags_CreateExpectedCriteria()
 	{
 		var boolean = new ThingFinderFieldDescriptor(nameof(ThingType.IsGround), "Is Ground",
 			ThingFinderFieldSource.Thing, ThingFinderValueKind.Boolean);
@@ -49,7 +49,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void NumericDescriptorsUseEditorRangesAndWholeNumbers()
+	public void Positive_NumericDescriptors_UseEditorRangesAndWholeNumbers()
 	{
 		var descriptors = ThingFinderFilterService.GetFieldDescriptors()
 			.ToDictionary(descriptor => descriptor.Key);
@@ -67,7 +67,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void ActiveCriteriaAreCombined()
+	public void Positive_ActiveCriteria_AreCombinedWithLogicalAnd()
 	{
 		var matching = Thing(100, ThingKind.Item); matching.IsGround = true; matching.GroundSpeed = 150;
 		var wrongSpeed = Thing(101, ThingKind.Item); wrongSpeed.IsGround = true; wrongSpeed.GroundSpeed = 80;
@@ -84,7 +84,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void BooleanCriteriaMatchTrueAndFalse()
+	public void Positive_BooleanCriteria_MatchTrueAndFalse()
 	{
 		var ground = Thing(100, ThingKind.Item); ground.IsGround = true;
 		var decoration = Thing(101, ThingKind.Item); decoration.IsGround = false;
@@ -95,7 +95,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void TextEqualityIsCaseInsensitive()
+	public void Positive_TextEquality_IsCaseInsensitive()
 	{
 		var sword = Thing(100, ThingKind.Item); sword.MarketName = "Knight Sword";
 		var shield = Thing(101, ThingKind.Item); shield.MarketName = "Tower Shield";
@@ -108,7 +108,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void EnumValuesCanBeMatchedByName()
+	public void Positive_EnumValues_CanBeMatchedByName()
 	{
 		var item = Thing(100, ThingKind.Item);
 		var outfit = Thing(1, ThingKind.Outfit);
@@ -119,7 +119,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void ExtraPropertiesSupportExistenceAndAbsence()
+	public void Positive_ExtraProperties_SupportExistenceAndAbsence()
 	{
 		var door = Thing(100, ThingKind.Item); door.ExtraProperties["article"] = "a";
 		var floor = Thing(101, ThingKind.Item);
@@ -134,7 +134,7 @@ public sealed class ThingFinderFilterServiceTests
 	[InlineData(ThingKind.Outfit)]
 	[InlineData(ThingKind.Effect)]
 	[InlineData(ThingKind.Missile)]
-	public void PatternFieldsAreAvailableForEveryKind(ThingKind kind)
+	public void Positive_PatternFields_AreAvailableForEveryKind(ThingKind kind)
 	{
 		Assert.True(ThingFinderFilterService.IsPropertyAvailableForKind(nameof(ThingFrameGroup.Width), kind));
 		Assert.True(ThingFinderFilterService.IsPropertyAvailableForKind(nameof(ThingFrameGroup.PatternX), kind));
@@ -142,7 +142,7 @@ public sealed class ThingFinderFilterServiceTests
 	}
 
 	[Fact]
-	public void PatternCriteriaUseChosenFrameGroupAndRejectMissingGroup()
+	public void Positive_PatternCriteria_UseChosenFrameGroupAndRejectMissingGroup()
 	{
 		var outfit = Thing(1, ThingKind.Outfit);
 		outfit.FrameGroups[0].PatternX = 4;

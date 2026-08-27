@@ -11,7 +11,7 @@ namespace NyxAssetsEditor.Tests;
 public class AssetReplacementServiceTests
 {
 	[Fact]
-	public async Task ThingRange_ReplacesDefinitionAndReferencedPixelsAtSameIds()
+	public async Task Positive_ThingRange_ReplacesDefinitionAndReferencedPixelsAtSameIds()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);
@@ -46,7 +46,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task Range_WithNoSafeMatchesDoesNotMutate()
+	public async Task Negative_Range_WithNoSafeMatchesDoesNotMutate()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);
@@ -62,7 +62,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task Range_ReplacesSafeIntersectionAndReportsGaps()
+	public async Task Positive_Range_ReplacesSafeIntersectionAndReportsGaps()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);
@@ -80,7 +80,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task Range_SkipsMissingTargetWithoutCreatingIt()
+	public async Task Negative_Range_SkipsMissingTargetWithoutCreatingIt()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);
@@ -99,7 +99,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task ThingRange_AppendsMissingTargetSpritesInsteadOfSkipping()
+	public async Task Positive_ThingRange_AppendsMissingTargetSpritesInsteadOfSkipping()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -120,7 +120,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task ThingRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
+	public async Task Positive_ThingRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -145,7 +145,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task ThingRange_CanAppendAdditionalMappedSpriteSlots()
+	public async Task Positive_ThingRange_CanAppendAdditionalMappedSpriteSlots()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -165,7 +165,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task ThingRange_DeduplicatesExtraSourceSpritesAcrossTheBatch()
+	public async Task Positive_ThingRange_DeduplicatesExtraSourceSpritesAcrossTheBatch()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -189,7 +189,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task EffectRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
+	public async Task Positive_EffectRange_ImportsDifferingPixelsInsteadOfOverwritingExistingSprite()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -214,7 +214,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task EffectRange_TreatsZeroSpriteIdsAsEmptyFrameSlots()
+	public async Task Positive_EffectRange_TreatsZeroSpriteIdsAsEmptyFrameSlots()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -235,7 +235,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task EffectRange_WithTargetCreationEnabledReportsCompletedFrameAdjustment()
+	public async Task Positive_EffectRange_WithTargetCreationEnabledReportsCompletedFrameAdjustment()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -257,7 +257,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task SpriteRange_AppendsMissingTargetIdsAndSkipsIdenticalPixels()
+	public async Task Positive_SpriteRange_AppendsMissingTargetIdsAndSkipsIdenticalPixels()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -280,7 +280,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task SpriteRange_RecordsDiscardedTargetPixelsWhenTheyDiffer()
+	public async Task Positive_SpriteRange_RecordsDiscardedTargetPixelsWhenTheyDiffer()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);
@@ -300,7 +300,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task AddMissingTargets_AppendsThingAndReferencedSpriteAndSupportsUndo()
+	public async Task Positive_AddMissingTargets_AppendsThingAndReferencedSpriteAndSupportsUndo()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -328,7 +328,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task AddMissingTargets_AppendsRawSprite()
+	public async Task Positive_AddMissingTargets_AppendsRawSprite()
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
@@ -347,7 +347,7 @@ public class AssetReplacementServiceTests
 	}
 
 	[Fact]
-	public async Task AddMissingTargets_RejectsNonContiguousThingAppend()
+	public async Task Negative_AddMissingTargets_RejectsNonContiguousThingAppend()
 	{
 		var source = await CreatePair(spriteCount: 1);
 		var target = await CreatePair(spriteCount: 1);

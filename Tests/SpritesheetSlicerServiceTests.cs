@@ -13,7 +13,7 @@ namespace NyxAssetsEditor.Tests;
 public class SpritesheetSlicerServiceTests
 {
 	[Fact]
-	public void RemoveOpaqueMagenta_PreservesNonKeyPixels()
+	public void Positive_RemoveOpaqueMagenta_PreservesNonKeyPixels()
 	{
 		var image = new SlicerImage(3, 1, new byte[]
 		{
@@ -31,7 +31,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void LoadFromStream_PreservesDimensionsAndRgbPixels()
+	public void Positive_LoadFromStream_PreservesDimensionsAndRgbPixels()
 	{
 		var info = new SkiaSharp.SKImageInfo(2, 1, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul);
 		using var bitmap = new SkiaSharp.SKBitmap(info);
@@ -50,7 +50,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void Slice_PreservesOutfitMaskChannelValues()
+	public void Positive_Slice_PreservesOutfitMaskChannelValues()
 	{
 		var mask = new byte[]
 		{
@@ -73,7 +73,7 @@ public class SpritesheetSlicerServiceTests
 	[InlineData(255, 255, 2)]
 	[InlineData(256, 256, 1)]
 	[InlineData(64, 256, 1)]
-	public void RecommendZoom_UsesPixelSafeLevelsForSmallSheets(int width, int height, double expected)
+	public void Positive_RecommendZoom_UsesPixelSafeLevelsForSmallSheets(int width, int height, double expected)
 	{
 		Assert.Equal(expected, SpritesheetSlicerService.RecommendZoom(width, height));
 	}
@@ -83,13 +83,13 @@ public class SpritesheetSlicerServiceTests
 	[InlineData(2, 1, 64)]
 	[InlineData(2, 2, 64)]
 	[InlineData(8, 8, 255)]
-	public void RecommendExactSize_UsesTheSafeFullFootprint(int width, int height, int expected)
+	public void Positive_RecommendExactSize_UsesTheSafeFullFootprint(int width, int height, int expected)
 	{
 		Assert.Equal(expected, SpritesheetSlicerService.RecommendExactSize(width, height, 32));
 	}
 
 	[Fact]
-	public void Slice_NormalizesMagentaAndHonorsEmptyOption()
+	public void Positive_Slice_NormalizesMagentaAndHonorsEmptyOption()
 	{
 		var pixels = new byte[64 * 32 * 4];
 		Fill(pixels, 64, 0, 0, 32, 32, 255, 0, 255, 255);
@@ -107,7 +107,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void Slice_UsesColumnThenRowSlotOrder()
+	public void Positive_Slice_UsesColumnThenRowSlotOrder()
 	{
 		var pixels = new byte[64 * 64 * 4];
 		Fill(pixels, 64, 0, 0, 32, 32, 1, 0, 0, 255);
@@ -123,7 +123,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void ClampGrid_NeverAllowsSelectionOutsideImage()
+	public void Positive_ClampGrid_NeverAllowsSelectionOutsideImage()
 	{
 		var result = SpritesheetSlicerService.ClampGrid(new SlicerGrid(50, -5, 4, 9, 32), 96, 64);
 		Assert.Equal(new SlicerGrid(0, 0, 3, 2, 32), result);
@@ -134,13 +134,13 @@ public class SpritesheetSlicerServiceTests
 	[InlineData(16, true, 32)]
 	[InlineData(-16, true, -32)]
 	[InlineData(17.4, false, 17)]
-	public void QuantizeDragDelta_SnapsOnlyWhenRequested(double delta, bool snap, int expected)
+	public void Positive_QuantizeDragDelta_SnapsOnlyWhenRequested(double delta, bool snap, int expected)
 	{
 		Assert.Equal(expected, SpritesheetSlicerService.QuantizeDragDelta(delta, 32, snap));
 	}
 
 	[Fact]
-	public void ResizeGridFromDrag_ResizesWholeCellsAndPreservesOppositeEdges()
+	public void Positive_ResizeGridFromDrag_ResizesWholeCellsAndPreservesOppositeEdges()
 	{
 		var start = new SlicerGrid(32, 32, 3, 3, 32);
 
@@ -155,7 +155,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void ResizeGridFromDrag_ClampsAtOneCellAndImageBounds()
+	public void Positive_ResizeGridFromDrag_ClampsAtOneCellAndImageBounds()
 	{
 		var start = new SlicerGrid(5, 5, 2, 2, 32);
 
@@ -166,7 +166,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void RotateAndFlip_PreserveExactPixels()
+	public void Positive_RotateAndFlip_PreserveExactPixels()
 	{
 		var pixels = new byte[]
 		{
@@ -182,7 +182,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void TransformCells_TransformsEachSelectedCellWithoutReorderingTheSheet()
+	public void Positive_TransformCells_TransformsEachSelectedCellWithoutReorderingTheSheet()
 	{
 		var pixels = new byte[]
 		{
@@ -200,7 +200,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void TransformCells_DoesNotTouchCellsOutsideTheSelection()
+	public void Positive_TransformCells_DoesNotTouchCellsOutsideTheSelection()
 	{
 		var pixels = new byte[]
 		{
@@ -216,7 +216,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void StackHorizontalFrames_MovesEachFrameBlockOntoTheNextRow()
+	public void Positive_StackHorizontalFrames_MovesEachFrameBlockOntoTheNextRow()
 	{
 		var pixels = new byte[12 * 3 * 4];
 		for (var frame = 0; frame < 4; frame++)
@@ -235,7 +235,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void StackHorizontalFrames_KeepsSeparateThingsSideBySide()
+	public void Positive_StackHorizontalFrames_KeepsSeparateThingsSideBySide()
 	{
 		var pixels = new byte[8 * 4];
 		pixels[0] = 1;
@@ -256,7 +256,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void SlicerHistory_UndoesAndRedoesMultipleImageAndGridStates()
+	public void Positive_SlicerHistory_UndoesAndRedoesMultipleImageAndGridStates()
 	{
 		var history = new SlicerHistory(3);
 		var image0 = HistoryImage(10);
@@ -287,7 +287,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void SlicerHistory_NewActionClearsRedoAndCapacityDropsTheOldestAction()
+	public void Positive_SlicerHistory_NewActionClearsRedoAndCapacityDropsTheOldestAction()
 	{
 		var history = new SlicerHistory(2);
 		var grid = new SlicerGrid(0, 0, 1, 1, 32);
@@ -314,7 +314,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void DetectGrid_UsesTheCompleteExactGridWithoutTrimmingTransparentCells()
+	public void Positive_DetectGrid_UsesTheCompleteExactGridWithoutTrimmingTransparentCells()
 	{
 		var pixels = new byte[64 * 64 * 4];
 		// Only one interior cell is occupied. The other rows/columns remain structural.
@@ -330,7 +330,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void DetectGrid_AcceptsAnEntirelyTransparentFixedSlotSheet()
+	public void Positive_DetectGrid_AcceptsAnEntirelyTransparentFixedSlotSheet()
 	{
 		var detected = SpritesheetSlicerService.DetectGrid(
 			new SlicerImage(128, 96, new byte[128 * 96 * 4]), new[] { 32 });
@@ -340,7 +340,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void DetectGrid_RejectsNonDivisibleImagesInsteadOfGuessingFromTransparency()
+	public void Negative_DetectGrid_RejectsNonDivisibleImagesInsteadOfGuessingFromTransparency()
 	{
 		var detected = SpritesheetSlicerService.DetectGrid(
 			new SlicerImage(65, 64, new byte[65 * 64 * 4]), new[] { 32 });
@@ -349,7 +349,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void ExportPng_DoesNotOverwriteExistingName()
+	public void Positive_ExportPng_DoesNotOverwriteExistingName()
 	{
 		var directory = Path.Combine(Path.GetTempPath(), $"nyx-slicer-{Guid.NewGuid():N}");
 		try
@@ -368,7 +368,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void ExportPng_RejectsAnInvalidRgbaBufferLength()
+	public void Negative_ExportPng_RejectsAnInvalidRgbaBufferLength()
 	{
 		var directory = Path.Combine(Path.GetTempPath(), $"nyx-slicer-{Guid.NewGuid():N}");
 		try
@@ -385,7 +385,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void SlicerSettings_RoundTripThroughToml()
+	public void Positive_SlicerSettings_RoundTripThroughToml()
 	{
 		var model = new PersistenceService.SettingsTomlModel
 		{
@@ -421,7 +421,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void SlicerSettings_HaveLayoutDefaults()
+	public void Positive_SlicerSettings_HaveLayoutDefaults()
 	{
 		var defaults = new PersistenceService.SlicerStateModel();
 		Assert.Equal(4, defaults.OutfitDirections);
@@ -441,7 +441,7 @@ public class SpritesheetSlicerServiceTests
 	}
 
 	[Fact]
-	public void SlicerSettings_OlderTomlWithoutSlicerSectionUsesDefaults()
+	public void Positive_SlicerSettings_OlderTomlWithoutSlicerSectionUsesDefaults()
 	{
 		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>("DefaultPageSize = 50");
 
@@ -469,7 +469,7 @@ public class SpritesheetSlicerServiceTests
 public class SpritesheetThingBuilderTests
 {
 	[Fact]
-	public void SplitItems_AreLeftToRightTopToBottomAndUseEngineSlotOrder()
+	public void Positive_SplitItems_AreLeftToRightTopToBottomAndUseEngineSlotOrder()
 	{
 		var cells = Cells(4, 2);
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
@@ -486,7 +486,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Outfit_MapsDirectionsAndFramesThroughFrameGroupIndexing()
+	public void Positive_Outfit_MapsDirectionsAndFramesThroughFrameGroupIndexing()
 	{
 		var cells = Cells(8, 6);
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
@@ -504,7 +504,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void ClassicThreeFrameOutfit_SplitsIdleAndWalkingForFrameGroupTargets()
+	public void Positive_ClassicThreeFrameOutfit_SplitsIdleAndWalkingForFrameGroupTargets()
 	{
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
@@ -523,7 +523,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void ClassicThreeFrameOutfit_RemainsOneGroupForLegacyTargets()
+	public void Positive_ClassicThreeFrameOutfit_RemainsOneGroupForLegacyTargets()
 	{
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Outfit, new SlicerGrid(0, 0, 4, 3, 32), Cells(4, 3), 100, 50,
@@ -534,7 +534,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Replacement_PreservesFlagsAndIdButReplacesFrameGroups()
+	public void Positive_Replacement_PreservesFlagsAndIdButReplacesFrameGroups()
 	{
 		var replacement = new ThingType { Id = 77, Kind = ThingKind.Item, IsGround = true, GroundSpeed = 180 };
 		replacement.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 9 } });
@@ -550,7 +550,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Replacement_RejectsSplitSelections()
+	public void Negative_Replacement_RejectsSplitSelections()
 	{
 		var replacement = new ThingType { Id = 7, Kind = ThingKind.Effect };
 		Assert.Throws<InvalidOperationException>(() => SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
@@ -559,7 +559,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void EffectTemplate_PreservesDefinitionAndReplacesFrameGroups()
+	public void Positive_EffectTemplate_PreservesDefinitionAndReplacesFrameGroups()
 	{
 		var template = new ThingType { Id = 12, Kind = ThingKind.Effect, HasLight = true, LightLevel = 7 };
 		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 44 } });
@@ -576,7 +576,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void OutfitTemplate_PreservesDefinitionAndUsesConfiguredLayout()
+	public void Positive_OutfitTemplate_PreservesDefinitionAndUsesConfiguredLayout()
 	{
 		var template = new ThingType { Id = 30, Kind = ThingKind.Outfit, HasLight = true, LightLevel = 9 };
 		template.FrameGroups.Add(new ThingFrameGroup { Width = 1, Height = 1, Layers = 1, PatternX = 1, PatternY = 1, PatternZ = 1, Frames = 1, SpriteIds = new uint[] { 55 } });
@@ -596,7 +596,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Outfit_PreservesRecolourAddonAndMountedPoseAxes()
+	public void Positive_Outfit_PreservesRecolourAddonAndMountedPoseAxes()
 	{
 		// 4 directions, 2 sprite layers, 3 PatternY entries (body + two addons),
 		// and 2 PatternZ entries (normal + mounted rider) occupy 16 x 3 cells.
@@ -616,7 +616,7 @@ public class SpritesheetThingBuilderTests
 	[Theory]
 	[InlineData(ThingKind.Effect)]
 	[InlineData(ThingKind.Missile)]
-	public void EffectAndMissile_UseTheSharedSplitPipeline(ThingKind kind)
+	public void Positive_EffectAndMissile_UseTheSharedSplitPipeline(ThingKind kind)
 	{
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			kind, new SlicerGrid(0, 0, 2, 2, 32), Cells(2, 2), 30, 10,
@@ -631,7 +631,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Missile_MapsPatternGridAndPreservesEmptyCenterSlot()
+	public void Positive_Missile_MapsPatternGridAndPreservesEmptyCenterSlot()
 	{
 		var cells = Cells(3, 3).ToList();
 		var emptyPixels = new byte[32 * 32 * 4];
@@ -650,7 +650,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void GenericFrameGroup_UsesExporterTextureAndInnerCoordinateOrder()
+	public void Positive_GenericFrameGroup_UsesExporterTextureAndInnerCoordinateOrder()
 	{
 		var result = SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Item, new SlicerGrid(0, 0, 8, 8, 32), Cells(8, 8), 1000, 70,
@@ -671,7 +671,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Outfit_ManualIdleAndWalkingGroupsPreserveExactSize()
+	public void Positive_Outfit_ManualIdleAndWalkingGroupsPreserveExactSize()
 	{
 		var empty = new byte[32 * 32 * 4];
 		var filled = new byte[32 * 32 * 4];
@@ -705,7 +705,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void CombinedThingSheet_PreservesDefaultAndWalkingGroupsFromTemplate()
+	public void Positive_CombinedThingSheet_PreservesDefaultAndWalkingGroupsFromTemplate()
 	{
 		var template = new ThingType { Id = 90, Kind = ThingKind.Outfit };
 		template.FrameGroups.Add(new ThingFrameGroup
@@ -746,7 +746,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void CombinedThingSheet_CreatesMultipleThingsFromAnExactTiledSelection()
+	public void Positive_CombinedThingSheet_CreatesMultipleThingsFromAnExactTiledSelection()
 	{
 		var template = new ThingType { Id = 90, Kind = ThingKind.Outfit };
 		template.FrameGroups.Add(new ThingFrameGroup
@@ -770,7 +770,7 @@ public class SpritesheetThingBuilderTests
 	}
 
 	[Fact]
-	public void Effect_VerticalFrames_StillRejectAHorizontalStrip()
+	public void Negative_Effect_VerticalFrames_RejectsHorizontalStrip()
 	{
 		var exception = Assert.Throws<InvalidOperationException>(() => SpritesheetThingBuilder.Build(new SlicerThingBuildRequest(
 			ThingKind.Effect, new SlicerGrid(0, 0, 12, 3, 32), Cells(12, 3), 100, 10,

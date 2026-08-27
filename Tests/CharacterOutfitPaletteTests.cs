@@ -6,7 +6,7 @@ namespace NyxAssetsEditor.Tests;
 public sealed class CharacterOutfitPaletteTests
 {
 	[Fact]
-	public void CreatesAll133ColorsInGridOrder()
+	public void Positive_CreatesAll133ColorsInGridOrder()
 	{
 		var colors = CharacterOutfitPalette.Create();
 		Assert.Equal(133, colors.Count);
@@ -19,7 +19,7 @@ public sealed class CharacterOutfitPaletteTests
 	[InlineData(114, 36, 36, 36)]
 	[InlineData(18, 255, 191, 191)]
 	[InlineData(94, 255, 0, 0)]
-	public void MatchesKnownOtClientSamples(int id, byte red, byte green, byte blue)
+	public void Positive_MatchesKnownOtClientSamples(int id, byte red, byte green, byte blue)
 	{
 		var color = CharacterOutfitPalette.Get(id);
 		Assert.Equal(red, color.Red);
@@ -28,9 +28,11 @@ public sealed class CharacterOutfitPaletteTests
 	}
 
 	[Fact]
-	public void OutOfRangeIdsAreClamped()
+	public void Negative_OutOfRangeIdsAreClampedToPaletteBounds()
 	{
 		Assert.Equal(CharacterOutfitPalette.Get(0), CharacterOutfitPalette.Get(-1));
+		Assert.Equal(CharacterOutfitPalette.Get(0), CharacterOutfitPalette.Get(-100));
 		Assert.Equal(CharacterOutfitPalette.Get(132), CharacterOutfitPalette.Get(999));
+		Assert.Equal(CharacterOutfitPalette.Get(132), CharacterOutfitPalette.Get(133));
 	}
 }

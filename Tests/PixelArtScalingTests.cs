@@ -14,7 +14,29 @@ public class PixelArtScalingTests
 	[InlineData(64, 64, 32, 32, 0.5)]
 	[InlineData(96, 96, 64, 64, 0.5)]
 	[InlineData(128, 64, 64, 64, 0.5)]
-	public void CalculateFitScale_UsesOnlyIntegerOrReciprocalIntegerRatios(
+	public void Positive_CalculateFitScale_UsesOnlyIntegerOrReciprocalIntegerRatios(
+		double sourceWidth,
+		double sourceHeight,
+		double availableWidth,
+		double availableHeight,
+		double expected)
+	{
+		var scale = PixelArtScaling.CalculateFitScale(
+			sourceWidth,
+			sourceHeight,
+			availableWidth,
+			availableHeight);
+
+		Assert.Equal(expected, scale);
+	}
+
+	[Theory]
+	[InlineData(0, 32, 100, 100, 0.0)]
+	[InlineData(32, 0, 100, 100, 0.0)]
+	[InlineData(32, 32, 0, 100, 0.0)]
+	[InlineData(32, 32, 100, 0, 0.0)]
+	[InlineData(-10, 32, 100, 100, 0.0)]
+	public void Negative_CalculateFitScale_ReturnsZeroWhenDimensionsAreNonPositive(
 		double sourceWidth,
 		double sourceHeight,
 		double availableWidth,
