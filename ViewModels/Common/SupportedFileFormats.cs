@@ -16,6 +16,7 @@ public static class SupportedFileFormats
 	public const string ExtJpg = ".jpg";
 	public const string ExtJpeg = ".jpeg";
 	public const string ExtBmp = ".bmp";
+	public const string ExtGif = ".gif";
 	public const string ExtWebp = ".webp";
 
 	public const string ExtSpr = ".spr";
@@ -30,6 +31,7 @@ public static class SupportedFileFormats
 	public const string FormatJpg = "jpg";
 	public const string FormatJpeg = "jpeg";
 	public const string FormatBmp = "bmp";
+	public const string FormatGif = "gif";
 	public const string FormatObd = "obd";
 	public const string FormatJson = "json";
 	public const string FormatNyxThing = "nyx-thing";
@@ -39,6 +41,7 @@ public static class SupportedFileFormats
 	public const string NamePngImage = "PNG Image";
 	public const string NameJpegImage = "JPEG Image";
 	public const string NameBmpImage = "BMP Image";
+	public const string NameGifImage = "GIF Animation";
 	public const string NameSpriteArchive = "Nyx Sprite Archive";
 	public const string NameAssetArchive = "Nyx Asset Archive";
 	public const string NameDatArchive = "Nyx Dat Archive";
@@ -131,6 +134,7 @@ public static class SupportedFileFormats
 		{
 			FormatJpg or FormatJpeg => ExtJpg,
 			FormatBmp => ExtBmp,
+			FormatGif => ExtGif,
 			_ => ExtPng,
 		};
 	}
@@ -159,6 +163,7 @@ public static class FilePickerFilters
 		Patterns = SupportedFileFormats.ToPatterns(SupportedFileFormats.ExtJpg, SupportedFileFormats.ExtJpeg)
 	};
 	public static FilePickerFileType BmpImage { get; } = Single(SupportedFileFormats.NameBmpImage, SupportedFileFormats.ExtBmp);
+	public static FilePickerFileType GifImage { get; } = Single(SupportedFileFormats.NameGifImage, SupportedFileFormats.ExtGif);
 
 	public static FilePickerFileType Spr { get; } = Single(SupportedFileFormats.NameSpriteArchive, SupportedFileFormats.ExtSpr);
 	public static FilePickerFileType Assets { get; } = Single(SupportedFileFormats.NameAssetArchive, SupportedFileFormats.ExtAssets);
@@ -234,6 +239,7 @@ public static class FilePickerFilters
 		{
 			SupportedFileFormats.ExtJpg => Only(JpegImage),
 			SupportedFileFormats.ExtBmp => Only(BmpImage),
+			SupportedFileFormats.ExtGif => Only(GifImage),
 			_ => Only(PngImage),
 		};
 	}
@@ -245,6 +251,7 @@ public static class FilePickerFilters
 		{
 			SupportedFileFormats.ExtJpg => "JPEG",
 			SupportedFileFormats.ExtBmp => "BMP",
+			SupportedFileFormats.ExtGif => "GIF",
 			_ => "PNG",
 		};
 		return $"Export {subject} as {kind}";

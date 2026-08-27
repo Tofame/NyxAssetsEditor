@@ -41,6 +41,7 @@
 								<RadioButton Name="PngRadio" GroupName="AssetExportFormat" Content="PNG" Margin="0,0,16,0" FontSize="11"/>
 								<RadioButton Name="BmpRadio" GroupName="AssetExportFormat" Content="BMP" Margin="0,0,16,0" FontSize="11"/>
 								<RadioButton Name="JpgRadio" GroupName="AssetExportFormat" Content="JPG" Margin="0,0,16,0" FontSize="11"/>
+								<RadioButton Name="GifRadio" GroupName="AssetExportFormat" Content="GIF" Margin="0,0,16,0" FontSize="11"/>
 								<RadioButton Name="ObdRadio" GroupName="AssetExportFormat" Content="OBD" Margin="0,0,16,0" FontSize="11"/>
 								<RadioButton Name="NyxRadio" GroupName="AssetExportFormat" Content="NYX Things" FontSize="11"/>
 							</WrapPanel>

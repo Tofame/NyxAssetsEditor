@@ -52,6 +52,37 @@ public static class ThingPreviewRenderer
 			}
 		}, frameIndex);
 
+	/// <summary>
+	/// Renders a single outfit frame with an explicit walk phase and direction.
+	/// <paramref name="direction"/> is the <c>Direction4</c> integer value (North=0, East=1, South=2, West=3).
+	/// </summary>
+	public static ThingPreviewFrame? RenderOutfitPreview(ThingType thing, SpriteLoader loader, int walkPhase, int direction)
+	{
+		if (thing.Kind != ThingKind.Outfit || thing.FrameGroups.Count == 0)
+			return null;
+
+		ThingFrameSelection selection;
+		try
+		{
+			selection = ThingFrameResolver.GetOutfitFrame(thing, new OutfitFrameRequest
+			{
+				Direction = direction,
+				WalkPhase = (uint)walkPhase,
+				AddonMask = 0,
+			});
+		}
+		catch
+		{
+			return null;
+		}
+
+		return RenderFrameSelection(thing, selection, id =>
+		{
+			try { return loader.LoadSpritePixels(id); }
+			catch { return null; }
+		});
+	}
+
 	public static ThingPreviewFrame? RenderPreview(
 		ThingType thing,
 		IReadOnlyDictionary<uint, byte[]>? spritesRgba,
@@ -68,6 +99,11 @@ public static class ThingPreviewRenderer
 		if (!TryResolveSelection(thing, frameIndex, out var selection))
 			return null;
 
+		return RenderFrameSelection(thing, selection, loadPixels);
+	}
+
+	private static ThingPreviewFrame? RenderFrameSelection(ThingType thing, ThingFrameSelection selection, Func<uint, byte[]?> loadPixels)
+	{
 		var fg = selection.FrameGroup;
 		var edge = SpritePixelCodec.SpriteEdgeLength;
 		var canvasW = (int)(fg.Width * edge);

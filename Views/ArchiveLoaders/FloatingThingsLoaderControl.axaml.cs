@@ -631,7 +631,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						continue;
 
 					var outputPath = Path.Combine(folderPath, $"thing_{thingVm.DisplayedId}{extension}");
-					WriteThingSpritesheetExport(spriteSource, thingType, outputPath, format);
+					WriteThingSpritesheetExport(loader, thingType, outputPath, format);
 				}
 			}
 			catch (Exception ex)
@@ -642,6 +642,13 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 		private static void WriteThingSpritesheetExport(SpriteLoader loader, NyxAssets.Things.ThingType thing, string outputPath, string format, bool skipWest = false)
 		{
+			if (format is "gif")
+			{
+				var ok = NyxAssetsEditor.Services.ImportExport.ThingGifExporter.TryWriteThingGif(loader, thing, outputPath);
+				if (!ok)
+					throw new InvalidOperationException($"ThingGifExporter could not write GIF for thing {thing.Id}.");
+				return;
+			}
 			using var spriteSource = new SpriteLoaderSpriteSource(loader);
 			WriteThingSpritesheetExport(spriteSource, thing, outputPath, format, skipWest);
 		}

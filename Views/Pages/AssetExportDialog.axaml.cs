@@ -26,6 +26,7 @@ public partial class AssetExportDialog : Window
 			if (PngRadio?.IsChecked == true) return "png";
 			if (BmpRadio?.IsChecked == true) return "bmp";
 			if (JpgRadio?.IsChecked == true) return "jpg";
+			if (GifRadio?.IsChecked == true) return "gif";
 			if (ObdRadio?.IsChecked == true) return "obd";
 			if (NyxRadio?.IsChecked == true) return "nyx-thing";
 			return "png";
@@ -85,6 +86,7 @@ public partial class AssetExportDialog : Window
 		{
 			"bmp" => BmpRadio,
 			"jpg" => JpgRadio,
+			"gif" => GifRadio,
 			"obd" => ObdRadio,
 			"nyx-thing" => NyxRadio,
 			_ => PngRadio
@@ -98,6 +100,7 @@ public partial class AssetExportDialog : Window
 		HookFormatRadio(PngRadio);
 		HookFormatRadio(BmpRadio);
 		HookFormatRadio(JpgRadio);
+		HookFormatRadio(GifRadio);
 		HookFormatRadio(ObdRadio);
 		HookFormatRadio(NyxRadio);
 	}
@@ -124,6 +127,7 @@ public partial class AssetExportDialog : Window
 			return;
 		var format = radio == BmpRadio ? "bmp"
 			: radio == JpgRadio ? "jpg"
+			: radio == GifRadio ? "gif"
 			: radio == ObdRadio ? "obd"
 			: radio == NyxRadio ? "nyx-thing"
 			: "png";
@@ -145,7 +149,7 @@ public partial class AssetExportDialog : Window
 		if (SkipWestCheckBox == null)
 			return;
 
-		bool isGraphicalFormat = PngRadio?.IsChecked == true || BmpRadio?.IsChecked == true || JpgRadio?.IsChecked == true;
+		bool isGraphicalFormat = PngRadio?.IsChecked == true || BmpRadio?.IsChecked == true || JpgRadio?.IsChecked == true || GifRadio?.IsChecked == true;
 		SkipWestCheckBox.IsVisible = _showThingsFormats && isGraphicalFormat;
 	}
 

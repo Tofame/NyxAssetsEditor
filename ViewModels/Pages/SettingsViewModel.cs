@@ -717,7 +717,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 		public static string NormalizeAssetExportFormat(string? format, bool thingsFormats)
 		{
 			var normalized = (format ?? "png").Trim().ToLowerInvariant();
-			if (normalized is "png" or "bmp" or "jpg" or "jpeg")
+			if (normalized is "png" or "bmp" or "jpg" or "jpeg" or "gif")
 				return normalized == "jpeg" ? "jpg" : normalized;
 			if (thingsFormats && normalized is "obd" or "nyx-thing")
 				return normalized;
