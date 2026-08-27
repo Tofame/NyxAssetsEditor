@@ -3,6 +3,7 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using NyxAssets.Things;
 using NyxAssetsEditor.ViewModels.Pages;
 
 namespace NyxAssetsEditor.Views.Pages;
@@ -14,6 +15,7 @@ public partial class AssetExportDialog : Window
 	private static string _lastSpritesFormat = "png";
 	private static bool _formatsSeeded;
 	private readonly bool _showThingsFormats;
+	private readonly ThingKind _exportKind;
 
 	public bool IsConfirmed { get; private set; }
 	public string ExportPath => PathInput?.Text?.Trim() ?? string.Empty;
@@ -65,6 +67,12 @@ public partial class AssetExportDialog : Window
 
 		PathInput.TextChanged += (_, _) => UpdateExportEnabled();
 		UpdateExportEnabled();
+		UpdateSkipWestVisibility();
+	}
+
+	public AssetExportDialog(string defaultName, bool showThingsFormats, ThingKind exportKind) : this(defaultName, showThingsFormats)
+	{
+		_exportKind = exportKind;
 		UpdateSkipWestVisibility();
 	}
 
@@ -150,7 +158,8 @@ public partial class AssetExportDialog : Window
 			return;
 
 		bool isGraphicalFormat = PngRadio?.IsChecked == true || BmpRadio?.IsChecked == true || JpgRadio?.IsChecked == true || GifRadio?.IsChecked == true;
-		SkipWestCheckBox.IsVisible = _showThingsFormats && isGraphicalFormat;
+		bool isOutfit = _exportKind == ThingKind.Outfit;
+		SkipWestCheckBox.IsVisible = _showThingsFormats && isGraphicalFormat && isOutfit;
 	}
 
 	private void UpdateExportEnabled()

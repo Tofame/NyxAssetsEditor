@@ -2137,6 +2137,27 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 		public event Action<object>? ScrollToItemRequested;
 
+		/// <summary>
+		/// Pages to the thing with the given internal ID (switching tab if needed), selects it, and scrolls it into view.
+		/// </summary>
+		public async System.Threading.Tasks.Task NavigateToThing(uint internalId, ThingKind kind)
+		{
+			if (SelectedSection != kind)
+				SelectedSection = kind;
+
+			var index = _allThings.FindIndex(t => t.Id == internalId);
+			if (index < 0)
+				return;
+
+			CurrentPage = index / PageSize + 1;
+			var thing = PagedThings.FirstOrDefault(t => t.Id == internalId);
+			if (thing == null)
+				return;
+
+			if (await RequestSelectThing(thing))
+				ScrollToItemRequested?.Invoke(thing);
+		}
+
 		private uint ResolveInternalThingId(uint enteredId)
 		{
 			if (SelectedSection != ThingKind.Item)

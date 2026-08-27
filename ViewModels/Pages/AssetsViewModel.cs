@@ -784,8 +784,11 @@ namespace NyxAssetsEditor.ViewModels.Pages
 				slicer.SavePersistentState();
 		}
 
-		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false)
+		public async System.Threading.Tasks.Task OpenThingEditor(FloatingThingsLoaderViewModel source, uint thingId, bool newWindow = false, NyxAssets.Things.ThingKind? kind = null)
 		{
+			if (kind.HasValue && source.SelectedSection != kind.Value)
+				source.SelectedSection = kind.Value;
+
 			var thing = source.GetThingType(thingId);
 			if (thing == null)
 				return;

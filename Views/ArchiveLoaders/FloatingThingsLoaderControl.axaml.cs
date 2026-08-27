@@ -289,7 +289,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 				case "export_popup":
 					{
 						string defaultName = vm.SectionLabel;
-						var dialog = new AssetExportDialog(defaultName, showThingsFormats: true);
+						var dialog = new AssetExportDialog(defaultName, showThingsFormats: true, vm.SelectedSection);
 						await dialog.ShowDialog(window);
 						if (dialog.IsConfirmed)
 						{

@@ -98,7 +98,7 @@ public partial class FloatingThingFinderControl : UserControl
 		{
 			if (vm.SourcePanel != null)
 			{
-				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: true);
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: true, result.Thing.Kind);
 			}
 		};
 
@@ -107,7 +107,8 @@ public partial class FloatingThingFinderControl : UserControl
 		{
 			if (vm.SourcePanel != null)
 			{
-				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false);
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false, result.Thing.Kind);
+				await vm.SourcePanel.NavigateToThing(result.Thing.Id, result.Thing.Kind);
 			}
 		};
 
@@ -166,7 +167,8 @@ public partial class FloatingThingFinderControl : UserControl
 		{
 			if (vm.SourcePanel != null)
 			{
-				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false);
+				await vm.Parent.OpenThingEditor(vm.SourcePanel, result.Thing.Id, newWindow: false, result.Thing.Kind);
+				await vm.SourcePanel.NavigateToThing(result.Thing.Id, result.Thing.Kind);
 			}
 		}
 	}
