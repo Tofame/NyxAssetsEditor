@@ -798,6 +798,18 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 			OnPropertyChanged(nameof(ShowLoadThingsDropzone));
 			foreach (var item in PagedThings)
 				item.InvalidatePreview();
+
+			var editors = _parentViewModel?.ActivePanels.OfType<FloatingThingEditorViewModel>()
+				.Where(panel => ReferenceEquals(panel.SourcePanel, this))
+				.ToList();
+
+			if (editors != null)
+			{
+				foreach (var editor in editors)
+				{
+					editor.RefreshAppearance();
+				}
+			}
 		}
 
 		public void ApplyThingEdit(ThingType thing)

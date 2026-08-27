@@ -24,6 +24,8 @@
 						<TextBlock Name="SelectedFileText" Foreground="#888888" FontSize="11" TextAlignment="Center" MaxWidth="360" TextTrimming="CharacterEllipsis"/>
 					</StackPanel>
 				</Border>
+				<CheckBox Name="ReplaceSpritesCheckBox" Content="Replace sprites" IsChecked="False" IsVisible="False" Foreground="#D0D0D0" FontSize="12"
+					ToolTip.Tip="When checked, existing sprite IDs are overwritten in-place with new pixels. When unchecked, new sprites are appended to the end of the archive."/>
 				<TextBlock Name="ErrorText" IsVisible="False" Foreground="#FF8888" FontSize="11" TextWrapping="Wrap"/>
 				<Grid ColumnDefinitions="*,Auto,Auto">
 					<Button Grid.Column="1" Name="ConfirmButton" Content="Confirm" IsEnabled="False" Padding="14,7" Margin="0,0,6,0"

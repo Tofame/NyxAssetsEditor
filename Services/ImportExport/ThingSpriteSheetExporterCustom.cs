@@ -66,7 +66,7 @@ public static class ThingSpriteSheetExporterCustom
 		return true;
 	}
 
-	private static bool TryGetThingSpriteSheetDimensions(ThingType thing, bool skipWest, out int totalX, out uint maxTileW, out uint maxTileH, out int bitmapW, out int bitmapH)
+	public static bool TryGetThingSpriteSheetDimensions(ThingType thing, bool skipWest, out int totalX, out uint maxTileW, out uint maxTileH, out int bitmapW, out int bitmapH)
 	{
 		totalX = 0;
 		maxTileW = 0;

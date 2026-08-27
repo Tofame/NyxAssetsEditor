@@ -65,6 +65,9 @@ public static class SupportedFileFormats
 	public static readonly string[] ThingExchangeExtensions = [ExtJson, ExtObd];
 	public static readonly string[] ThingExchangePatterns = ToPatterns(ThingExchangeExtensions);
 
+	public static readonly string[] ThingExchangeAndImageExtensions = [ExtJson, ExtObd, ExtPng, ExtJpg, ExtJpeg, ExtBmp, ExtWebp];
+	public static readonly string[] ThingExchangeAndImagePatterns = ToPatterns(ThingExchangeAndImageExtensions);
+
 	public static string ToPattern(string extension)
 	{
 		if (string.IsNullOrWhiteSpace(extension))
@@ -194,6 +197,18 @@ public static class FilePickerFilters
 		},
 		ThingsJson,
 		ThingObd
+	];
+
+	public static IReadOnlyList<FilePickerFileType> OpenThingExchangeAndImages { get; } =
+	[
+		new FilePickerFileType(SupportedFileFormats.NameAllSupported)
+		{
+			Patterns = SupportedFileFormats.ThingExchangeAndImagePatterns
+		},
+		ThingsJson,
+		ThingObd,
+		PngImage,
+		ImageFiles
 	];
 
 	public static FilePickerFileType Single(string name, string extension) =>

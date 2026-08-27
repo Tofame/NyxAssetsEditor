@@ -13,7 +13,8 @@ public partial class SingleAssetReplaceDialog : Window
 {
 	private readonly IReadOnlyList<FilePickerFileType> _fileTypes;
 	private readonly HashSet<string> _extensions;
-	private readonly Func<string, string?> _replace;
+	private readonly Func<string, bool, string?> _replace;
+	private readonly bool _showReplaceSpritesOption;
 	private string? _selectedPath;
 
 	public SingleAssetReplaceDialog()
@@ -21,7 +22,7 @@ public partial class SingleAssetReplaceDialog : Window
 		InitializeComponent();
 		_fileTypes = Array.Empty<FilePickerFileType>();
 		_extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		_replace = _ => "No replacement handler was configured.";
+		_replace = (_, _) => "No replacement handler was configured.";
 	}
 
 	public SingleAssetReplaceDialog(
@@ -29,7 +30,17 @@ public partial class SingleAssetReplaceDialog : Window
 		string instruction,
 		IReadOnlyList<FilePickerFileType> fileTypes,
 		IEnumerable<string> extensions,
-		Func<string, string?> replace) : this()
+		Func<string, string?> replace) : this(heading, instruction, fileTypes, extensions, (path, _) => replace(path), showReplaceSpritesOption: false)
+	{
+	}
+
+	public SingleAssetReplaceDialog(
+		string heading,
+		string instruction,
+		IReadOnlyList<FilePickerFileType> fileTypes,
+		IEnumerable<string> extensions,
+		Func<string, bool, string?> replace,
+		bool showReplaceSpritesOption = false) : this()
 	{
 		Title = heading;
 		HeadingText.Text = heading;
@@ -38,6 +49,9 @@ public partial class SingleAssetReplaceDialog : Window
 		_fileTypes = fileTypes;
 		_extensions = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
 		_replace = replace;
+		_showReplaceSpritesOption = showReplaceSpritesOption;
+		ReplaceSpritesCheckBox.IsVisible = showReplaceSpritesOption;
+		ReplaceSpritesCheckBox.IsChecked = false;
 	}
 
 	private async void OnDropZonePressed(object? sender, PointerPressedEventArgs e)
@@ -90,7 +104,8 @@ public partial class SingleAssetReplaceDialog : Window
 	{
 		if (_selectedPath == null)
 			return;
-		var error = _replace(_selectedPath);
+		var replaceSprites = ReplaceSpritesCheckBox.IsChecked == true;
+		var error = _replace(_selectedPath, replaceSprites);
 		if (!string.IsNullOrWhiteSpace(error))
 		{
 			ShowError(error);

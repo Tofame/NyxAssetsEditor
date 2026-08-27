@@ -323,25 +323,62 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 
 			var dialog = new SingleAssetReplaceDialog(
 				$"Replace {vm.SectionLabel} #{target.Id}",
-				$"Drop a {SupportedFileFormats.ExtJson} or {SupportedFileFormats.ExtObd} file here",
-				FilePickerFilters.OpenThingExchange,
-				SupportedFileFormats.ThingExchangeExtensions,
-				path =>
+				$"Drop a {SupportedFileFormats.ExtJson}, {SupportedFileFormats.ExtObd}, or {SupportedFileFormats.ExtPng} file here",
+				FilePickerFilters.OpenThingExchangeAndImages,
+				SupportedFileFormats.ThingExchangeAndImageExtensions,
+				(path, replaceSprites) =>
 				{
 					try
 					{
-						var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
-						var batch = AssetReplacementService.PrepareSingleThing(document, targetPair, vm.SelectedSection, target.Id);
-						if (!batch.CanApply)
-							return batch.Error ?? "The replacement file could not be applied.";
-						var result = AssetReplacementService.Apply(batch);
-						return result.Succeeded ? null : result.Message;
+						if (SupportedFileFormats.IsSupportedImagePath(path))
+						{
+							if (targetPair.ThingsPanel.Catalog == null)
+								return "The things catalog is not loaded.";
+
+							var targetThing = ThingExchangeHelper.GetThingFromCatalog(targetPair.ThingsPanel.Catalog, vm.SelectedSection, target.Id);
+							if (targetThing == null)
+								return $"Target {vm.SelectedSection.ToString().ToLowerInvariant()} #{target.Id} does not exist.";
+
+							if (replaceSprites)
+							{
+								if (!ThingSpritesheetReplacementHelper.TryExtractSpritePixels(targetThing, path, out var spritePixels, out var sheetError))
+									return sheetError ?? "Failed to read the spritesheet image.";
+
+								if (spritePixels == null || spritePixels.Count == 0)
+									return "No sprite slots to replace.";
+
+								var action = targetPair.SpritePanel.ApplyReplacementPixels(spritePixels, addMissingTargetIds: true);
+								targetPair.ThingsPanel.RefreshPreviews();
+								return null;
+							}
+							else
+							{
+								if (!ThingSpritesheetReplacementHelper.TryCreateReplacementDocument(targetThing, path, out var sheetDoc, out var sheetError))
+									return sheetError ?? "Failed to read the spritesheet image.";
+
+								var batch = AssetReplacementService.PrepareSingleThing(sheetDoc!, targetPair, vm.SelectedSection, target.Id);
+								if (!batch.CanApply)
+									return batch.Error ?? "The replacement file could not be applied.";
+								var result = AssetReplacementService.Apply(batch);
+								return result.Succeeded ? null : result.Message;
+							}
+						}
+						else
+						{
+							var document = ThingExchangeHelper.LoadFromPath(path, vm.GetWriteOptions());
+							var batch = AssetReplacementService.PrepareSingleThing(document, targetPair, vm.SelectedSection, target.Id);
+							if (!batch.CanApply)
+								return batch.Error ?? "The replacement file could not be applied.";
+							var result = AssetReplacementService.Apply(batch);
+							return result.Succeeded ? null : result.Message;
+						}
 					}
 					catch (Exception ex)
 					{
 						return $"Failed to read the replacement file: {ex.Message}";
 					}
-				});
+				},
+				showReplaceSpritesOption: true);
 			await dialog.ShowDialog<bool>(owner);
 		}
 
