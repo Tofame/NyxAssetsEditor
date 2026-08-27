@@ -5,8 +5,8 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <Version>1.1.9</Version>
-        <AssemblyVersion>1.1.9</AssemblyVersion>
+        <Version>1.2.0</Version>
+        <AssemblyVersion>1.2.0</AssemblyVersion>
         <ApplicationIcon>Assets\logos\nyx_white_logo.ico</ApplicationIcon>
     </PropertyGroup>
 
