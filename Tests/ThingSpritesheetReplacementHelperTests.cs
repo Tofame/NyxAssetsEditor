@@ -310,7 +310,17 @@ public class ThingSpritesheetReplacementHelperTests
 		outfit.Id = 1;
 		pair.ThingsPanel.Catalog!.PutOutfit(outfit);
 
-		var tempPath = CreateTempPng(128, 32, new SKColor(200, 100, 50, 255));
+		var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.png");
+		using (var bmp = new SKBitmap(128, 32))
+		{
+			for (var x = 0; x < 128; x++)
+			for (var y = 0; y < 32; y++)
+				bmp.SetPixel(x, y, new SKColor((byte)(x * 2), (byte)(y * 7), (byte)((x + y) * 3), 255));
+			using var img = SKImage.FromBitmap(bmp);
+			using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+			using var stream = File.Create(tempPath);
+			data.SaveTo(stream);
+		}
 		try
 		{
 			var created = ThingSpritesheetReplacementHelper.TryCreateReplacementDocument(outfit, tempPath, out var sheetDoc, out var error);

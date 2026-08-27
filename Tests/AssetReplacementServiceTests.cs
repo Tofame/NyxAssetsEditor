@@ -169,6 +169,9 @@ public class AssetReplacementServiceTests
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
+		source.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(10));
+		source.SpritePanel.Loader.SetSpritePixels(2, SolidPixels(20));
+		target.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(10));
 		PutItemWithSprites(source, 100, true, 1, 2);
 		PutItemWithSprites(source, 101, true, 1, 2);
 		PutItem(target, 100, 1, pickupable: false);
@@ -215,7 +218,10 @@ public class AssetReplacementServiceTests
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
-		PutEffectWithSprites(source, 1, true, 2, 2, 0);
+		source.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(1));
+		source.SpritePanel.Loader.SetSpritePixels(2, SolidPixels(2));
+		target.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(99));
+		PutEffectWithSprites(source, 1, true, 3, 2, 2, 0);
 		PutEffect(target, 1, 1, hasLight: false);
 
 		var batch = AssetReplacementService.Prepare(new AssetReplacementRequest(
@@ -233,7 +239,10 @@ public class AssetReplacementServiceTests
 	{
 		var source = await CreatePair(spriteCount: 2);
 		var target = await CreatePair(spriteCount: 1);
-		PutEffectWithSprites(source, 1, true, 2, 1, 2);
+		source.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(55));
+		source.SpritePanel.Loader.SetSpritePixels(2, SolidPixels(55));
+		target.SpritePanel.Loader.SetSpritePixels(1, SolidPixels(55));
+		PutEffectWithSprites(source, 1, true, 3, 1, 2, 2);
 		PutEffect(target, 1, 1, hasLight: false);
 
 		var batch = AssetReplacementService.Prepare(new AssetReplacementRequest(

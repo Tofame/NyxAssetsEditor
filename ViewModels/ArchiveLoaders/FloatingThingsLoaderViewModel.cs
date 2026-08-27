@@ -2324,7 +2324,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				ReloadThingsForSection();
 
-				int maxPage = TotalPages;
+				int maxPage = Math.Max(1, TotalPages);
 				CurrentPage = Math.Clamp(prevPage, 1, maxPage);
 			}
 			RefreshUndoRedoCommands();
@@ -2364,7 +2364,7 @@ namespace NyxAssetsEditor.ViewModels.ArchiveLoaders
 
 				ReloadThingsForSection();
 
-				int maxPage = TotalPages;
+				int maxPage = Math.Max(1, TotalPages);
 				CurrentPage = Math.Clamp(prevPage, 1, maxPage);
 			}
 			RefreshUndoRedoCommands();

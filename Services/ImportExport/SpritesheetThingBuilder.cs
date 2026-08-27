@@ -80,11 +80,18 @@ public static class SpritesheetThingBuilder
 			foreach (var thing in things)
 			{
 				if (request.TargetUsesFrameGroups) SplitOutfitFrames(thing, request);
-				else CollapseOutfitFrameGroups(thing, request);
+				else if (thing.FrameGroups.Count > 1) CollapseOutfitFrameGroups(thing, request);
 
 				foreach (var fg in thing.FrameGroups)
 				{
-					fg.ExactSize = InferOutfitCropSize(fg, spriteIds, pixels, request.FirstSpriteId);
+					if (request.ExactSize == 32)
+					{
+						fg.ExactSize = InferOutfitCropSize(fg, spriteIds, pixels, request.FirstSpriteId);
+					}
+					else
+					{
+						fg.ExactSize = (uint)request.ExactSize;
+					}
 				}
 			}
 		}
