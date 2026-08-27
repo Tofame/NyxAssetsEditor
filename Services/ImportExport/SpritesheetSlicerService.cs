@@ -484,4 +484,46 @@ public static class SpritesheetSlicerService
 		}
 	}
 
+	public static SlicerImage MergeImages(IReadOnlyList<SlicerImage> images, int targetCellWidth = 1, int targetCellHeight = 1, int cellSize = 32)
+	{
+		ArgumentNullException.ThrowIfNull(images);
+		if (images.Count == 0)
+			throw new InvalidOperationException("At least one image is required to merge.");
+		if (targetCellWidth <= 0) targetCellWidth = 1;
+		if (targetCellHeight <= 0) targetCellHeight = 1;
+		if (cellSize <= 0) cellSize = 32;
+
+		int itemPixelWidth = targetCellWidth * cellSize;
+		int itemPixelHeight = targetCellHeight * cellSize;
+
+		int totalItems = images.Count;
+		int itemsPerRow = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(totalItems)));
+		int rowCount = (int)Math.Ceiling((double)totalItems / itemsPerRow);
+
+		int sheetWidth = itemsPerRow * itemPixelWidth;
+		int sheetHeight = rowCount * itemPixelHeight;
+		var sheetBytes = new byte[sheetWidth * sheetHeight * 4];
+
+		for (int i = 0; i < images.Count; i++)
+		{
+			var img = images[i];
+			int itemCol = i % itemsPerRow;
+			int itemRow = i / itemsPerRow;
+
+			int destOriginX = itemCol * itemPixelWidth;
+			int destOriginY = itemRow * itemPixelHeight;
+
+			int copyWidth = Math.Min(img.Width, itemPixelWidth);
+			int copyHeight = Math.Min(img.Height, itemPixelHeight);
+
+			for (int y = 0; y < copyHeight; y++)
+			{
+				int srcRowOffset = y * img.Width * 4;
+				int dstRowOffset = ((destOriginY + y) * sheetWidth + destOriginX) * 4;
+				Buffer.BlockCopy(img.Rgba, srcRowOffset, sheetBytes, dstRowOffset, copyWidth * 4);
+			}
+		}
+
+		return new SlicerImage(sheetWidth, sheetHeight, sheetBytes);
+	}
 }

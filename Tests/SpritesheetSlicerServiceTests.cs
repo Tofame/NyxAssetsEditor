@@ -395,7 +395,8 @@ public class SpritesheetSlicerServiceTests
 				ThingWidth = 2, ThingHeight = 3, ThingExactSize = 48, AutomaticCropSize = false, ThingLayers = 2,
 				ThingPatternX = 4, ThingPatternY = 3, ThingPatternZ = 2, ThingFrames = 6,
 				OutfitDirections = 8, OutfitFrames = 4, OutfitSeparateFrameGroups = true,
-				OutfitIdleFrames = 8, OutfitWalkingFrames = 8, ThingKind = "Missile", ReplaceExisting = true
+				OutfitIdleFrames = 8, OutfitWalkingFrames = 8, ThingKind = "Missile", ReplaceExisting = true,
+				ContinuousDropIn = true
 			}
 		};
 		var restored = TomlSerializer.Deserialize<PersistenceService.SettingsTomlModel>(TomlSerializer.Serialize(model));
@@ -418,6 +419,7 @@ public class SpritesheetSlicerServiceTests
 		Assert.True(restored.Slicer.OutfitSeparateFrameGroups);
 		Assert.Equal(8, restored.Slicer.OutfitIdleFrames);
 		Assert.Equal(8, restored.Slicer.OutfitWalkingFrames);
+		Assert.True(restored.Slicer.ContinuousDropIn);
 	}
 
 	[Fact]
@@ -436,6 +438,7 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(1, defaults.ThingPatternZ);
 		Assert.Equal(1, defaults.ThingFrames);
 		Assert.True(defaults.SnapSelectionToGrid);
+		Assert.True(defaults.ContinuousDropIn);
 		Assert.Equal("Item", defaults.ThingKind);
 		Assert.False(defaults.ReplaceExisting);
 	}
@@ -450,6 +453,37 @@ public class SpritesheetSlicerServiceTests
 		Assert.Equal(32, restored.Slicer.ThingExactSize);
 		Assert.Equal(4, restored.Slicer.OutfitDirections);
 		Assert.True(restored.Slicer.SnapSelectionToGrid);
+		Assert.True(restored.Slicer.ContinuousDropIn);
+	}
+
+	[Fact]
+	public void Positive_MergeImages_ArrangesMultipleImagesIntoTiledGrid()
+	{
+		var img1 = new SlicerImage(32, 32, new byte[32 * 32 * 4]);
+		var img2 = new SlicerImage(32, 32, new byte[32 * 32 * 4]);
+		var img3 = new SlicerImage(32, 32, new byte[32 * 32 * 4]);
+		var img4 = new SlicerImage(32, 32, new byte[32 * 32 * 4]);
+
+		Fill(img1.Rgba, 32, 0, 0, 32, 32, 10, 0, 0, 255);
+		Fill(img2.Rgba, 32, 0, 0, 32, 32, 20, 0, 0, 255);
+		Fill(img3.Rgba, 32, 0, 0, 32, 32, 30, 0, 0, 255);
+		Fill(img4.Rgba, 32, 0, 0, 32, 32, 40, 0, 0, 255);
+
+		var merged = SpritesheetSlicerService.MergeImages(new[] { img1, img2, img3, img4 }, 1, 1, 32);
+
+		Assert.Equal(64, merged.Width);
+		Assert.Equal(64, merged.Height);
+		Assert.Equal(10, merged.Rgba[0]);
+		Assert.Equal(20, merged.Rgba[32 * 4]);
+		Assert.Equal(30, merged.Rgba[(32 * 64) * 4]);
+		Assert.Equal(40, merged.Rgba[(32 * 64 + 32) * 4]);
+	}
+
+	[Fact]
+	public void Negative_MergeImages_ThrowsOnEmptyList()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+			SpritesheetSlicerService.MergeImages(Array.Empty<SlicerImage>(), 1, 1, 32));
 	}
 
 	private static void Fill(byte[] pixels, int strideWidth, int x, int y, int width, int height, byte r, byte g, byte b, byte a)

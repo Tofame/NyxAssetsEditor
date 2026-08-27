@@ -58,11 +58,18 @@ public partial class SpritesheetSlicerControl : UserControl
 		var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
 		{
 			Title = "Open spritesheet",
-			AllowMultiple = false,
+			AllowMultiple = ViewModel.ContinuousDropIn,
 			SuggestedStartLocation = start,
 			FileTypeFilter = FilePickerFilters.OpenImages
 		});
-		if (files.Count > 0) ViewModel.LoadImage(files[0].Path.LocalPath);
+		if (files.Count == 1)
+		{
+			ViewModel.LoadImage(files[0].Path.LocalPath);
+		}
+		else if (files.Count > 1)
+		{
+			ViewModel.LoadImages(files.Select(f => f.Path.LocalPath).ToList());
+		}
 	}
 
 	private async void OnExportClick(object? sender, RoutedEventArgs e)
@@ -92,7 +99,15 @@ public partial class SpritesheetSlicerControl : UserControl
 	private void OnDragOver(object? sender, DragEventArgs e)
 	{
 		var files = e.DataTransfer.TryGetFiles()?.ToList();
-		var valid = files is { Count: 1 } && files[0].TryGetLocalPath() is { } path && SpriteImageImporter.IsSupportedImage(path);
+		bool valid;
+		if (ViewModel.ContinuousDropIn)
+		{
+			valid = files is { Count: >= 1 } && files.All(f => f.TryGetLocalPath() is { } p && SpriteImageImporter.IsSupportedImage(p));
+		}
+		else
+		{
+			valid = files is { Count: 1 } && files[0].TryGetLocalPath() is { } path && SpriteImageImporter.IsSupportedImage(path);
+		}
 		e.DragEffects = valid ? DragDropEffects.Copy : DragDropEffects.None;
 		e.Handled = true;
 	}
@@ -101,12 +116,36 @@ public partial class SpritesheetSlicerControl : UserControl
 	{
 		e.Handled = true;
 		var files = e.DataTransfer.TryGetFiles()?.ToList();
-		if (files is not { Count: 1 } || files[0].TryGetLocalPath() is not { } path || !SpriteImageImporter.IsSupportedImage(path))
+		if (files == null || files.Count == 0)
 		{
-			ViewModel.ReportError("Drop exactly one supported image file.");
+			ViewModel.ReportError("Drop supported image file(s).");
 			return;
 		}
-		ViewModel.LoadImage(path);
+
+		var validPaths = files
+			.Select(f => f.TryGetLocalPath())
+			.Where(p => p != null && SpriteImageImporter.IsSupportedImage(p))
+			.Select(p => p!)
+			.ToList();
+
+		if (validPaths.Count == 0)
+		{
+			ViewModel.ReportError("No supported image files found in drop.");
+			return;
+		}
+
+		if (validPaths.Count == 1)
+		{
+			ViewModel.LoadImage(validPaths[0]);
+		}
+		else if (ViewModel.ContinuousDropIn)
+		{
+			ViewModel.LoadImages(validPaths);
+		}
+		else
+		{
+			ViewModel.ReportError("Continuous drop-in is disabled. Enable \"Continuous drop-in\" to merge multiple images or drop a single image.");
+		}
 	}
 
 	private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)

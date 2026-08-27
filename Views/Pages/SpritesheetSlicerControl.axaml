@@ -65,15 +65,28 @@
 								<Separator/>
 								<MenuItem Header="Flip horizontally" Command="{Binding FlipHorizontalCommand}"/>
 								<MenuItem Header="Flip vertically" Command="{Binding FlipVerticalCommand}"/>
+								<Separator/>
+								<MenuItem Header="Magenta fill" Command="{Binding MagentaFillCommand}"
+									ToolTip.Tip="Fills transparent pixels with magenta."/>
 							</MenuFlyout>
 						</Button.Flyout>
 					</Button>
-					<Button Content="Actions ▾" IsEnabled="{Binding HasImage}">
+					<Button Content="Actions ▾">
 						<Button.Flyout>
 							<MenuFlyout Placement="BottomEdgeAlignedLeft">
 								<MenuItem Header="Stack frames vertically" Command="{Binding StackFramesVerticallyCommand}"
+									IsEnabled="{Binding CanStackFramesVertically}"
 									ToolTip.Tip="Move a left-to-right frame strip into the top-to-bottom sheet Tibia import expects. Uses Thing width/height and Frames."/>
-								<MenuItem Header="Magenta fill" Command="{Binding MagentaFillCommand}"/>
+								<Separator/>
+								<MenuItem Command="{Binding ToggleContinuousDropInCommand}" MinWidth="160"
+									ToolTip.Tip="Drop or open multiple image files at once to assemble them into a single tiled spritesheet.">
+									<MenuItem.Header>
+										<Grid ColumnDefinitions="*, Auto">
+											<TextBlock Grid.Column="0" Text="Continuous drop-in" VerticalAlignment="Center"/>
+											<TextBlock Grid.Column="1" Text="✓" IsVisible="{Binding ContinuousDropIn}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#5E94FF"/>
+										</Grid>
+									</MenuItem.Header>
+								</MenuItem>
 							</MenuFlyout>
 						</Button.Flyout>
 					</Button>
@@ -218,6 +231,11 @@
 
 			<GridSplitter Grid.Column="1" Background="#292929" ResizeBehavior="PreviousAndNext"/>
 			<Border Grid.Column="2" Background="#111111" DragDrop.AllowDrop="True" DragDrop.DragOver="OnDragOver" DragDrop.Drop="OnDrop">
+				<Border.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Clear" Command="{Binding ClearImageCommand}"/>
+					</ContextMenu>
+				</Border.ContextMenu>
 				<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
 					<common:SpritesheetCanvasControl DataContext="{Binding}"/>
 				</ScrollViewer>

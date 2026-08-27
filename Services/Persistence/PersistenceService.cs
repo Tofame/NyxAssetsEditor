@@ -92,6 +92,7 @@ namespace NyxAssetsEditor.Services.Persistence
 		public class SlicerStateModel
 		{
 			public bool SnapSelectionToGrid { get; set; } = true;
+			public bool ContinuousDropIn { get; set; } = true;
 			public string LastOpenDirectory { get; set; } = "";
 			public string LastExportDirectory { get; set; } = "";
 			public int ThingWidth { get; set; }

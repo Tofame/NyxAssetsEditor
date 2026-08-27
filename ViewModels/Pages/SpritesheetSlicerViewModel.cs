@@ -86,6 +86,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	private int _cellSize = SpriteModel.SpriteSize;
 	private double _zoom = 1;
 	private bool _snapSelectionToGrid = true;
+	private bool _continuousDropIn = true;
 	private int _thingWidth;
 	private int _thingHeight;
 	private int _thingExactSize = 32;
@@ -127,6 +128,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		ContentHeight = DefaultContentHeight;
 		_state = PersistenceService.GetSlicerState();
 		_snapSelectionToGrid = _state.SnapSelectionToGrid;
+		_continuousDropIn = _state.ContinuousDropIn;
 		_thingWidth = Math.Max(0, _state.ThingWidth);
 		_thingHeight = Math.Max(0, _state.ThingHeight);
 		_thingExactSize = Math.Clamp(_state.ThingExactSize, 1, 255);
@@ -182,6 +184,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	}
 	public double Zoom { get => _zoom; set => SetProperty(ref _zoom, SnapZoom(value)); }
 	public bool SnapSelectionToGrid { get => _snapSelectionToGrid; set => SetProperty(ref _snapSelectionToGrid, value); }
+	public bool ContinuousDropIn { get => _continuousDropIn; set => SetProperty(ref _continuousDropIn, value); }
 	public int ThingWidth { get => _thingWidth; set { if (SetProperty(ref _thingWidth, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingHeight { get => _thingHeight; set { if (SetProperty(ref _thingHeight, Math.Max(0, value))) NotifyValidation(); } }
 	public int ThingExactSize { get => _thingExactSize; set => SetProperty(ref _thingExactSize, Math.Clamp(value, 1, 255)); }
@@ -525,6 +528,34 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		catch (Exception ex) { Status(true, ex.Message); }
 	}
 
+	public void LoadImages(IReadOnlyList<string> paths)
+	{
+		if (paths == null || paths.Count == 0) return;
+		if (paths.Count == 1)
+		{
+			LoadImage(paths[0]);
+			return;
+		}
+
+		try
+		{
+			var images = new List<SlicerImage>();
+			foreach (var path in paths)
+			{
+				images.Add(SpritesheetSlicerService.Load(path));
+			}
+
+			int targetW = ThingWidth > 0 ? ThingWidth : 1;
+			int targetH = ThingHeight > 0 ? ThingHeight : 1;
+			var merged = SpritesheetSlicerService.MergeImages(images, targetW, targetH, CellSize);
+			_history.Clear();
+			_sourcePath = $"{paths.Count} merged images";
+			_state.LastOpenDirectory = Path.GetDirectoryName(paths[0]) ?? "";
+			ShowLoadedImage(merged, $"{paths.Count} images merged into continuous spritesheet");
+		}
+		catch (Exception ex) { Status(true, ex.Message); }
+	}
+
 	[RelayCommand]
 	private async Task PasteImage()
 	{
@@ -557,11 +588,33 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		catch (Exception ex) { Status(true, ex.Message); }
 	}
 
-	private void ShowLoadedImage(SlicerImage loaded)
+	[RelayCommand(CanExecute = nameof(HasImage))]
+	private void ClearImage()
+	{
+		_history.Clear();
+		_sourcePath = "";
+		_image = null;
+		_sheetBitmap?.Dispose();
+		_sheetBitmap = null;
+		OnPropertyChanged(nameof(SheetBitmap));
+		OnPropertyChanged(nameof(HasImage));
+		OnPropertyChanged(nameof(ImageWidth));
+		OnPropertyChanged(nameof(ImageHeight));
+		OnPropertyChanged(nameof(SourceFileName));
+		ClearCropped();
+		ClampAndNotifyGrid(forceNotifications: true);
+		Status(false, "Slicer canvas cleared.");
+	}
+
+	private void ShowLoadedImage(SlicerImage loaded, string? customStatus = null)
 	{
 		ApplyImage(loaded, resetGrid: true, clearCropped: true);
 		OnPropertyChanged(nameof(SourceFileName));
-		if (loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
+		if (!string.IsNullOrEmpty(customStatus))
+		{
+			Status(false, $"{customStatus} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
+		}
+		else if (loaded.Width % CellSize == 0 && loaded.Height % CellSize == 0)
 			Status(false, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}); selected the complete sprite grid.");
 		else
 			Status(true, $"Loaded {SourceFileName} ({ImageWidth}×{ImageHeight}), but it is not an exact multiple of {CellSize}×{CellSize}. Align the grid manually.");
@@ -737,8 +790,14 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		catch (Exception ex) { Status(true, ex.Message); }
 	}
 
-	[RelayCommand(CanExecute = nameof(HasImage))]
+	[RelayCommand(CanExecute = nameof(CanCrop))]
 	private void MagentaFill() => TransformImage(SpritesheetSlicerService.FillTransparentWithMagenta, "Magenta fill", "Filled transparent pixels with magenta.");
+
+	[RelayCommand]
+	private void ToggleContinuousDropIn()
+	{
+		ContinuousDropIn = !ContinuousDropIn;
+	}
 
 	[RelayCommand(CanExecute = nameof(CanUndo))]
 	private void Undo()
@@ -773,6 +832,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 	public PersistenceService.SlicerStateModel CapturePersistentState()
 	{
 		_state.SnapSelectionToGrid = SnapSelectionToGrid;
+		_state.ContinuousDropIn = ContinuousDropIn;
 		_state.ThingWidth = ThingWidth; _state.ThingHeight = ThingHeight; _state.ThingExactSize = ThingExactSize;
 		_state.AutomaticCropSize = AutomaticCropSize;
 		_state.ThingLayers = ThingLayers; _state.ThingPatternX = ThingPatternX;
@@ -1090,6 +1150,7 @@ public partial class SpritesheetSlicerViewModel : PanelViewModelBase, IDisposabl
 		CropCommand.NotifyCanExecuteChanged(); StackFramesVerticallyCommand.NotifyCanExecuteChanged(); ImportSpritesCommand.NotifyCanExecuteChanged(); ImportThingCommand.NotifyCanExecuteChanged();
 		RotateLeftCommand.NotifyCanExecuteChanged(); RotateRightCommand.NotifyCanExecuteChanged(); FlipHorizontalCommand.NotifyCanExecuteChanged(); FlipVerticalCommand.NotifyCanExecuteChanged(); MagentaFillCommand.NotifyCanExecuteChanged();
 		FindTemplateCommand.NotifyCanExecuteChanged(); FindReplacementCommand.NotifyCanExecuteChanged();
+		ClearImageCommand.NotifyCanExecuteChanged();
 		OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanRedo));
 		UndoCommand.NotifyCanExecuteChanged(); RedoCommand.NotifyCanExecuteChanged();
 	}
