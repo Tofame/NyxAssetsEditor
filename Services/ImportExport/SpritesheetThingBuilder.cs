@@ -244,16 +244,64 @@ public static class SpritesheetThingBuilder
 		if (thing.FrameGroups.Count <= 1) return;
 		var groups = thing.FrameGroups.OrderBy(group => group.GroupTypeId).ToList();
 		var first = groups[0];
-		if (groups.Any(group => group.Width != first.Width || group.Height != first.Height ||
-			group.Layers != first.Layers || group.PatternX != first.PatternX ||
-			group.PatternY != first.PatternY || group.PatternZ != first.PatternZ))
-			throw new InvalidOperationException("The selected frame groups cannot be represented by this legacy target because their layouts differ.");
 
-		var frames = checked(groups.Sum(group => (int)group.Frames));
-		var spriteIds = groups.SelectMany(group => group.SpriteIds).ToArray();
-		var normal = CreateDerivedOutfitGroup(first, 0, frames, spriteIds, request);
+		var allSameLayout = groups.All(g => g.Width == first.Width && g.Height == first.Height &&
+			g.Layers == first.Layers && g.PatternX == first.PatternX &&
+			g.PatternY == first.PatternY && g.PatternZ == first.PatternZ);
+
+		if (allSameLayout)
+		{
+			var frames = checked(groups.Sum(group => (int)group.Frames));
+			var spriteIds = groups.SelectMany(group => group.SpriteIds).ToArray();
+			var normal = CreateDerivedOutfitGroup(first, 0, frames, spriteIds, request);
+			thing.FrameGroups.Clear();
+			thing.FrameGroups.Add(normal);
+			return;
+		}
+
+		var maxPatternX = groups.Max(g => g.PatternX);
+		var maxPatternY = groups.Max(g => g.PatternY);
+		var maxPatternZ = groups.Max(g => g.PatternZ);
+		var maxLayers = groups.Max(g => g.Layers);
+		var maxWidth = groups.Max(g => g.Width);
+		var maxHeight = groups.Max(g => g.Height);
+
+		var totalFrames = (uint)groups.Sum(g => (long)g.Frames);
+		var totalSprites = groups.Sum(g => g.SpriteIds.Length);
+		var merged = new ThingFrameGroup
+		{
+			GroupTypeId = 0,
+			Width = maxWidth,
+			Height = maxHeight,
+			ExactSize = first.ExactSize,
+			Layers = maxLayers,
+			PatternX = maxPatternX,
+			PatternY = maxPatternY,
+			PatternZ = maxPatternZ,
+			Frames = totalFrames,
+			IsAnimation = totalFrames > 1,
+			AnimationMode = 0,
+			LoopCount = 0,
+			StartFrame = 0,
+			SpriteIds = new uint[totalSprites]
+		};
+
+		var offset = 0;
+		foreach (var group in groups)
+		{
+			Array.Copy(group.SpriteIds, 0, merged.SpriteIds, offset, group.SpriteIds.Length);
+			offset += group.SpriteIds.Length;
+		}
+
+		if (request.ImprovedAnimations && totalFrames > 1)
+		{
+			merged.FrameTimings = Enumerable.Range(0, (int)totalFrames)
+				.Select(_ => new AnimationFrameTiming(request.AnimationDurationMs, request.AnimationDurationMs))
+				.ToArray();
+		}
+
 		thing.FrameGroups.Clear();
-		thing.FrameGroups.Add(normal);
+		thing.FrameGroups.Add(merged);
 	}
 
 	private static ThingFrameGroup CreateDerivedOutfitGroup(
