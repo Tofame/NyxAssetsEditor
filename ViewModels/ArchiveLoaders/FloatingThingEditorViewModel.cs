@@ -3119,7 +3119,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				slot.PatternX,
 				slot.PatternY,
 				_viewPatternZ,
-				(uint)SelectedFrame);
+				ShowTimeframe ? slot.Frame : (uint)SelectedFrame);
 
 			if (index < fg.SpriteIds.Length)
 			{
@@ -3164,7 +3164,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			slot.PatternX,
 			slot.PatternY,
 			_viewPatternZ,
-			(uint)SelectedFrame);
+			ShowTimeframe ? slot.Frame : (uint)SelectedFrame);
 
 		if (index < fg.SpriteIds.Length)
 		{
@@ -3184,7 +3184,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			slot.PatternX,
 			slot.PatternY,
 			_viewPatternZ,
-			(uint)SelectedFrame);
+			ShowTimeframe ? slot.Frame : (uint)SelectedFrame);
 
 		if (index < fg.SpriteIds.Length)
 		{

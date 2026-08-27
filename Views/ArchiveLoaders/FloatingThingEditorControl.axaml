@@ -199,20 +199,21 @@
 													Focusable="True"
 													Background="#141414" BorderBrush="#444444" BorderThickness="1" CornerRadius="4" Padding="8"
 													HorizontalAlignment="Center" VerticalAlignment="Top" MinWidth="80" MinHeight="80">
-												<Border.ContextMenu>
-													<ContextMenu>
-														<MenuItem Header="Set Sprite ID..." Command="{Binding OpenSetSpriteIdPromptCommand}"/>
-														<MenuItem Header="Clear" Command="{Binding ClearSelectedSlotCommand}"/>
-														<Separator/>
-														<MenuItem Header="Copy Sprite ID" Command="{Binding CopySelectedSlotCommand}" InputGesture="Ctrl+C"/>
-														<MenuItem Header="Paste Sprite ID" Command="{Binding PasteSelectedSlotCommand}" InputGesture="Ctrl+V" IsEnabled="{Binding CanPasteSpriteId}"/>
-													</ContextMenu>
-												</Border.ContextMenu>
 												<Image x:Name="AppearanceImageControl" Source="{Binding AppearanceImage, Mode=OneWay}" Stretch="None" RenderOptions.BitmapInterpolationMode="None"
 													   HorizontalAlignment="Center" VerticalAlignment="Center"
 													   PointerMoved="OnAppearancePointerMoved"
 													   PointerExited="OnAppearancePointerExited"
-													   PointerPressed="OnAppearancePointerPressed"/>
+													   PointerPressed="OnAppearancePointerPressed">
+													<Image.ContextMenu>
+														<ContextMenu>
+															<MenuItem Header="Set Sprite ID..." Command="{Binding OpenSetSpriteIdPromptCommand}"/>
+															<MenuItem Header="Clear" Command="{Binding ClearSelectedSlotCommand}"/>
+															<Separator/>
+															<MenuItem Header="Copy Sprite ID" Command="{Binding CopySelectedSlotCommand}" InputGesture="Ctrl+C"/>
+															<MenuItem Header="Paste Sprite ID" Command="{Binding PasteSelectedSlotCommand}" InputGesture="Ctrl+V" IsEnabled="{Binding CanPasteSpriteId}"/>
+														</ContextMenu>
+													</Image.ContextMenu>
+												</Image>
 											</Border>
 										</ScrollViewer>
 									</StackPanel>
