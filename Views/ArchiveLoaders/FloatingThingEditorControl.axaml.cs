@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NyxAssets.Things.Frames;
@@ -97,7 +98,10 @@ public partial class FloatingThingEditorControl : UserControl
 
 	private void OnAppearanceDragEnter(object? sender, DragEventArgs e)
 	{
-		if (!SpriteDragContext.CanAccept(e))
+		var vm = DataContext as FloatingThingEditorViewModel;
+		var canAcceptSprite = SpriteDragContext.CanAccept(e);
+		var canAcceptFile = TryGetDroppedSpriteFile(e, vm, out _);
+		if (!canAcceptSprite && !canAcceptFile)
 			return;
 
 		if (sender is Border border)
@@ -106,9 +110,9 @@ public partial class FloatingThingEditorControl : UserControl
 			border.BorderThickness = new Thickness(2);
 		}
 
-		if (DataContext is FloatingThingEditorViewModel vm)
+		if (vm != null)
 		{
-			if (vm.SourcePanel.LinkedSpritePanel == null)
+			if (canAcceptSprite && vm.SourcePanel.LinkedSpritePanel == null)
 			{
 				if (SpriteDragContext.TryRead(e, out var sourcePanel, out _) && sourcePanel != null)
 				{
@@ -135,13 +139,16 @@ public partial class FloatingThingEditorControl : UserControl
 
 	private void OnAppearanceDragOver(object? sender, DragEventArgs e)
 	{
-		var canAccept = SpriteDragContext.CanAccept(e);
+		var vm = DataContext as FloatingThingEditorViewModel;
+		var canAcceptSprite = SpriteDragContext.CanAccept(e);
+		var canAcceptFile = TryGetDroppedSpriteFile(e, vm, out _);
+		var canAccept = canAcceptSprite || canAcceptFile;
 		e.DragEffects = canAccept ? DragDropEffects.Copy : DragDropEffects.None;
 
-		if (!canAccept || DataContext is not FloatingThingEditorViewModel vm)
+		if (!canAccept || vm == null)
 			return;
 
-		if (vm.SourcePanel.LinkedSpritePanel == null)
+		if (canAcceptSprite && vm.SourcePanel.LinkedSpritePanel == null)
 		{
 			if (SpriteDragContext.TryRead(e, out var sourcePanel, out _) && sourcePanel != null)
 			{
@@ -167,6 +174,15 @@ public partial class FloatingThingEditorControl : UserControl
 
 		Focus();
 
+		if (TryGetDroppedSpriteFile(e, vm, out var filePath) && filePath != null)
+		{
+			var pos = e.GetPosition(AppearanceImageControl);
+			vm.HandleImageFileDrop(filePath, pos.X, pos.Y);
+			e.DragEffects = DragDropEffects.Copy;
+			e.Handled = true;
+			return;
+		}
+
 		if (!SpriteDragContext.TryRead(e, out var sourcePanel, out var spriteId) || sourcePanel == null)
 		{
 			vm.ClearAppearanceDragHover();
@@ -183,10 +199,34 @@ public partial class FloatingThingEditorControl : UserControl
 			}
 		}
 
-		var pos = e.GetPosition(AppearanceImageControl);
-		vm.HandleSpriteDrop(sourcePanel, spriteId, pos.X, pos.Y);
+		var dropPos = e.GetPosition(AppearanceImageControl);
+		vm.HandleSpriteDrop(sourcePanel, spriteId, dropPos.X, dropPos.Y);
 		e.DragEffects = DragDropEffects.Copy;
 		e.Handled = true;
+	}
+
+	private static bool TryGetDroppedSpriteFile(DragEventArgs e, FloatingThingEditorViewModel? vm, out string? filePath)
+	{
+		filePath = null;
+		if (vm == null)
+			return false;
+
+		var files = e.DataTransfer.TryGetFiles()?.ToList();
+		if (files is not { Count: 1 })
+			return false;
+
+		var path = files[0].TryGetLocalPath();
+		if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
+			return false;
+
+		if (!Services.ImportExport.SpriteImageImporter.IsSupportedImage(path))
+			return false;
+
+		if (!vm.CanAcceptDroppedImage(path))
+			return false;
+
+		filePath = path;
+		return true;
 	}
 
 	private void OnAppearancePointerMoved(object? sender, PointerEventArgs e)

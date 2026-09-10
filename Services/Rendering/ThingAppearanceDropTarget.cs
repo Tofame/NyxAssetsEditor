@@ -39,6 +39,73 @@ public static class ThingAppearanceDropTarget
 		return ResolveSingleTile(fg, edge, dropX, dropY, imageWidth, imageHeight, vm.ViewPatternXIndex, vm.ViewPatternYIndex, (uint)vm.SelectedFrame);
 	}
 
+	public static (uint PatternX, uint PatternY, uint Frame)? ResolveCell(
+		FloatingThingEditorViewModel vm,
+		double dropX,
+		double dropY,
+		int imageWidth,
+		int imageHeight)
+	{
+		if (imageWidth <= 0 || imageHeight <= 0)
+			return null;
+
+		var fg = vm.CurrentFrameGroup;
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+
+		if (vm.IsMissile)
+		{
+			var cellW = imageWidth / 3.0;
+			var cellH = imageHeight / 3.0;
+			if (cellW <= 0 || cellH <= 0) return null;
+			var col = Math.Clamp((int)(dropX / cellW), 0, 2);
+			var row = Math.Clamp((int)(dropY / cellH), 0, 2);
+			if (col == 1 && row == 1) return null;
+			var dir = (col, row) switch
+			{
+				(0, 0) => Direction8.NorthWest,
+				(1, 0) => Direction8.North,
+				(2, 0) => Direction8.NorthEast,
+				(0, 1) => Direction8.West,
+				(2, 1) => Direction8.East,
+				(0, 2) => Direction8.SouthWest,
+				(1, 2) => Direction8.South,
+				(2, 2) => Direction8.SouthEast,
+				_ => Direction8.South,
+			};
+			var (px, py) = MissileDirectionPatterns.GetPattern(dir);
+			return ((uint)px, (uint)py, (uint)vm.SelectedFrame);
+		}
+
+		if (vm.IsOutfit && vm.ShowAllOutfitDirections)
+		{
+			var cellW = fg.Width * edge;
+			if (cellW <= 0) return null;
+			var col = (uint)Math.Clamp((int)(dropX / cellW), 0, 3);
+			return (col, 0, (uint)vm.SelectedFrame);
+		}
+
+		if (vm.ShowTimeframe)
+		{
+			var cellW = fg.Width * edge;
+			if (cellW <= 0) return null;
+			var totalFrames = fg.Frames == 0 ? 1 : fg.Frames;
+			var frame = (uint)Math.Clamp((int)(dropX / cellW), 0, (int)totalFrames - 1);
+			return ((uint)vm.ViewPatternXIndex, (uint)vm.ViewPatternYIndex, frame);
+		}
+
+		if (vm.ShowPatternGrid)
+		{
+			var cellW = fg.Width * edge;
+			var cellH = fg.Height * edge;
+			if (cellW <= 0 || cellH <= 0) return null;
+			var px = (uint)Math.Clamp((int)(dropX / cellW), 0, Math.Max(0, (int)fg.PatternX - 1));
+			var py = (uint)Math.Clamp((int)(dropY / cellH), 0, Math.Max(0, (int)fg.PatternY - 1));
+			return (px, py, (uint)vm.SelectedFrame);
+		}
+
+		return ((uint)vm.ViewPatternXIndex, (uint)vm.ViewPatternYIndex, (uint)vm.SelectedFrame);
+	}
+
 	private static ThingAppearanceSlot? ResolveOutfitDirectionGrid(
 		ThingFrameGroup fg,
 		int edge,

@@ -80,6 +80,18 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private bool _isAppearanceDragHover;
 	private ThingAppearanceSlot? _hoverSlot;
 
+	private bool _showDropImageModal;
+	private string _dropImageModalText = string.Empty;
+	private string? _pendingDroppedImagePath;
+	private double _pendingImageDropX;
+	private double _pendingImageDropY;
+	private uint _pendingTargetSpriteId;
+	private bool _pendingIsOutfitSheet;
+	private bool _pendingIsMultiTile;
+	private int _pendingTilesW;
+	private int _pendingTilesH;
+	private List<(uint InnerW, uint InnerH, uint PatternX, uint PatternY, uint Frame, byte[] Pixels)>? _pendingTileEntries;
+
 	private ThingType _originalThing = null!;
 	private bool _isDirty;
 	private bool _showPromptOverlay;
@@ -545,6 +557,275 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		private set => SetProperty(ref _addSpriteConfirmationText, value);
 	}
 
+	public bool ShowDropImageModal
+	{
+		get => _showDropImageModal;
+		private set => SetProperty(ref _showDropImageModal, value);
+	}
+
+	public string DropImageModalText
+	{
+		get => _dropImageModalText;
+		private set => SetProperty(ref _dropImageModalText, value);
+	}
+
+	public bool CanReplaceDroppedImage => _pendingTargetSpriteId > 0;
+
+	public bool CanAcceptDroppedImage(string filePath)
+	{
+		if (SourcePanel.LinkedSpritePanel == null)
+			return false;
+
+		if (_appearancePixelWidth <= 0 || _appearancePixelHeight <= 0)
+			return false;
+
+		try
+		{
+			using var codec = SkiaSharp.SKCodec.Create(filePath);
+			if (codec == null)
+				return false;
+
+			int imgW = codec.Info.Width;
+			int imgH = codec.Info.Height;
+			var size = Models.SpriteModel.SpriteSize;
+			if (imgW <= 0 || imgH <= 0 || imgW % size != 0 || imgH % size != 0)
+				return false;
+
+			var fg = CurrentFrameGroup;
+			var edge = SpritePixelCodec.SpriteEdgeLength;
+
+			if (IsOutfit)
+			{
+				int outfitCols = (int)(fg.PatternZ * fg.PatternX * fg.Layers);
+				int outfitRows = (int)(fg.Frames * fg.PatternY);
+				int expectedOutfitPxW = (int)(outfitCols * fg.Width * edge);
+				int expectedOutfitPxH = (int)(outfitRows * fg.Height * edge);
+
+				int effPatternX3 = (fg.PatternX >= 4) ? (int)fg.PatternX - 1 : (int)fg.PatternX;
+				int outfitCols3 = (int)(fg.PatternZ * effPatternX3 * fg.Layers);
+				int expectedOutfitPxW3 = (int)(outfitCols3 * fg.Width * edge);
+
+				bool isMatchingOutfit4 = imgW == expectedOutfitPxW && imgH == expectedOutfitPxH && (outfitCols > 1 || outfitRows > 1);
+				bool isMatchingOutfit3 = imgW == expectedOutfitPxW3 && imgH == expectedOutfitPxH && fg.PatternX >= 4;
+
+				if (isMatchingOutfit4 || isMatchingOutfit3)
+					return true;
+			}
+
+			int tilesW = imgW / size;
+			int tilesH = imgH / size;
+
+			return tilesW <= fg.Width && tilesH <= fg.Height;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	public void HandleImageFileDrop(string filePath, double dropX, double dropY)
+	{
+		ClearAppearanceDragHover();
+
+		if (!CanAcceptDroppedImage(filePath))
+			return;
+
+		using var original = SkiaSharp.SKBitmap.Decode(filePath);
+		if (original == null)
+			return;
+
+		int imgW = original.Width;
+		int imgH = original.Height;
+		var size = Models.SpriteModel.SpriteSize;
+		if (imgW <= 0 || imgH <= 0 || imgW % size != 0 || imgH % size != 0)
+			return;
+
+		var fileName = System.IO.Path.GetFileName(filePath);
+		var fg = CurrentFrameGroup;
+		var edge = SpritePixelCodec.SpriteEdgeLength;
+
+		_pendingDroppedImagePath = filePath;
+		_pendingImageDropX = dropX;
+		_pendingImageDropY = dropY;
+		_pendingIsOutfitSheet = false;
+		_pendingIsMultiTile = false;
+		_pendingTilesW = 1;
+		_pendingTilesH = 1;
+		_pendingTileEntries = new List<(uint InnerW, uint InnerH, uint PatternX, uint PatternY, uint Frame, byte[] Pixels)>();
+
+		// Helper to extract 32x32 RGBA tile
+		byte[] ExtractTileRgba(int tileX, int tileY)
+		{
+			using var tileBitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(size, size, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul));
+			using (var canvas = new SkiaSharp.SKCanvas(tileBitmap))
+			{
+				canvas.Clear(SkiaSharp.SKColors.Transparent);
+				var srcRect = new SkiaSharp.SKRectI(tileX * size, tileY * size, (tileX + 1) * size, (tileY + 1) * size);
+				var destRect = new SkiaSharp.SKRect(0, 0, size, size);
+				canvas.DrawBitmap(original, srcRect, destRect);
+			}
+			return tileBitmap.Bytes;
+		}
+
+		// Check if it's an Outfit Spritesheet Drop:
+		// When IsOutfit is true, check if image dimensions match the full outfit layout:
+		// Standard full outfit width in columns is (PatternZ * PatternX * Layers) * Width, height is (Frames * PatternY) * Height.
+		int outfitCols = (int)(fg.PatternZ * fg.PatternX * fg.Layers);
+		int outfitRows = (int)(fg.Frames * fg.PatternY);
+		int expectedOutfitPxW = (int)(outfitCols * fg.Width * edge);
+		int expectedOutfitPxH = (int)(outfitRows * fg.Height * edge);
+
+		// Also check 3-direction variant (skipWest where PatternX == 4, effPatternX == 3)
+		int effPatternX3 = (fg.PatternX >= 4) ? (int)fg.PatternX - 1 : (int)fg.PatternX;
+		int outfitCols3 = (int)(fg.PatternZ * effPatternX3 * fg.Layers);
+		int expectedOutfitPxW3 = (int)(outfitCols3 * fg.Width * edge);
+
+		bool isMatchingOutfit4 = IsOutfit && (imgW == expectedOutfitPxW && imgH == expectedOutfitPxH && (outfitCols > 1 || outfitRows > 1));
+		bool isMatchingOutfit3 = IsOutfit && (imgW == expectedOutfitPxW3 && imgH == expectedOutfitPxH && fg.PatternX >= 4);
+
+		if (isMatchingOutfit4 || isMatchingOutfit3)
+		{
+			_pendingIsOutfitSheet = true;
+			bool skipWest = isMatchingOutfit3;
+			int effPatX = skipWest ? (int)fg.PatternX - 1 : (int)fg.PatternX;
+
+			for (uint f = 0; f < fg.Frames; f++)
+			{
+				for (uint z = 0; z < fg.PatternZ; z++)
+				{
+					for (uint py = 0; py < fg.PatternY; py++)
+					{
+						for (uint px = 0; px < fg.PatternX; px++)
+						{
+							if (skipWest && px == 3)
+								continue;
+
+							uint mappedPx = (skipWest && px > 3) ? px - 1 : px;
+
+							for (uint l = 0; l < fg.Layers; l++)
+							{
+								int colIndex = (int)((z * effPatX + mappedPx) * fg.Layers + l);
+								int rowIndex = (int)(f * fg.PatternY + py);
+
+								int cellPixelX = colIndex * (int)(fg.Width * edge);
+								int cellPixelY = rowIndex * (int)(fg.Height * edge);
+
+								for (uint w = 0; w < fg.Width; w++)
+								{
+									for (uint h = 0; h < fg.Height; h++)
+									{
+										int tileX = (cellPixelX + (int)((fg.Width - w - 1) * edge)) / size;
+										int tileY = (cellPixelY + (int)((fg.Height - h - 1) * edge)) / size;
+
+										var tileBytes = ExtractTileRgba(tileX, tileY);
+										_pendingTileEntries.Add((w, h, px, py, f, tileBytes));
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Also if 3-direction was imported, copy East (px=1) to West (px=3)
+			if (skipWest && fg.PatternX >= 4)
+			{
+				var eastEntries = _pendingTileEntries.Where(e => e.PatternX == 1).ToList();
+				foreach (var e in eastEntries)
+				{
+					_pendingTileEntries.Add((e.InnerW, e.InnerH, 3, e.PatternY, e.Frame, e.Pixels));
+				}
+			}
+
+			int filledSlots = 0;
+			foreach (var entry in _pendingTileEntries)
+			{
+				var slot = new ThingAppearanceSlot(entry.InnerW, entry.InnerH, entry.PatternX, entry.PatternY, entry.Frame);
+				if (GetSpriteIdAtSlot(slot) > 0)
+					filledSlots++;
+			}
+
+			_pendingTargetSpriteId = filledSlots > 0 ? 1u : 0u;
+			DropImageModalText = $"File: {fileName}\nDetected Full Outfit Spritesheet ({imgW}×{imgH} px).\n\n" +
+				$"This will populate {fg.Frames} frame(s) across {fg.PatternX} direction(s) ({_pendingTileEntries.Count} sprite tiles).\n\n" +
+				(filledSlots > 0 ? "Would you like to add as new sprites or replace existing sprites in those slots?" : "Would you like to add these sprites to the archive?");
+			OnPropertyChanged(nameof(CanReplaceDroppedImage));
+			ShowDropImageModal = true;
+			return;
+		}
+
+		// Multi-tile or single tile drop onto appearance cell:
+		int tilesW = imgW / size;
+		int tilesH = imgH / size;
+		_pendingTilesW = tilesW;
+		_pendingTilesH = tilesH;
+
+		var cell = ThingAppearanceDropTarget.ResolveCell(this, dropX, dropY, _appearancePixelWidth, _appearancePixelHeight);
+		if (cell == null)
+			return;
+
+		var (cellPx, cellPy, cellFrame) = cell.Value;
+
+		if (tilesW > 1 || tilesH > 1)
+		{
+			_pendingIsMultiTile = true;
+			// Extract all tiles for the cell (up to fg.Width x fg.Height)
+			int maxW = Math.Min(tilesW, (int)fg.Width);
+			int maxH = Math.Min(tilesH, (int)fg.Height);
+
+			for (uint w = 0; w < (uint)maxW; w++)
+			{
+				for (uint h = 0; h < (uint)maxH; h++)
+				{
+					// Image coordinates: innerX = (tilesW - w - 1), innerY = (tilesH - h - 1)
+					int imgTileX = tilesW - (int)w - 1;
+					int imgTileY = tilesH - (int)h - 1;
+
+					var tileBytes = ExtractTileRgba(imgTileX, imgTileY);
+					_pendingTileEntries.Add((w, h, cellPx, cellPy, cellFrame, tileBytes));
+				}
+			}
+
+			int filledCount = 0;
+			foreach (var entry in _pendingTileEntries)
+			{
+				var slot = new ThingAppearanceSlot(entry.InnerW, entry.InnerH, entry.PatternX, entry.PatternY, entry.Frame);
+				if (GetSpriteIdAtSlot(slot) > 0)
+					filledCount++;
+			}
+
+			_pendingTargetSpriteId = filledCount > 0 ? 1u : 0u;
+			DropImageModalText = $"File: {fileName}\nMulti-tile Image: {imgW}×{imgH} px ({tilesW}×{tilesH} tiles).\nTarget cell: {maxW}×{maxH} tiles.\n\n" +
+				(filledCount > 0
+					? $"There are {filledCount} existing sprite(s) in this area.\nWould you like to add as new sprites or replace existing sprites?"
+					: "Would you like to add these tiles as new sprites to the archive?");
+			OnPropertyChanged(nameof(CanReplaceDroppedImage));
+			ShowDropImageModal = true;
+			return;
+		}
+
+		// Single 32x32 tile drop
+		var singleSlot = ThingAppearanceDropTarget.Resolve(this, dropX, dropY, _appearancePixelWidth, _appearancePixelHeight);
+		if (singleSlot == null)
+			return;
+
+		var singleRgba = ExtractTileRgba(0, 0);
+		_pendingTileEntries.Add((singleSlot.Value.InnerW, singleSlot.Value.InnerH, singleSlot.Value.PatternX, singleSlot.Value.PatternY, singleSlot.Value.Frame, singleRgba));
+		_pendingTargetSpriteId = GetSpriteIdAtSlot(singleSlot.Value);
+
+		if (_pendingTargetSpriteId > 0)
+		{
+			DropImageModalText = $"File: {fileName}\nTarget Slot Sprite ID: #{_pendingTargetSpriteId}\n\nWould you like to add this as a new sprite or replace sprite #{_pendingTargetSpriteId}?";
+		}
+		else
+		{
+			DropImageModalText = $"File: {fileName}\nTarget Slot is empty (Sprite ID: 0).\n\nWould you like to add this image as a new sprite to the archive?";
+		}
+
+		OnPropertyChanged(nameof(CanReplaceDroppedImage));
+		ShowDropImageModal = true;
+	}
+
 	public void HandleSpriteDrop(FloatingSpriteLoaderViewModel sourcePanel, uint spriteId, double dropX, double dropY)
 	{
 		ClearAppearanceDragHover();
@@ -789,6 +1070,150 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	{
 		ShowAddSpriteConfirmation = false;
 		ClearPendingSpriteDrop();
+	}
+
+	[RelayCommand]
+	private void ConfirmAddDroppedImage()
+	{
+		ShowDropImageModal = false;
+
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (linkedPanel == null || _pendingTileEntries == null || _pendingTileEntries.Count == 0)
+		{
+			ClearPendingImageDrop();
+			return;
+		}
+
+		try
+		{
+			var fg = CurrentFrameGroup;
+			bool mutated = false;
+
+			foreach (var entry in _pendingTileEntries)
+			{
+				var newId = linkedPanel.Loader.AddNewSprite();
+				linkedPanel.Loader.SetSpritePixels(newId, entry.Pixels);
+				linkedPanel.AddedSpriteIds.Add(newId);
+
+				var index = fg.GetSpriteIndex(
+					entry.InnerW,
+					entry.InnerH,
+					(uint)SelectedLayer,
+					entry.PatternX,
+					entry.PatternY,
+					_viewPatternZ,
+					entry.Frame);
+
+				if (index < fg.SpriteIds.Length)
+				{
+					fg.SpriteIds[index] = newId;
+					mutated = true;
+				}
+			}
+
+			if (mutated)
+			{
+				linkedPanel.NotifyExternalArchiveMutation();
+				linkedPanel.HasSavedChanges = true;
+				ApplyToCatalog();
+				RefreshAppearance();
+			}
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Failed to add dropped image sprites: {ex.Message}");
+		}
+
+		ClearPendingImageDrop();
+	}
+
+	[RelayCommand]
+	private void ConfirmReplaceDroppedImage()
+	{
+		ShowDropImageModal = false;
+
+		var linkedPanel = SourcePanel.LinkedSpritePanel;
+		if (linkedPanel == null || _pendingTileEntries == null || _pendingTileEntries.Count == 0)
+		{
+			ClearPendingImageDrop();
+			return;
+		}
+
+		try
+		{
+			var fg = CurrentFrameGroup;
+			bool mutated = false;
+
+			foreach (var entry in _pendingTileEntries)
+			{
+				var slot = new ThingAppearanceSlot(entry.InnerW, entry.InnerH, entry.PatternX, entry.PatternY, entry.Frame);
+				var existingId = GetSpriteIdAtSlot(slot);
+
+				if (existingId == 0)
+				{
+					var newId = linkedPanel.Loader.AddNewSprite();
+					linkedPanel.Loader.SetSpritePixels(newId, entry.Pixels);
+					linkedPanel.AddedSpriteIds.Add(newId);
+
+					var index = fg.GetSpriteIndex(
+						entry.InnerW,
+						entry.InnerH,
+						(uint)SelectedLayer,
+						entry.PatternX,
+						entry.PatternY,
+						_viewPatternZ,
+						entry.Frame);
+
+					if (index < fg.SpriteIds.Length)
+					{
+						fg.SpriteIds[index] = newId;
+						mutated = true;
+					}
+				}
+				else
+				{
+					linkedPanel.Loader.SetSpritePixels(existingId, entry.Pixels);
+					if (!linkedPanel.AddedSpriteIds.Contains(existingId))
+						linkedPanel.ModifiedSpriteIds.Add(existingId);
+					linkedPanel.PagedSprites.FirstOrDefault(s => s.Id == existingId)?.InvalidatePreview();
+					mutated = true;
+				}
+			}
+
+			if (mutated)
+			{
+				linkedPanel.NotifyExternalArchiveMutation();
+				linkedPanel.HasSavedChanges = true;
+				ApplyToCatalog();
+				RefreshAppearance();
+			}
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Failed to replace dropped image sprites: {ex.Message}");
+		}
+
+		ClearPendingImageDrop();
+	}
+
+	[RelayCommand]
+	private void CancelDroppedImage()
+	{
+		ShowDropImageModal = false;
+		ClearPendingImageDrop();
+	}
+
+	private void ClearPendingImageDrop()
+	{
+		_pendingDroppedImagePath = null;
+		_pendingImageDropX = 0;
+		_pendingImageDropY = 0;
+		_pendingTargetSpriteId = 0;
+		_pendingIsOutfitSheet = false;
+		_pendingIsMultiTile = false;
+		_pendingTilesW = 1;
+		_pendingTilesH = 1;
+		_pendingTileEntries = null;
 	}
 
 	[RelayCommand]
