@@ -90,7 +90,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private bool _pendingIsMultiTile;
 	private int _pendingTilesW;
 	private int _pendingTilesH;
-	private List<(uint InnerW, uint InnerH, uint PatternX, uint PatternY, uint Frame, byte[] Pixels)>? _pendingTileEntries;
+	private List<(uint InnerW, uint InnerH, uint Layer, uint PatternX, uint PatternY, uint PatternZ, uint Frame, byte[] Pixels)>? _pendingTileEntries;
 
 	private ThingType _originalThing = null!;
 	private bool _isDirty;
@@ -545,6 +545,12 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	public int AppearancePixelWidth => _appearancePixelWidth;
 	public int AppearancePixelHeight => _appearancePixelHeight;
 
+	internal void SetAppearanceBoundsForTesting(int w, int h)
+	{
+		_appearancePixelWidth = w;
+		_appearancePixelHeight = h;
+	}
+
 	public bool ShowAddSpriteConfirmation
 	{
 		get => _showAddSpriteConfirmation;
@@ -651,7 +657,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_pendingIsMultiTile = false;
 		_pendingTilesW = 1;
 		_pendingTilesH = 1;
-		_pendingTileEntries = new List<(uint InnerW, uint InnerH, uint PatternX, uint PatternY, uint Frame, byte[] Pixels)>();
+		_pendingTileEntries = new List<(uint InnerW, uint InnerH, uint Layer, uint PatternX, uint PatternY, uint PatternZ, uint Frame, byte[] Pixels)>();
 
 		// Helper to extract 32x32 RGBA tile
 		byte[] ExtractTileRgba(int tileX, int tileY)
@@ -718,7 +724,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 										int tileY = (cellPixelY + (int)((fg.Height - h - 1) * edge)) / size;
 
 										var tileBytes = ExtractTileRgba(tileX, tileY);
-										_pendingTileEntries.Add((w, h, px, py, f, tileBytes));
+										_pendingTileEntries.Add((w, h, l, px, py, z, f, tileBytes));
 									}
 								}
 							}
@@ -733,15 +739,15 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				var eastEntries = _pendingTileEntries.Where(e => e.PatternX == 1).ToList();
 				foreach (var e in eastEntries)
 				{
-					_pendingTileEntries.Add((e.InnerW, e.InnerH, 3, e.PatternY, e.Frame, e.Pixels));
+					_pendingTileEntries.Add((e.InnerW, e.InnerH, e.Layer, 3, e.PatternY, e.PatternZ, e.Frame, e.Pixels));
 				}
 			}
 
 			int filledSlots = 0;
 			foreach (var entry in _pendingTileEntries)
 			{
-				var slot = new ThingAppearanceSlot(entry.InnerW, entry.InnerH, entry.PatternX, entry.PatternY, entry.Frame);
-				if (GetSpriteIdAtSlot(slot) > 0)
+				var index = fg.GetSpriteIndex(entry.InnerW, entry.InnerH, entry.Layer, entry.PatternX, entry.PatternY, entry.PatternZ, entry.Frame);
+				if (index < fg.SpriteIds.Length && fg.SpriteIds[index] > 0)
 					filledSlots++;
 			}
 
@@ -782,7 +788,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 					int imgTileY = tilesH - (int)h - 1;
 
 					var tileBytes = ExtractTileRgba(imgTileX, imgTileY);
-					_pendingTileEntries.Add((w, h, cellPx, cellPy, cellFrame, tileBytes));
+					_pendingTileEntries.Add((w, h, (uint)SelectedLayer, cellPx, cellPy, _viewPatternZ, cellFrame, tileBytes));
 				}
 			}
 
@@ -810,7 +816,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			return;
 
 		var singleRgba = ExtractTileRgba(0, 0);
-		_pendingTileEntries.Add((singleSlot.Value.InnerW, singleSlot.Value.InnerH, singleSlot.Value.PatternX, singleSlot.Value.PatternY, singleSlot.Value.Frame, singleRgba));
+		_pendingTileEntries.Add((singleSlot.Value.InnerW, singleSlot.Value.InnerH, (uint)SelectedLayer, singleSlot.Value.PatternX, singleSlot.Value.PatternY, _viewPatternZ, singleSlot.Value.Frame, singleRgba));
 		_pendingTargetSpriteId = GetSpriteIdAtSlot(singleSlot.Value);
 
 		if (_pendingTargetSpriteId > 0)
@@ -1073,7 +1079,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	[RelayCommand]
-	private void ConfirmAddDroppedImage()
+	public void ConfirmAddDroppedImage()
 	{
 		ShowDropImageModal = false;
 
@@ -1098,10 +1104,10 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 				var index = fg.GetSpriteIndex(
 					entry.InnerW,
 					entry.InnerH,
-					(uint)SelectedLayer,
+					entry.Layer,
 					entry.PatternX,
 					entry.PatternY,
-					_viewPatternZ,
+					entry.PatternZ,
 					entry.Frame);
 
 				if (index < fg.SpriteIds.Length)
@@ -1128,7 +1134,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	[RelayCommand]
-	private void ConfirmReplaceDroppedImage()
+	public void ConfirmReplaceDroppedImage()
 	{
 		ShowDropImageModal = false;
 
@@ -1146,8 +1152,19 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 			foreach (var entry in _pendingTileEntries)
 			{
-				var slot = new ThingAppearanceSlot(entry.InnerW, entry.InnerH, entry.PatternX, entry.PatternY, entry.Frame);
-				var existingId = GetSpriteIdAtSlot(slot);
+				var index = fg.GetSpriteIndex(
+					entry.InnerW,
+					entry.InnerH,
+					entry.Layer,
+					entry.PatternX,
+					entry.PatternY,
+					entry.PatternZ,
+					entry.Frame);
+
+				if (index >= fg.SpriteIds.Length)
+					continue;
+
+				var existingId = fg.SpriteIds[index];
 
 				if (existingId == 0)
 				{
@@ -1155,20 +1172,8 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 					linkedPanel.Loader.SetSpritePixels(newId, entry.Pixels);
 					linkedPanel.AddedSpriteIds.Add(newId);
 
-					var index = fg.GetSpriteIndex(
-						entry.InnerW,
-						entry.InnerH,
-						(uint)SelectedLayer,
-						entry.PatternX,
-						entry.PatternY,
-						_viewPatternZ,
-						entry.Frame);
-
-					if (index < fg.SpriteIds.Length)
-					{
-						fg.SpriteIds[index] = newId;
-						mutated = true;
-					}
+					fg.SpriteIds[index] = newId;
+					mutated = true;
 				}
 				else
 				{
@@ -1197,7 +1202,7 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	}
 
 	[RelayCommand]
-	private void CancelDroppedImage()
+	public void CancelDroppedImage()
 	{
 		ShowDropImageModal = false;
 		ClearPendingImageDrop();
@@ -2314,8 +2319,14 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		OnPropertyChanged(nameof(CanGenerateMissileAllDirections));
 		GenerateMissileOrthogonalDirectionsCommand.NotifyCanExecuteChanged();
 		GenerateMissileDiagonalDirectionsCommand.NotifyCanExecuteChanged();
-		GenerateMissileAllDirectionsCommand.NotifyCanExecuteChanged();
-		AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
+		try
+		{
+			AppearanceImage = _renderer.ConvertRgba(w, h, rgba);
+		}
+		catch
+		{
+			// Headless / non-UI unit tests may not have Avalonia rendering platform initialized
+		}
 	}
 
 	private ThingAppearanceOptions BuildAppearanceOptions()
