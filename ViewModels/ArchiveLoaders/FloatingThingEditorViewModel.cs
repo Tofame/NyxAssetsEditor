@@ -86,8 +86,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 	private double _pendingImageDropX;
 	private double _pendingImageDropY;
 	private uint _pendingTargetSpriteId;
-	private bool _pendingIsOutfitSheet;
-	private bool _pendingIsMultiTile;
 	private int _pendingTilesW;
 	private int _pendingTilesH;
 	private List<(uint InnerW, uint InnerH, uint Layer, uint PatternX, uint PatternY, uint PatternZ, uint Frame, byte[] Pixels)>? _pendingTileEntries;
@@ -653,8 +651,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_pendingDroppedImagePath = filePath;
 		_pendingImageDropX = dropX;
 		_pendingImageDropY = dropY;
-		_pendingIsOutfitSheet = false;
-		_pendingIsMultiTile = false;
 		_pendingTilesW = 1;
 		_pendingTilesH = 1;
 		_pendingTileEntries = new List<(uint InnerW, uint InnerH, uint Layer, uint PatternX, uint PatternY, uint PatternZ, uint Frame, byte[] Pixels)>();
@@ -666,9 +662,9 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 			using (var canvas = new SkiaSharp.SKCanvas(tileBitmap))
 			{
 				canvas.Clear(SkiaSharp.SKColors.Transparent);
-				var srcRect = new SkiaSharp.SKRectI(tileX * size, tileY * size, (tileX + 1) * size, (tileY + 1) * size);
+				var srcRect = new SkiaSharp.SKRect(tileX * size, tileY * size, (tileX + 1) * size, (tileY + 1) * size);
 				var destRect = new SkiaSharp.SKRect(0, 0, size, size);
-				canvas.DrawBitmap(original, srcRect, destRect);
+				canvas.DrawBitmap(original, srcRect, destRect, SkiaSharp.SKSamplingOptions.Default);
 			}
 			return tileBitmap.Bytes;
 		}
@@ -691,7 +687,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		if (isMatchingOutfit4 || isMatchingOutfit3)
 		{
-			_pendingIsOutfitSheet = true;
 			bool skipWest = isMatchingOutfit3;
 			int effPatX = skipWest ? (int)fg.PatternX - 1 : (int)fg.PatternX;
 
@@ -774,7 +769,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 
 		if (tilesW > 1 || tilesH > 1)
 		{
-			_pendingIsMultiTile = true;
 			// Extract all tiles for the cell (up to fg.Width x fg.Height)
 			int maxW = Math.Min(tilesW, (int)fg.Width);
 			int maxH = Math.Min(tilesH, (int)fg.Height);
@@ -1214,8 +1208,6 @@ public partial class FloatingThingEditorViewModel : PanelViewModelBase
 		_pendingImageDropX = 0;
 		_pendingImageDropY = 0;
 		_pendingTargetSpriteId = 0;
-		_pendingIsOutfitSheet = false;
-		_pendingIsMultiTile = false;
 		_pendingTilesW = 1;
 		_pendingTilesH = 1;
 		_pendingTileEntries = null;
