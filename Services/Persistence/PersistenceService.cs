@@ -24,6 +24,7 @@ namespace NyxAssetsEditor.Services.Persistence
 
 		private static bool _isRestoring;
 		private static SlicerStateModel _slicerState = new();
+		private static LightPreviewStateModel _lightPreviewState = new();
 
 		static PersistenceService()
 		{
@@ -91,6 +92,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public bool ThingEditorAutoRotate { get; set; }
 			public int ThingEditorRotateSpeedMs { get; set; } = 500;
 			public SlicerStateModel Slicer { get; set; } = new();
+			public LightPreviewStateModel LightPreview { get; set; } = new();
 		}
 
 		public class SlicerStateModel
@@ -115,6 +117,25 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int OutfitWalkingFrames { get; set; } = 2;
 			public string ThingKind { get; set; } = "Item";
 			public bool ReplaceExisting { get; set; }
+		}
+
+		public class LightPreviewStateModel
+		{
+			public uint GroundId { get; set; } = 103;
+			public int OuterSize { get; set; } = 13;
+			public int HouseSize { get; set; } = 7;
+			public uint PoleId { get; set; } = 1102;
+			public uint HorizontalId { get; set; } = 1103;
+			public uint VerticalId { get; set; } = 1105;
+			public uint CornerId { get; set; } = 1104;
+			public uint LampId { get; set; } = 1424;
+			public int LightLevel { get; set; }
+			public int LightColor { get; set; }
+			public int TimeMinutes { get; set; } = 1200;
+			public int GlobalIntensity { get; set; } = 40;
+			public int GlobalColor { get; set; } = 215;
+			public bool Animate { get; set; } = true;
+			public bool LightMapOnly { get; set; }
 		}
 
 		public class AppStateTomlModel
@@ -201,6 +222,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					if (model != null)
 					{
 						_slicerState = model.Slicer ?? new SlicerStateModel();
+						_lightPreviewState = model.LightPreview ?? new LightPreviewStateModel();
 						SettingsViewModel.SetSettings(
 							model.DefaultPageSize,
 							model.UseTransparentPixels,
@@ -312,7 +334,8 @@ namespace NyxAssetsEditor.Services.Persistence
 					ThingEditorShowTimeframe = SettingsViewModel.ThingEditorShowTimeframe,
 					ThingEditorAutoRotate = SettingsViewModel.ThingEditorAutoRotate,
 					ThingEditorRotateSpeedMs = SettingsViewModel.ThingEditorRotateSpeedMs,
-					Slicer = _slicerState
+					Slicer = _slicerState,
+					LightPreview = _lightPreviewState
 				};
 				string toml = TomlSerializer.Serialize(model);
 				File.WriteAllText(SettingsPath, toml);
@@ -349,6 +372,31 @@ namespace NyxAssetsEditor.Services.Persistence
 		public static void SaveSlicerState(SlicerStateModel state)
 		{
 			_slicerState = state;
+			SaveSettings();
+		}
+
+		public static LightPreviewStateModel GetLightPreviewState() => new()
+		{
+			GroundId = _lightPreviewState.GroundId,
+			OuterSize = _lightPreviewState.OuterSize,
+			HouseSize = _lightPreviewState.HouseSize,
+			PoleId = _lightPreviewState.PoleId,
+			HorizontalId = _lightPreviewState.HorizontalId,
+			VerticalId = _lightPreviewState.VerticalId,
+			CornerId = _lightPreviewState.CornerId,
+			LampId = _lightPreviewState.LampId,
+			LightLevel = _lightPreviewState.LightLevel,
+			LightColor = _lightPreviewState.LightColor,
+			TimeMinutes = _lightPreviewState.TimeMinutes,
+			GlobalIntensity = _lightPreviewState.GlobalIntensity,
+			GlobalColor = _lightPreviewState.GlobalColor,
+			Animate = _lightPreviewState.Animate,
+			LightMapOnly = _lightPreviewState.LightMapOnly
+		};
+
+		public static void SaveLightPreviewState(LightPreviewStateModel state)
+		{
+			_lightPreviewState = state;
 			SaveSettings();
 		}
 

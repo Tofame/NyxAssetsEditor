@@ -1,0 +1,228 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NyxAssetsEditor.ViewModels.Dialogs"
+		x:Class="NyxAssetsEditor.Views.Dialogs.LightPreviewDialog"
+		x:DataType="vm:LightPreviewDialogViewModel"
+		Title="In-Game Light Preview"
+		Width="980"
+		Height="620"
+		CanResize="True"
+		WindowStartupLocation="CenterOwner"
+		Background="#141414"
+		RequestedThemeVariant="Dark"
+		ShowInTaskbar="False">
+
+	<Window.Styles>
+		<Style Selector="TextBlock.label">
+			<Setter Property="Foreground" Value="#999999"/>
+			<Setter Property="FontSize" Value="11"/>
+		</Style>
+		<Style Selector="TextBlock.section">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Foreground" Value="#EEEEEE"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Margin" Value="0,2,0,0"/>
+		</Style>
+	</Window.Styles>
+
+	<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1">
+		<Grid RowDefinitions="Auto, *">
+			<!-- Header -->
+			<Border Grid.Row="0" Background="#252525" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="14,8">
+				<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+					<Border Width="22" Height="22" CornerRadius="11" Background="#3A3320">
+						<Image Source="/Assets/Icons/eye.png" Width="13" Height="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Border>
+					<TextBlock Text="In-Game Light Preview" FontSize="13" FontWeight="SemiBold" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+					<TextBlock Text="(OTC LightView: per-tile falloff, multiply blend)" FontSize="11" Foreground="#777777" VerticalAlignment="Center" Margin="8,0,0,0"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Content -->
+			<Grid Grid.Row="1" ColumnDefinitions="240, *">
+				<!-- Left panel: Lamp light + Scene Setup + Options + Actions -->
+				<Border Grid.Column="0" Background="#222222" BorderBrush="#333333" BorderThickness="0,0,1,0" Padding="12">
+					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+						<StackPanel Spacing="8">
+							<!-- Lamp Light Section -->
+							<TextBlock Text="Lamp Light" Classes="section"/>
+							<StackPanel Spacing="3">
+								<TextBlock Text="Color:" Classes="label"/>
+								<Grid ColumnDefinitions="*, Auto">
+									<NumericUpDown Grid.Column="0" Value="{Binding LightColor}" Minimum="0" Maximum="215" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+									<Button Grid.Column="1" Width="26" Height="26" Margin="6,0,0,0" BorderBrush="#444444" BorderThickness="1" CornerRadius="4"
+											Background="{Binding LightColorBrush, Mode=OneWay}" ToolTip.Tip="Pick Light Color">
+										<Button.Flyout>
+											<Flyout Placement="BottomEdgeAlignedRight">
+												<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="6" Width="268" Height="236">
+													<ItemsControl ItemsSource="{Binding PaletteColors}" x:CompileBindings="False">
+														<ItemsControl.ItemsPanel>
+															<ItemsPanelTemplate>
+																<UniformGrid Columns="16" Rows="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+															</ItemsPanelTemplate>
+														</ItemsControl.ItemsPanel>
+														<ItemsControl.ItemTemplate>
+															<DataTemplate>
+																<Button Width="14" Height="14" Margin="1" Padding="0" CornerRadius="0" BorderThickness="0"
+																		Background="{Binding Hex}" Tag="{Binding Index}" Click="OnLightPaletteClick" ToolTip.Tip="{Binding Index}"/>
+															</DataTemplate>
+														</ItemsControl.ItemTemplate>
+													</ItemsControl>
+												</Border>
+											</Flyout>
+										</Button.Flyout>
+									</Button>
+								</Grid>
+							</StackPanel>
+
+							<StackPanel Spacing="3">
+								<TextBlock Text="Intensity:" Classes="label"/>
+								<NumericUpDown Value="{Binding LightLevel}" Minimum="0" Maximum="255" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+							</StackPanel>
+
+							<StackPanel Spacing="3">
+								<TextBlock Text="Lamp Item ID:" Classes="label"/>
+								<NumericUpDown Value="{Binding LampId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+							</StackPanel>
+
+							<Separator Background="#333333" Margin="0,2"/>
+
+							<!-- Scene Setup / Structure Section -->
+							<TextBlock Text="Scene Setup" Classes="section"/>
+							<Grid ColumnDefinitions="*, *">
+								<StackPanel Grid.Column="0" Spacing="2" Margin="0,0,3,0">
+									<TextBlock Text="Outer Size:" Classes="label"/>
+									<NumericUpDown Value="{Binding OuterSize}" Minimum="3" Maximum="25" Increment="2" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2" Margin="3,0,0,0">
+									<TextBlock Text="House Size:" Classes="label"/>
+									<NumericUpDown Value="{Binding HouseSize}" Minimum="3" Maximum="{Binding MaxHouseSize}" Increment="2" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+							</Grid>
+
+							<StackPanel Spacing="2">
+								<TextBlock Text="Ground Item ID:" Classes="label"/>
+								<ComboBox ItemsSource="{Binding AvailableGroundIds}"
+										  Text="{Binding GroundIdText, Mode=TwoWay}"
+										  IsEditable="True" Height="26" FontSize="11" Padding="6,2" HorizontalAlignment="Stretch" PlaceholderText="Enter or select Ground ID"/>
+							</StackPanel>
+
+							<Grid ColumnDefinitions="*, *">
+								<StackPanel Grid.Column="0" Spacing="2" Margin="0,0,3,0">
+									<TextBlock Text="Pole ID:" Classes="label"/>
+									<NumericUpDown Value="{Binding PoleId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2" Margin="3,0,0,0">
+									<TextBlock Text="Corner ID:" Classes="label"/>
+									<NumericUpDown Value="{Binding CornerId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+							</Grid>
+
+							<Grid ColumnDefinitions="*, *">
+								<StackPanel Grid.Column="0" Spacing="2" Margin="0,0,3,0">
+									<TextBlock Text="Horiz Wall ID:" Classes="label"/>
+									<NumericUpDown Value="{Binding HorizontalId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2" Margin="3,0,0,0">
+									<TextBlock Text="Vert Wall ID:" Classes="label"/>
+									<NumericUpDown Value="{Binding VerticalId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								</StackPanel>
+							</Grid>
+
+							<Separator Background="#333333" Margin="0,2"/>
+
+							<!-- Options Section -->
+							<TextBlock Text="Options" Classes="section"/>
+							<CheckBox Content="Animate lamp" IsChecked="{Binding Animate}" FontSize="11"/>
+							<CheckBox Content="Show light map only" IsChecked="{Binding LightMapOnly}" FontSize="11" ToolTip.Tip="Render raw per-tile light texture without the scene"/>
+
+							<Separator Background="#333333" Margin="0,2"/>
+
+							<Grid ColumnDefinitions="*, *" ColumnSpacing="6">
+								<Button Grid.Column="0" Content="Apply to Thing" Click="OnApplyClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E3E2B" BorderBrush="#3A7E55" BorderThickness="1" Foreground="#A0FFA0" FontSize="11" Padding="0,6" ToolTip.Tip="Write light color + intensity to the thing in the editor"/>
+								<Button Grid.Column="1" Content="Reset" Click="OnResetClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2E2E2E" BorderBrush="#444444" BorderThickness="1" Foreground="#CCCCCC" FontSize="11" Padding="0,6" ToolTip.Tip="Reset light values to the editor thing (or defaults)"/>
+							</Grid>
+
+							<Border Background="#1E2A3A" BorderBrush="#3A5E8A" BorderThickness="1" CornerRadius="4" Padding="6" IsVisible="{Binding HasStatusMessage}">
+								<TextBlock Text="{Binding StatusMessage}" Foreground="#9FC5E8" FontSize="10" TextWrapping="Wrap"/>
+							</Border>
+						</StackPanel>
+					</ScrollViewer>
+				</Border>
+
+				<!-- Right panel: Top toolbar (Global Light/Time) + Preview viewport + bottom bar -->
+				<Grid Grid.Column="1" RowDefinitions="Auto, *, Auto" Background="#141414">
+					<!-- Upper toolbar in right panel: Global light & time controls -->
+					<Border Grid.Row="0" Background="#1C1C1C" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="14,8">
+						<WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+							<!-- Time & quick presets -->
+							<StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,2,16,2">
+								<TextBlock Text="Global Light:" FontWeight="SemiBold" Foreground="#E0E0E0" FontSize="11" VerticalAlignment="Center"/>
+								<Border Background="#252525" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="4" Padding="6,2">
+									<TextBlock Text="{Binding TimeDisplay}" Foreground="#F0E6B8" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+								</Border>
+								<Button Content="Day" Click="OnDayClick" Padding="8,3" FontSize="10" Background="#2A2A1E" BorderBrush="#8A7A3A" BorderThickness="1" Foreground="#E8D89F" ToolTip.Tip="Noon (07:20)"/>
+								<Button Content="Night" Click="OnNightClick" Padding="8,3" FontSize="10" Background="#1E2430" BorderBrush="#3A4E7A" BorderThickness="1" Foreground="#9FB8E8" ToolTip.Tip="Full night (20:00)"/>
+							</StackPanel>
+
+							<!-- Time slider/numeric -->
+							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,14,2">
+								<TextBlock Text="Time (min):" Classes="label" VerticalAlignment="Center"/>
+								<NumericUpDown Value="{Binding TimeMinutes}" ShowButtonSpinner="False" Minimum="0" Maximum="1439" Increment="5" FormatString="0" Height="26" Width="56" Padding="6,0" FontSize="11"/>
+							</StackPanel>
+
+							<!-- Global Intensity -->
+							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,14,2">
+								<TextBlock Text="Intensity:" Classes="label" VerticalAlignment="Center"/>
+								<NumericUpDown Value="{Binding GlobalIntensity}" ShowButtonSpinner="False" Minimum="0" Maximum="255" Increment="1" FormatString="0" Height="26" Width="46" Padding="6,0" FontSize="11"/>
+							</StackPanel>
+
+							<!-- Color Override + Picker Flyout -->
+							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,0,2">
+								<TextBlock Text="Color:" Classes="label" VerticalAlignment="Center"/>
+								<NumericUpDown Value="{Binding GlobalColor}" ShowButtonSpinner="False" Minimum="0" Maximum="215" Increment="1" FormatString="0" Height="26" Width="46" Padding="6,0" FontSize="11"/>
+								<Button Width="26" Height="26" Margin="4,0,0,0" BorderBrush="#444444" BorderThickness="1" CornerRadius="4"
+										Background="{Binding GlobalColorBrush, Mode=OneWay}" ToolTip.Tip="Pick Global Light Color">
+									<Button.Flyout>
+										<Flyout Placement="BottomEdgeAlignedRight">
+											<Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="6" Width="268" Height="236">
+												<ItemsControl ItemsSource="{Binding PaletteColors}" x:CompileBindings="False">
+													<ItemsControl.ItemsPanel>
+														<ItemsPanelTemplate>
+															<UniformGrid Columns="16" Rows="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+														</ItemsPanelTemplate>
+													</ItemsControl.ItemsPanel>
+													<ItemsControl.ItemTemplate>
+														<DataTemplate>
+															<Button Width="14" Height="14" Margin="1" Padding="0" CornerRadius="0" BorderThickness="0"
+																	Background="{Binding Hex}" Tag="{Binding Index}" Click="OnGlobalPaletteClick" ToolTip.Tip="{Binding Index}"/>
+														</DataTemplate>
+													</ItemsControl.ItemTemplate>
+												</ItemsControl>
+											</Border>
+										</Flyout>
+									</Button.Flyout>
+								</Button>
+							</StackPanel>
+						</WrapPanel>
+					</Border>
+
+					<!-- Preview viewport -->
+					<Border Grid.Row="1" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#0C0C0C" BorderBrush="#333333" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 16 0 #7F000000" ClipToBounds="True">
+						<Viewbox Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None">
+							<Image Source="{Binding PreviewImage}" RenderOptions.BitmapInterpolationMode="None"/>
+						</Viewbox>
+					</Border>
+
+					<!-- Bottom bar -->
+					<Border Grid.Row="2" Background="#202020" BorderBrush="#333333" BorderThickness="0,1,0,0" Padding="12,8">
+						<Grid ColumnDefinitions="*, Auto">
+							<TextBlock Grid.Column="0" Text="Per-tile light falloff, OTC-faithful. Light passes through walls." Foreground="#666666" FontSize="11" VerticalAlignment="Center"/>
+							<Button Grid.Column="1" Content="Close" Click="OnCloseClick" Padding="16,5" Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1" Foreground="#CCCCCC" FontSize="11" CornerRadius="4"/>
+						</Grid>
+					</Border>
+				</Grid>
+			</Grid>
+		</Grid> <!-- main Grid (RowDefs Auto,*) closes -->
+	</Border> <!-- outer Border closes -->
+</Window>

@@ -488,6 +488,20 @@ public partial class FloatingThingEditorControl : UserControl
 			dialog.Show();
 	}
 
+	private void OnPreviewLightClick(object? sender, RoutedEventArgs e)
+	{
+		if (DataContext is not FloatingThingEditorViewModel vm)
+			return;
+
+		var window = TopLevel.GetTopLevel(this) as Window;
+		var dialogVm = new ViewModels.Dialogs.LightPreviewDialogViewModel(vm);
+		var dialog = new Dialogs.LightPreviewDialog(dialogVm);
+		if (window != null)
+			dialog.Show(window);
+		else
+			dialog.Show();
+	}
+
 	private Canvas? GetParentCanvas()
 	{
 		Visual? visual = this;
