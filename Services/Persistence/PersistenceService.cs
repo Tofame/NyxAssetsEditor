@@ -134,7 +134,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int TimeMinutes { get; set; } = 1200;
 			public int GlobalIntensity { get; set; } = 40;
 			public int GlobalColor { get; set; } = 215;
-			public int LightViewIntensity { get; set; } = 100;
+			public int LightViewIntensity { get; set; } = 0;
 			public bool Animate { get; set; } = true;
 			public bool LightMapOnly { get; set; }
 		}

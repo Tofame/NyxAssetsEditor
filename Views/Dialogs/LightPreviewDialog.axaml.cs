@@ -45,13 +45,13 @@ public partial class LightPreviewDialog : Window
 
 	private void OnLightPaletteClick(object? sender, RoutedEventArgs e)
 	{
-		if (DataContext is LightPreviewDialogViewModel vm && sender is Button { Tag: int index })
-			vm.LightColor = index;
+		if (DataContext is LightPreviewDialogViewModel vm && sender is Button btn && btn.Tag != null)
+			vm.LightColor = Convert.ToInt32(btn.Tag);
 	}
 
 	private void OnGlobalPaletteClick(object? sender, RoutedEventArgs e)
 	{
-		if (DataContext is LightPreviewDialogViewModel vm && sender is Button { Tag: int index })
-			vm.GlobalColor = index;
+		if (DataContext is LightPreviewDialogViewModel vm && sender is Button btn && btn.Tag != null)
+			vm.GlobalColor = Convert.ToInt32(btn.Tag);
 	}
 }

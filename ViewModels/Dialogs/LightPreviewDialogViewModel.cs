@@ -288,8 +288,15 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		else
 			level = night;                          // full night
 
-		GlobalIntensity = Math.Clamp((int)level, 0, 255);
-		GlobalColor = 215;
+		_isApplyingTime = true;
+		try
+		{
+			GlobalIntensity = Math.Clamp((int)level, 0, 255);
+		}
+		finally
+		{
+			_isApplyingTime = false;
+		}
 	}
 
 	// ---------- Global Light (server light simulation) ----------
@@ -309,15 +316,40 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		}
 	}
 
+	private bool _isApplyingTime;
+
 	public int GlobalIntensity
 	{
 		get => _globalIntensity;
 		set
 		{
-			if (_globalIntensity != value)
+			int clamped = Math.Clamp(value, 0, 255);
+			if (_globalIntensity != clamped)
 			{
-				_globalIntensity = Math.Clamp(value, 0, 255);
+				_globalIntensity = clamped;
 				OnPropertyChanged();
+				if (!_isApplyingTime)
+				{
+					// Map intensity back to time
+					const int day = 250, night = 40;
+					int approxMinutes;
+					if (clamped <= night)
+					{
+						approxMinutes = 1200; // full night (20:00)
+					}
+					else if (clamped >= day)
+					{
+						approxMinutes = 720;  // full day (12:00)
+					}
+					else
+					{
+						// In dusk ramp (1080..1200): level = day - (t - 1080) * 1.75f => t = 1080 + (day - level) / 1.75f
+						approxMinutes = (int)Math.Round(1080 + (day - clamped) / 1.75f);
+					}
+					_timeMinutes = Math.Clamp(approxMinutes, 0, 1439);
+					OnPropertyChanged(nameof(TimeMinutes));
+					OnPropertyChanged(nameof(TimeDisplay));
+				}
 				RefreshPreview();
 			}
 		}
@@ -432,7 +464,7 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		_timeMinutes = state.TimeMinutes;
 		_globalIntensity = state.GlobalIntensity;
 		_globalColor = state.GlobalColor;
-		_lightViewIntensity = state.LightViewIntensity <= 0 ? 100 : state.LightViewIntensity;
+		_lightViewIntensity = Math.Clamp(state.LightViewIntensity, 0, 100);
 		_animate = state.Animate;
 		_lightMapOnly = state.LightMapOnly;
 
@@ -712,18 +744,10 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 					b = Math.Max(b, (int)(lb * factor));
 				}
 
-				// Also ensure minimum ambient floor per-tile
-				if (minAmbient > 0)
-				{
-					r = Math.Max(r, minAmbient);
-					g = Math.Max(g, minAmbient);
-					b = Math.Max(b, minAmbient);
-				}
-
 				int li = (ty * outer + tx) * 3;
-				tileLight[li] = (byte)r;
-				tileLight[li + 1] = (byte)g;
-				tileLight[li + 2] = (byte)b;
+				tileLight[li] = (byte)Math.Clamp(r, 0, 255);
+				tileLight[li + 1] = (byte)Math.Clamp(g, 0, 255);
+				tileLight[li + 2] = (byte)Math.Clamp(b, 0, 255);
 			}
 		}
 
