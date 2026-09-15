@@ -2,7 +2,7 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		x:Class="NyxAssetsEditor.Views.Pages.AssetExportDialog"
 		Title="Export"
-		Width="420"
+		Width="520"
 		SizeToContent="Height"
 		CanResize="False"
 		WindowStartupLocation="CenterOwner"
@@ -51,19 +51,25 @@
 			</Border>
 
 			<Border Padding="20,8,20,15">
-				<Grid ColumnDefinitions="*,Auto,Auto">
+				<Grid ColumnDefinitions="*,Auto,Auto,Auto">
 					<CheckBox Name="SkipWestCheckBox"
 							  Content="Skip West Direction"
 							  FontSize="11"
 							  Foreground="#A0A0A0"
 							  VerticalAlignment="Center"/>
-					<Button Grid.Column="1" Name="ExportButton"
+					<CheckBox Grid.Column="1" Name="GifAllDirectionsCheckBox"
+							  Content="Export all directions in .gif"
+							  FontSize="11"
+							  Foreground="#A0A0A0"
+							  VerticalAlignment="Center"
+							  ToolTip.Tip="When unchecked (default), only the South direction is animated in the .gif."/>
+					<Button Grid.Column="2" Name="ExportButton"
 							Content="Export"
 							Padding="14,6" Margin="0,0,6,0"
 							Background="#1A3A1A" BorderBrush="#3A6A3A" BorderThickness="1"
 							Foreground="#88CC88" FontSize="12" CornerRadius="4"
 							Click="OnExportClick"/>
-					<Button Grid.Column="2" Content="Cancel"
+					<Button Grid.Column="3" Content="Cancel"
 							Padding="14,6"
 							Background="#2A2A2A" BorderBrush="#444444" BorderThickness="1"
 							Foreground="#AAAAAA" FontSize="12" CornerRadius="4"

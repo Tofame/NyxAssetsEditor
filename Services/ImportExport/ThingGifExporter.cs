@@ -19,10 +19,11 @@ public static class ThingGifExporter
 	/// Renders all animation frames of <paramref name="thing"/> and writes an
 	/// animated .gif to <paramref name="outputPath"/>.
 	/// </summary>
+	/// <param name="allDirections">Outfits only: <c>true</c> animates all four directions; <c>false</c> (default) animates South only.</param>
 	/// <returns><c>true</c> on success, <c>false</c> if the thing has no renderable frames.</returns>
-	public static bool TryWriteThingGif(SpriteLoader loader, ThingType thing, string outputPath)
+	public static bool TryWriteThingGif(SpriteLoader loader, ThingType thing, string outputPath, bool allDirections = false)
 	{
-		var frames = BuildFrames(loader, thing);
+		var frames = BuildFrames(loader, thing, allDirections);
 		if (frames == null || frames.Length == 0)
 			return false;
 
@@ -33,10 +34,10 @@ public static class ThingGifExporter
 
 	// ── internals ─────────────────────────────────────────────────────────────
 
-	private static GifEncoder.GifFrame[]? BuildFrames(SpriteLoader loader, ThingType thing)
+	private static GifEncoder.GifFrame[]? BuildFrames(SpriteLoader loader, ThingType thing, bool allDirections)
 	{
 		if (thing.Kind == ThingKind.Outfit)
-			return BuildOutfitFrames(loader, thing);
+			return BuildOutfitFrames(loader, thing, allDirections);
 
 		int frameCount = GetFrameCount(thing);
 		if (frameCount <= 0)
@@ -62,7 +63,7 @@ public static class ThingGifExporter
 	// Direction4: North=0, East=1, South=2, West=3
 	private static readonly int[] OutfitDirectionOrder = [2, 3, 0, 1]; // South, West, North, East
 
-	private static GifEncoder.GifFrame[]? BuildOutfitFrames(SpriteLoader loader, ThingType thing)
+	private static GifEncoder.GifFrame[]? BuildOutfitFrames(SpriteLoader loader, ThingType thing, bool allDirections)
 	{
 		if (thing.FrameGroups.Count == 0)
 			return null;
@@ -74,9 +75,10 @@ public static class ThingGifExporter
 		int delayMs = (int)SettingsViewModel.GetDefaultAnimationDurationMs(ThingKind.Outfit);
 		int delayCs = Math.Max(1, (int)Math.Round(delayMs / 10.0));
 
-		var gifFrames = new List<GifEncoder.GifFrame>(walkFrames * 4);
+		var directions = allDirections ? OutfitDirectionOrder : [2]; // South only by default
+		var gifFrames = new List<GifEncoder.GifFrame>(walkFrames * directions.Length);
 
-		foreach (int dir in OutfitDirectionOrder)
+		foreach (int dir in directions)
 		{
 			for (int wp = 0; wp < walkFrames; wp++)
 			{

@@ -293,7 +293,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						await dialog.ShowDialog(window);
 						if (dialog.IsConfirmed)
 						{
-							PerformThingExport(vm, e.Things, dialog.ExportName, dialog.ExportPath, dialog.ExportFormat, dialog.SkipWestDirection);
+							PerformThingExport(vm, e.Things, dialog.ExportName, dialog.ExportPath, dialog.ExportFormat, dialog.SkipWestDirection, dialog.ExportAllGifDirections);
 						}
 					}
 					break;
@@ -640,11 +640,11 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			}
 		}
 
-		private static void WriteThingSpritesheetExport(SpriteLoader loader, NyxAssets.Things.ThingType thing, string outputPath, string format, bool skipWest = false)
+		private static void WriteThingSpritesheetExport(SpriteLoader loader, NyxAssets.Things.ThingType thing, string outputPath, string format, bool skipWest = false, bool allGifDirections = false)
 		{
 			if (format is "gif")
 			{
-				var ok = NyxAssetsEditor.Services.ImportExport.ThingGifExporter.TryWriteThingGif(loader, thing, outputPath);
+				var ok = NyxAssetsEditor.Services.ImportExport.ThingGifExporter.TryWriteThingGif(loader, thing, outputPath, allGifDirections);
 				if (!ok)
 					throw new InvalidOperationException($"ThingGifExporter could not write GIF for thing {thing.Id}.");
 				return;
@@ -672,7 +672,8 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 			string name,
 			string folderPath,
 			string format,
-			bool skipWest = false)
+			bool skipWest = false,
+			bool allGifDirections = false)
 		{
 			if (things.Count == 0)
 				return;
@@ -721,7 +722,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 					}
 					else
 					{
-						WriteThingSpritesheetExport(loader, thingType, outputPath, formatLower, skipWest);
+						WriteThingSpritesheetExport(loader, thingType, outputPath, formatLower, skipWest, allGifDirections);
 					}
 				}
 				else
@@ -746,7 +747,7 @@ namespace NyxAssetsEditor.Views.ArchiveLoaders
 						}
 						else
 						{
-							WriteThingSpritesheetExport(spriteSource, thingType, outputPath, formatLower, skipWest);
+							WriteThingSpritesheetExport(loader, thingType, outputPath, formatLower, skipWest, allGifDirections);
 						}
 					}
 				}

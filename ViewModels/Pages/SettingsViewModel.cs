@@ -718,6 +718,13 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			private set => _lastThingExportSkipWest = value;
 		}
 
+		private static bool _lastThingExportAllGifDirections;
+		public static bool LastThingExportAllGifDirections
+		{
+			get => _lastThingExportAllGifDirections;
+			private set => _lastThingExportAllGifDirections = value;
+		}
+
 		private static bool _thingEditorShowAllDirections;
 		public static bool ThingEditorShowAllDirections
 		{
@@ -777,17 +784,21 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			return "png";
 		}
 
-		public static void RememberAssetExport(string format, string directory, bool skipWest, bool thingsFormats)
+		public static void RememberAssetExport(string format, string directory, bool skipWest, bool allGifDirections, bool thingsFormats)
 		{
 			format = NormalizeAssetExportFormat(format, thingsFormats);
 			var changed = _lastAssetExportFormat != format
 				|| _lastThingExportSkipWest != skipWest
+				|| _lastThingExportAllGifDirections != allGifDirections
 				|| (!string.IsNullOrWhiteSpace(directory) && _lastAssetExportDirectory != directory);
 			_lastAssetExportFormat = format;
 			if (!string.IsNullOrWhiteSpace(directory))
 				_lastAssetExportDirectory = directory;
 			if (thingsFormats)
+			{
 				_lastThingExportSkipWest = skipWest;
+				_lastThingExportAllGifDirections = allGifDirections;
+			}
 			if (changed)
 				PersistenceService.SaveSettings();
 		}
@@ -955,6 +966,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			string? lastAssetExportDirectory = null,
 			string? lastAssetImportDirectory = null,
 			bool lastThingExportSkipWest = false,
+			bool lastThingExportAllGifDirections = false,
 			bool thingEditorShowAllDirections = false,
 			bool thingEditorShowTimeframe = false,
 			bool thingEditorAutoRotate = false,
@@ -1010,6 +1022,7 @@ namespace NyxAssetsEditor.ViewModels.Pages
 			_lastAssetExportDirectory = lastAssetExportDirectory ?? "";
 			_lastAssetImportDirectory = lastAssetImportDirectory ?? "";
 			_lastThingExportSkipWest = lastThingExportSkipWest;
+			_lastThingExportAllGifDirections = lastThingExportAllGifDirections;
 			_thingEditorShowAllDirections = thingEditorShowAllDirections;
 			_thingEditorShowTimeframe = thingEditorShowTimeframe;
 			_thingEditorAutoRotate = thingEditorAutoRotate;

@@ -85,6 +85,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public string LastAssetExportDirectory { get; set; } = "";
 			public string LastAssetImportDirectory { get; set; } = "";
 			public bool LastThingExportSkipWest { get; set; }
+			public bool LastThingExportAllGifDirections { get; set; }
 			public bool ThingEditorShowAllDirections { get; set; }
 			public bool ThingEditorShowTimeframe { get; set; }
 			public bool ThingEditorAutoRotate { get; set; }
@@ -243,6 +244,7 @@ namespace NyxAssetsEditor.Services.Persistence
 							model.LastAssetExportDirectory,
 							model.LastAssetImportDirectory,
 							model.LastThingExportSkipWest,
+							model.LastThingExportAllGifDirections,
 							model.ThingEditorShowAllDirections,
 							model.ThingEditorShowTimeframe,
 							model.ThingEditorAutoRotate,
@@ -305,6 +307,7 @@ namespace NyxAssetsEditor.Services.Persistence
 					LastAssetExportDirectory = SettingsViewModel.LastAssetExportDirectory,
 					LastAssetImportDirectory = SettingsViewModel.LastAssetImportDirectory,
 					LastThingExportSkipWest = SettingsViewModel.LastThingExportSkipWest,
+					LastThingExportAllGifDirections = SettingsViewModel.LastThingExportAllGifDirections,
 					ThingEditorShowAllDirections = SettingsViewModel.ThingEditorShowAllDirections,
 					ThingEditorShowTimeframe = SettingsViewModel.ThingEditorShowTimeframe,
 					ThingEditorAutoRotate = SettingsViewModel.ThingEditorAutoRotate,

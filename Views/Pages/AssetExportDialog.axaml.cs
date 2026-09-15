@@ -21,6 +21,7 @@ public partial class AssetExportDialog : Window
 	public string ExportPath => PathInput?.Text?.Trim() ?? string.Empty;
 	public string ExportName => NameInput?.Text?.Trim() ?? "item";
 	public bool SkipWestDirection => SkipWestCheckBox?.IsChecked == true && SkipWestCheckBox.IsVisible;
+	public bool ExportAllGifDirections => GifAllDirectionsCheckBox?.IsChecked == true && GifAllDirectionsCheckBox.IsVisible;
 	public string ExportFormat
 	{
 		get
@@ -63,6 +64,11 @@ public partial class AssetExportDialog : Window
 		{
 			SkipWestCheckBox.IsChecked = showThingsFormats && SettingsViewModel.LastThingExportSkipWest;
 			SkipWestCheckBox.IsCheckedChanged += (_, _) => RememberCurrentChoices(ExportFormat);
+		}
+		if (GifAllDirectionsCheckBox != null)
+		{
+			GifAllDirectionsCheckBox.IsChecked = showThingsFormats && SettingsViewModel.LastThingExportAllGifDirections;
+			GifAllDirectionsCheckBox.IsCheckedChanged += (_, _) => RememberCurrentChoices(ExportFormat);
 		}
 
 		PathInput.TextChanged += (_, _) => UpdateExportEnabled();
@@ -149,7 +155,7 @@ public partial class AssetExportDialog : Window
 			_lastThingsFormat = format;
 		else
 			_lastSpritesFormat = format;
-		SettingsViewModel.RememberAssetExport(format, ExportPath, SkipWestDirection, _showThingsFormats);
+		SettingsViewModel.RememberAssetExport(format, ExportPath, SkipWestDirection, ExportAllGifDirections, _showThingsFormats);
 	}
 
 	private void UpdateSkipWestVisibility()
@@ -160,6 +166,8 @@ public partial class AssetExportDialog : Window
 		bool isGraphicalFormat = PngRadio?.IsChecked == true || BmpRadio?.IsChecked == true || JpgRadio?.IsChecked == true || GifRadio?.IsChecked == true;
 		bool isOutfit = _exportKind == ThingKind.Outfit;
 		SkipWestCheckBox.IsVisible = _showThingsFormats && isGraphicalFormat && isOutfit;
+		if (GifAllDirectionsCheckBox != null)
+			GifAllDirectionsCheckBox.IsVisible = _showThingsFormats && isOutfit && GifRadio?.IsChecked == true;
 	}
 
 	private void UpdateExportEnabled()
