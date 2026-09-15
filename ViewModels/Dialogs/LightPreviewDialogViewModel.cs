@@ -42,6 +42,7 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 	private int _lightLevel = 100;
 	private int _globalColor = 215;   // server always sends white (from8bit * intensity/255)
 	private int _globalIntensity = 40; // night default (LIGHT_NIGHT at 20:00)
+	private int _lightViewIntensity = 100; // OTC setting in Interface (0-100%)
 	private bool _animate = true;
 	private bool _lightMapOnly = false;
 	private int _lampFrame = 0;
@@ -176,6 +177,8 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		set { if (_lampId != value) { _lampId = value; OnPropertyChanged(); RefreshPreview(); } }
 	}
 
+	private bool _isSyncingWithEditor;
+
 	public int LightColor
 	{
 		get => _lightColor;
@@ -186,6 +189,19 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 				_lightColor = Math.Clamp(value, 0, 215);
 				OnPropertyChanged();
 				OnPropertyChanged(nameof(LightColorBrush));
+				if (!_isSyncingWithEditor)
+				{
+					_isSyncingWithEditor = true;
+					try
+					{
+						_editor.HasLight = true;
+						_editor.LightColor = (uint)_lightColor;
+					}
+					finally
+					{
+						_isSyncingWithEditor = false;
+					}
+				}
 				RefreshPreview();
 			}
 		}
@@ -200,6 +216,19 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 			{
 				_lightLevel = Math.Clamp(value, 0, 255);
 				OnPropertyChanged();
+				if (!_isSyncingWithEditor)
+				{
+					_isSyncingWithEditor = true;
+					try
+					{
+						_editor.HasLight = true;
+						_editor.LightLevel = (uint)_lightLevel;
+					}
+					finally
+					{
+						_isSyncingWithEditor = false;
+					}
+				}
 				RefreshPreview();
 			}
 		}
@@ -294,6 +323,22 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		}
 	}
 
+	/// <summary>OTC setting in Interface (0-100%). Modulates the entire light view.</summary>
+	public int LightViewIntensity
+	{
+		get => _lightViewIntensity;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 100);
+			if (_lightViewIntensity != clamped)
+			{
+				_lightViewIntensity = clamped;
+				OnPropertyChanged();
+				RefreshPreview();
+			}
+		}
+	}
+
 	// ---------- Options ----------
 
 	public bool Animate
@@ -369,7 +414,7 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		_horizontalId = state.HorizontalId == 0 ? 1103 : state.HorizontalId;
 		_verticalId = state.VerticalId == 0 ? 1105 : state.VerticalId;
 		_cornerId = state.CornerId == 0 ? 1104 : state.CornerId;
-		_lampId = state.LampId == 0 ? 1424 : state.LampId;
+		_lampId = editor.IsItem ? editor.ThingId : (state.LampId == 0 ? 1424 : state.LampId);
 
 		// Light values: editor thing first, then persisted, then sensible defaults
 		var thing = editor.Thing;
@@ -387,6 +432,7 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 		_timeMinutes = state.TimeMinutes;
 		_globalIntensity = state.GlobalIntensity;
 		_globalColor = state.GlobalColor;
+		_lightViewIntensity = state.LightViewIntensity <= 0 ? 100 : state.LightViewIntensity;
 		_animate = state.Animate;
 		_lightMapOnly = state.LightMapOnly;
 
@@ -398,11 +444,49 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 
 		PopulateChoices();
 		RefreshPreview();
+		_editor.PropertyChanged += OnEditorPropertyChanged;
 		_animationTimer.Start();
+	}
+
+	private void OnEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (_isSyncingWithEditor)
+			return;
+
+		if (e.PropertyName == nameof(FloatingThingEditorViewModel.LightColor))
+		{
+			_isSyncingWithEditor = true;
+			try
+			{
+				_lightColor = (int)_editor.LightColor;
+				OnPropertyChanged(nameof(LightColor));
+				OnPropertyChanged(nameof(LightColorBrush));
+				RefreshPreview();
+			}
+			finally
+			{
+				_isSyncingWithEditor = false;
+			}
+		}
+		else if (e.PropertyName == nameof(FloatingThingEditorViewModel.LightLevel))
+		{
+			_isSyncingWithEditor = true;
+			try
+			{
+				_lightLevel = (int)_editor.LightLevel;
+				OnPropertyChanged(nameof(LightLevel));
+				RefreshPreview();
+			}
+			finally
+			{
+				_isSyncingWithEditor = false;
+			}
+		}
 	}
 
 	public void StopTimer()
 	{
+		_editor.PropertyChanged -= OnEditorPropertyChanged;
 		_animationTimer.Stop();
 		SaveState();
 	}
@@ -496,6 +580,7 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 			TimeMinutes = _timeMinutes,
 			GlobalIntensity = _globalIntensity,
 			GlobalColor = _globalColor,
+			LightViewIntensity = _lightViewIntensity,
 			Animate = _animate,
 			LightMapOnly = _lightMapOnly
 		});
@@ -587,12 +672,18 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 
 	private void ApplyLight(byte[] canvas, int canvasW, int canvasH, int outer, int edge, int padding, int center)
 	{
+		// OTC ambient light (Options -> Interface -> Ambient Light 0..100%):
+		// In OTC (mapview.cpp): ambientLight.intensity = std::max(m_minimumAmbientLight * 255, ambientLight.intensity)
+		// It sets a minimum brightness floor for the ambient/global darkness.
+		int minAmbient = (int)(_lightViewIntensity * 255f / 100f);
+		int effectiveGlobalIntensity = Math.Max(minAmbient, _globalIntensity);
+
 		// Global light (server light): from8bit(color) * intensity/255
 		int gr, gg, gb;
 		From8Bit(_globalColor, out gr, out gg, out gb);
-		gr = (int)(gr * _globalIntensity / 255f);
-		gg = (int)(gg * _globalIntensity / 255f);
-		gb = (int)(gb * _globalIntensity / 255f);
+		gr = (int)(gr * effectiveGlobalIntensity / 255f);
+		gg = (int)(gg * effectiveGlobalIntensity / 255f);
+		gb = (int)(gb * effectiveGlobalIntensity / 255f);
 
 		int lr, lg, lb;
 		From8Bit(_lightColor, out lr, out lg, out lb);
@@ -621,6 +712,14 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 					b = Math.Max(b, (int)(lb * factor));
 				}
 
+				// Also ensure minimum ambient floor per-tile
+				if (minAmbient > 0)
+				{
+					r = Math.Max(r, minAmbient);
+					g = Math.Max(g, minAmbient);
+					b = Math.Max(b, minAmbient);
+				}
+
 				int li = (ty * outer + tx) * 3;
 				tileLight[li] = (byte)r;
 				tileLight[li + 1] = (byte)g;
@@ -636,7 +735,9 @@ public sealed class LightPreviewDialogViewModel : INotifyPropertyChanged
 				for (int tx = 0; tx < outer; tx++)
 				{
 					int li = (ty * outer + tx) * 3;
-					int r = tileLight[li], g = tileLight[li + 1], b = tileLight[li + 2];
+					int r = tileLight[li];
+					int g = tileLight[li + 1];
+					int b = tileLight[li + 2];
 					int x0 = padding + tx * edge, y0 = padding + ty * edge;
 					for (int y = y0; y < y0 + edge; y++)
 					{

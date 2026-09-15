@@ -82,7 +82,7 @@
 
 							<StackPanel Spacing="3">
 								<TextBlock Text="Lamp Item ID:" Classes="label"/>
-								<NumericUpDown Value="{Binding LampId}" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11"/>
+								<NumericUpDown Value="{Binding LampId}" IsEnabled="False" Minimum="1" Maximum="{Binding MaxItemId}" Increment="1" FormatString="0" Height="26" Padding="4,0" FontSize="11" ToolTip.Tip="Locked to the thing currently being edited."/>
 							</StackPanel>
 
 							<Separator Background="#333333" Margin="0,2"/>
@@ -135,17 +135,6 @@
 							<TextBlock Text="Options" Classes="section"/>
 							<CheckBox Content="Animate lamp" IsChecked="{Binding Animate}" FontSize="11"/>
 							<CheckBox Content="Show light map only" IsChecked="{Binding LightMapOnly}" FontSize="11" ToolTip.Tip="Render raw per-tile light texture without the scene"/>
-
-							<Separator Background="#333333" Margin="0,2"/>
-
-							<Grid ColumnDefinitions="*, *" ColumnSpacing="6">
-								<Button Grid.Column="0" Content="Apply to Thing" Click="OnApplyClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E3E2B" BorderBrush="#3A7E55" BorderThickness="1" Foreground="#A0FFA0" FontSize="11" Padding="0,6" ToolTip.Tip="Write light color + intensity to the thing in the editor"/>
-								<Button Grid.Column="1" Content="Reset" Click="OnResetClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2E2E2E" BorderBrush="#444444" BorderThickness="1" Foreground="#CCCCCC" FontSize="11" Padding="0,6" ToolTip.Tip="Reset light values to the editor thing (or defaults)"/>
-							</Grid>
-
-							<Border Background="#1E2A3A" BorderBrush="#3A5E8A" BorderThickness="1" CornerRadius="4" Padding="6" IsVisible="{Binding HasStatusMessage}">
-								<TextBlock Text="{Binding StatusMessage}" Foreground="#9FC5E8" FontSize="10" TextWrapping="Wrap"/>
-							</Border>
 						</StackPanel>
 					</ScrollViewer>
 				</Border>
@@ -178,7 +167,7 @@
 							</StackPanel>
 
 							<!-- Color Override + Picker Flyout -->
-							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,0,2">
+							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,14,2">
 								<TextBlock Text="Color:" Classes="label" VerticalAlignment="Center"/>
 								<NumericUpDown Value="{Binding GlobalColor}" ShowButtonSpinner="False" Minimum="0" Maximum="215" Increment="1" FormatString="0" Height="26" Width="46" Padding="6,0" FontSize="11"/>
 								<Button Width="26" Height="26" Margin="4,0,0,0" BorderBrush="#444444" BorderThickness="1" CornerRadius="4"
@@ -203,6 +192,13 @@
 										</Flyout>
 									</Button.Flyout>
 								</Button>
+							</StackPanel>
+
+							<!-- Ambient Light / Light Intensity (OTC setting in Interface) -->
+							<StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="0,2,0,2"
+										ToolTip.Tip="OTC setting in Interface: Ambient Light (0-100%). Minimum brightness floor on the map.">
+								<TextBlock Text="Ambient Light:" Classes="label" VerticalAlignment="Center"/>
+								<NumericUpDown Value="{Binding LightViewIntensity}" ShowButtonSpinner="False" Minimum="0" Maximum="100" Increment="5" FormatString="0'%'" Height="26" Width="48" Padding="6,0" FontSize="11"/>
 							</StackPanel>
 						</WrapPanel>
 					</Border>

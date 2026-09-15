@@ -26,18 +26,6 @@ public partial class LightPreviewDialog : Window
 		}
 	}
 
-	private void OnApplyClick(object? sender, RoutedEventArgs e)
-	{
-		if (DataContext is LightPreviewDialogViewModel vm)
-			vm.ApplyLightToEditor();
-	}
-
-	private void OnResetClick(object? sender, RoutedEventArgs e)
-	{
-		if (DataContext is LightPreviewDialogViewModel vm)
-			vm.ResetLight();
-	}
-
 	private void OnCloseClick(object? sender, RoutedEventArgs e)
 	{
 		Close();

@@ -134,6 +134,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			public int TimeMinutes { get; set; } = 1200;
 			public int GlobalIntensity { get; set; } = 40;
 			public int GlobalColor { get; set; } = 215;
+			public int LightViewIntensity { get; set; } = 100;
 			public bool Animate { get; set; } = true;
 			public bool LightMapOnly { get; set; }
 		}
@@ -390,6 +391,7 @@ namespace NyxAssetsEditor.Services.Persistence
 			TimeMinutes = _lightPreviewState.TimeMinutes,
 			GlobalIntensity = _lightPreviewState.GlobalIntensity,
 			GlobalColor = _lightPreviewState.GlobalColor,
+			LightViewIntensity = _lightPreviewState.LightViewIntensity,
 			Animate = _lightPreviewState.Animate,
 			LightMapOnly = _lightPreviewState.LightMapOnly
 		};
